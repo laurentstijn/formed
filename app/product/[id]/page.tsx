@@ -6,14 +6,15 @@ import { ShareButtons } from "@/components/share-buttons"
 import { getProductById, products } from "@/lib/products"
 import { ArrowLeft } from "lucide-react"
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
   return products.map((product) => ({
     id: product.id.toString(),
   }))
 }
 
-export default function ProductPage({ params }: { params: { id: string } }) {
-  const product = getProductById(Number(params.id))
+export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  const product = getProductById(Number(resolvedParams.id))
 
   if (!product) {
     notFound()

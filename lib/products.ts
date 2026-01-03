@@ -25,7 +25,7 @@ export const products: Product[] = [
   {
     id: 2,
     name: "Klein Wandhaakje",
-    price: 54.99,
+    price: 24.99,
     image: "/products/klein_haakje.png",
     category: "Decoration",
     description: "Een klein haakje om een jas/ handdoek aan te hangen. Perfect in elk interieur.",
@@ -36,7 +36,7 @@ export const products: Product[] = [
   {
     id: 3,
     name: "Elegant dienblad",
-    price: 299.99,
+    price: 119.99,
     image: "/products/dienblad.png",
     category: "Decoration",
     description:

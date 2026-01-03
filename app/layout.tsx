@@ -10,11 +10,33 @@ const openSans = Open_Sans({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "FORMED - Gevouwen Staal",
   description: "Gevouwen staal. Tijdloos design voor uw interieur",
-  generator: "v0.app",
   icons: {
     icon: "/favicon.png",
     apple: "/favicon.png",
   },
+  openGraph: {
+    type: "website",
+    locale: "nl_BE",
+    url: "https://formed-webshop.vercel.app",
+    title: "FORMED - Gevouwen Staal",
+    description: "Gevouwen staal. Tijdloos design voor uw interieur",
+    siteName: "FORMED",
+    images: [
+      {
+        url: "/formed-secondary.png",
+        width: 1200,
+        height: 630,
+        alt: "FORMED - formed in steel",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FORMED - Gevouwen Staal",
+    description: "Gevouwen staal. Tijdloos design voor uw interieur",
+    images: ["/formed-secondary.png"],
+  },
+    generator: 'v0.app'
 }
 
 export default function RootLayout({

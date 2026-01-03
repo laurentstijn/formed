@@ -118,9 +118,7 @@ export default function ContactPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <img src="/formed-secondary.png" alt="FORMED" className="h-16 w-auto mb-4" />
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Gevouwen staal. Tijdloos design voor uw interieur.
-              </p>
+              
             </div>
             <div>
               <h4 className="font-semibold text-foreground mb-4">Links</h4>

@@ -8,7 +8,7 @@ import { CartProvider } from "@/components/cart-provider"
 const openSans = Open_Sans({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "FORMED - Gevouwen Staal",
+  title: "FORMED - formed in steel",
   description: "Gevouwen staal. Tijdloos design voor uw interieur",
   icons: {
     icon: "/favicon.png",

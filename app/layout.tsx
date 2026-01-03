@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     siteName: "FORMED",
     images: [
       {
-        url: "/formed-secondary.png",
+        url: "https://formed-webshop.vercel.app/og-image.png",
         width: 1200,
         height: 630,
         alt: "FORMED - formed in steel",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "FORMED - Gevouwen Staal",
     description: "Gevouwen staal. Tijdloos design voor uw interieur",
-    images: ["/formed-secondary.png"],
+    images: ["https://formed-webshop.vercel.app/og-image.png"],
   },
     generator: 'v0.app'
 }

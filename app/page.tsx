@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { CartButton } from "@/components/cart-button"
+import { ShareButtons } from "@/components/share-buttons"
 import { products } from "@/lib/products"
 
 export default function HomePage() {
@@ -105,6 +106,13 @@ export default function HomePage() {
                 <li>info@formed.be</li>
                 <li>+32 477 655 655</li>
               </ul>
+              <div className="mt-6">
+                <ShareButtons
+                  url="https://formed-webshop.vercel.app"
+                  title="FORMED - Gevouwen Staal"
+                  description="Gevouwen staal. Tijdloos design voor uw interieur."
+                />
+              </div>
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">

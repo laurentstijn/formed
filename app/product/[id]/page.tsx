@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { CartButton } from "@/components/cart-button"
 import { AddToCartButton } from "@/components/add-to-cart-button"
+import { ShareButtons } from "@/components/share-buttons"
 import { getProductById, products } from "@/lib/products"
 import { ArrowLeft } from "lucide-react"
 
@@ -17,6 +18,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   if (!product) {
     notFound()
   }
+
+  const productUrl = `https://formed-webshop.vercel.app/product/${product.id}`
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,6 +71,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <p className="text-muted-foreground leading-relaxed mb-8">{product.description}</p>
 
             <AddToCartButton product={product} />
+
+            {/* Share Buttons */}
+            <div className="mt-6 pt-6 border-t border-border">
+              <ShareButtons url={productUrl} title={`${product.name} - FORMED`} description={product.description} />
+            </div>
 
             {/* Product Details */}
             <div className="mt-12 space-y-8">

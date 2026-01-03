@@ -11,7 +11,7 @@ export default function ContactPage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/orife-logo.svg" alt="Orife" className="h-8 w-auto" />
+            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -31,11 +31,11 @@ export default function ContactPage() {
       {/* Hero Section */}
       <section className="py-20 md:py-32">
         <div className="container mx-auto px-4 max-w-3xl text-center">
-          <h1 className="text-4xl md:text-6xl font-serif font-semibold text-foreground mb-8 text-balance">
+          <h1 className="text-4xl md:text-6xl font-sans font-semibold text-foreground mb-8 text-balance">
             Neem Contact Op
           </h1>
           <p className="text-xl text-muted-foreground leading-relaxed text-pretty">
-            Heeft u vragen over onze producten of wilt u meer weten over Studio? We helpen u graag verder.
+            Heeft u vragen over onze producten of wilt u meer weten over FORMED? We helpen u graag verder.
           </p>
         </div>
       </section>
@@ -46,7 +46,7 @@ export default function ContactPage() {
           <div className="grid md:grid-cols-2 gap-12">
             {/* Contact Form */}
             <div className="bg-card rounded-lg p-8 border border-border">
-              <h2 className="text-2xl font-serif font-semibold text-foreground mb-6">Stuur ons een bericht</h2>
+              <h2 className="text-2xl font-sans font-semibold text-foreground mb-6">Stuur ons een bericht</h2>
               <form className="space-y-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
@@ -58,7 +58,7 @@ export default function ContactPage() {
                   <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                     E-mail
                   </label>
-                  <Input id="email" type="email" placeholder="uw@email.nl" required />
+                  <Input id="email" type="email" placeholder="uw@email.be" required />
                 </div>
                 <div>
                   <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-2">
@@ -81,42 +81,13 @@ export default function ContactPage() {
             {/* Contact Info */}
             <div className="space-y-8">
               <div>
-                <h3 className="text-xl font-serif font-semibold text-foreground mb-4">Bezoekadres</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Prinsengracht 263
-                  <br />
-                  1016 GV Amsterdam
-                  <br />
-                  Nederland
-                </p>
-              </div>
-
-              <div>
-                <h3 className="text-xl font-serif font-semibold text-foreground mb-4">Contactgegevens</h3>
+                <h3 className="text-xl font-sans font-semibold text-foreground mb-4">Contactgegevens</h3>
                 <ul className="space-y-3 text-muted-foreground">
                   <li>
-                    <span className="font-medium text-foreground">E-mail:</span> info@studio.nl
+                    <span className="font-medium text-foreground">E-mail:</span> info@formed.be
                   </li>
                   <li>
-                    <span className="font-medium text-foreground">Telefoon:</span> +31 20 123 4567
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="text-xl font-serif font-semibold text-foreground mb-4">Openingstijden</h3>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li className="flex justify-between">
-                    <span>Maandag - Vrijdag</span>
-                    <span>10:00 - 18:00</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>Zaterdag</span>
-                    <span>11:00 - 17:00</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>Zondag</span>
-                    <span>Gesloten</span>
+                    <span className="font-medium text-foreground">Telefoon:</span> +32 477 655 655
                   </li>
                 </ul>
               </div>
@@ -126,6 +97,14 @@ export default function ContactPage() {
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Ons team staat klaar om al uw vragen te beantwoorden. We streven ernaar om binnen 24 uur te reageren
                   op alle berichten.
+                </p>
+              </div>
+
+              <div className="bg-card rounded-lg p-6 border border-border">
+                <h3 className="text-lg font-semibold text-foreground mb-2">Over FORMED</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Gevestigd in Antwerpen, België. Wij creëren unieke stalen producten met innovatieve plooitechnieken
+                  geïnspireerd op Japanse origami.
                 </p>
               </div>
             </div>
@@ -138,9 +117,9 @@ export default function ContactPage() {
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <img src="/orife-logo.svg" alt="Orife" className="h-6 w-auto mb-4" />
+              <img src="/formed-secondary.png" alt="FORMED" className="h-16 w-auto mb-4" />
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Tijdloos design voor uw interieur. Kwaliteit en minimalisme in perfecte harmonie.
+                Gevouwen staal. Tijdloos design voor uw interieur.
               </p>
             </div>
             <div>
@@ -166,13 +145,13 @@ export default function ContactPage() {
             <div>
               <h4 className="font-semibold text-foreground mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>info@studio.nl</li>
-                <li>+31 20 123 4567</li>
+                <li>info@formed.be</li>
+                <li>+32 477 655 655</li>
               </ul>
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-            <p>© 2025 Studio. Alle rechten voorbehouden.</p>
+            <p>© 2025 FORMED. Alle rechten voorbehouden.</p>
           </div>
         </div>
       </footer>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" fill="none">
+  <!-- FORMED text -->
+  <text x="20" y="55" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#000000" letter-spacing="8">FORMED</text>
+  <!-- Red line accent -->
+  <line x1="20" y1="70" x2="200" y2="70" stroke="#D32F2F" stroke-width="3"/>
+  <!-- Tagline -->
+  <text x="20" y="100" font-family="Arial, sans-serif" font-size="18" fill="#666666" letter-spacing="2">formed in steel</text>
+</svg>

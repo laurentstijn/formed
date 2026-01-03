@@ -1,17 +1,15 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google"
+import { Open_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { CartProvider } from "@/components/cart-provider"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
-const _playfair = Playfair_Display({ subsets: ["latin"] })
+const openSans = Open_Sans({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Studio - Tijdloos Design",
-  description: "Ontdek onze zorgvuldig geselecteerde collectie van minimalistische woonaccessoires en meubels",
+  title: "FORMED - Gevouwen Staal",
+  description: "Gevouwen staal. Tijdloos design voor uw interieur",
   generator: "v0.app",
   icons: {
     icon: [
@@ -39,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl">
-      <body className={`font-sans antialiased`}>
+      <body className={`${openSans.className} antialiased`}>
         <CartProvider>{children}</CartProvider>
         <Analytics />
       </body>

@@ -10,7 +10,7 @@ export default function OrderConfirmationPage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/orife-logo.svg" alt="Orife" className="h-8 w-auto" />
+            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -35,7 +35,7 @@ export default function OrderConfirmationPage() {
               <CheckCircle className="h-16 w-16 text-primary" />
             </div>
           </div>
-          <h1 className="text-4xl font-serif font-semibold text-foreground mb-4">Bedankt voor uw bestelling!</h1>
+          <h1 className="text-4xl font-sans font-semibold text-foreground mb-4">Bedankt voor uw bestelling!</h1>
           <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
             Uw bestelling is succesvol geplaatst. U ontvangt binnen enkele minuten een bevestigingsmail met alle details
             en betaalinstructies.

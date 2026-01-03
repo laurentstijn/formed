@@ -8,7 +8,7 @@ export default function AboutPage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/orife-logo.svg" alt="Orife" className="h-8 w-auto" />
+            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -28,11 +28,11 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section className="py-20 md:py-32">
         <div className="container mx-auto px-4 max-w-3xl">
-          <h1 className="text-4xl md:text-6xl font-serif font-semibold text-foreground mb-8 text-balance">
-            Over Studio
+          <h1 className="text-4xl md:text-6xl font-sans font-semibold text-foreground mb-8 text-balance">
+            Over FORMED
           </h1>
           <p className="text-xl text-muted-foreground mb-12 leading-relaxed text-pretty">
-            Wij geloven in de kracht van eenvoud en tijdloos design dat generaties lang meegaat.
+            Wij vormgeven staal tot tijdloze designobjecten. Geïnspireerd door origami, gemaakt in Antwerpen.
           </p>
         </div>
       </section>
@@ -42,36 +42,38 @@ export default function AboutPage() {
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="grid md:grid-cols-2 gap-12 mb-16">
             <div>
-              <h2 className="text-2xl font-serif font-semibold text-foreground mb-4">Onze Visie</h2>
+              <h2 className="text-2xl font-sans font-semibold text-foreground mb-4">Onze Visie</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Studio is ontstaan vanuit een passie voor minimalistische vormgeving en hoogwaardige materialen. We
-                selecteren zorgvuldig elk product in onze collectie, waarbij kwaliteit en duurzaamheid altijd voorop
-                staan.
+                FORMED is ontstaan vanuit een fascinatie voor de Japanse kunst van het vouwen. We combineren deze
+                traditie met moderne staalbewerking om unieke designobjecten te creëren. Elk product is een eerbetoon
+                aan vakmanschap en duurzaamheid.
               </p>
             </div>
             <div>
-              <h2 className="text-2xl font-serif font-semibold text-foreground mb-4">Onze Waarden</h2>
+              <h2 className="text-2xl font-sans font-semibold text-foreground mb-4">Onze Waarden</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Tijdloos design, eerlijke materialen en vakmanschap zijn de pijlers van onze filosofie. We werken samen
-                met ambachtelijke makers en designers die onze visie delen op duurzaam en betekenisvol interieur.
+                Precisie, duurzaamheid en tijdloos design zijn de kern van FORMED. We werken met hoogwaardig staal en
+                gebruiken innovatieve plooitechnieken om producten te maken die generaties lang meegaan. Lokale
+                productie in Antwerpen staat centraal in onze werkwijze.
               </p>
             </div>
           </div>
 
           <div className="bg-card rounded-lg p-8 md:p-12 border border-border">
-            <h2 className="text-2xl font-serif font-semibold text-foreground mb-6">Ons Verhaal</h2>
+            <h2 className="text-2xl font-sans font-semibold text-foreground mb-6">Ons Verhaal</h2>
             <div className="space-y-4 text-muted-foreground leading-relaxed">
               <p>
-                Studio begon in 2020 als een klein atelier in Amsterdam. Wat begon als een passieproject is uitgegroeid
-                tot een gerespecteerde naam in de wereld van minimalistisch interieurdesign.
+                FORMED is gevestigd in het hart van Antwerpen, waar ambachtelijke traditie en moderne innovatie
+                samenkomen. Ons atelier combineert eeuwenoude plooitechnieken met hedendaagse staalbewerkingsmethoden.
               </p>
               <p>
-                Onze collectie wordt zorgvuldig samengesteld uit lokale en internationale ontwerpen. We geloven dat
-                minder meer is, en dat elk object in uw huis een doel en betekenis moet hebben.
+                Geïnspireerd door origami - de Japanse kunst van het papier vouwen - passen we deze principes toe op
+                staal. Het resultaat? Sterke, elegante objecten met geometrische lijnen die zowel functioneel als
+                sculpturaal zijn.
               </p>
               <p>
-                Vandaag de dag werken we met een toegewijd team van design-liefhebbers die elke dag streven naar
-                perfectie in service en productcuratie.
+                Elk FORMED product wordt lokaal vervaardigd met aandacht voor detail en kwaliteit. We geloven in
+                duurzaam design dat de tand des tijds doorstaat, zowel in vorm als functie.
               </p>
             </div>
           </div>
@@ -83,9 +85,9 @@ export default function AboutPage() {
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <img src="/orife-logo.svg" alt="Orife" className="h-6 w-auto mb-4" />
+              <img src="/formed-secondary.png" alt="FORMED" className="h-16 w-auto mb-4" />
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Tijdloos design voor uw interieur. Kwaliteit en minimalisme in perfecte harmonie.
+                Gevouwen staal. Tijdloos design voor uw interieur.
               </p>
             </div>
             <div>
@@ -111,13 +113,13 @@ export default function AboutPage() {
             <div>
               <h4 className="font-semibold text-foreground mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>info@studio.nl</li>
-                <li>+31 20 123 4567</li>
+                <li>info@formed.be</li>
+                <li>+32 477 655 655</li>
               </ul>
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-            <p>© 2025 Studio. Alle rechten voorbehouden.</p>
+            <p>© 2025 FORMED. Alle rechten voorbehouden.</p>
           </div>
         </div>
       </footer>

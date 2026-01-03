@@ -24,7 +24,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/orife-logo.svg" alt="Orife" className="h-8 w-auto" />
+            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -62,7 +62,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           {/* Product Info */}
           <div className="flex flex-col">
             <p className="text-sm text-muted-foreground mb-2 uppercase tracking-wider">{product.category}</p>
-            <h1 className="text-4xl font-serif font-semibold text-foreground mb-4">{product.name}</h1>
+            <h1 className="text-4xl font-sans font-semibold text-foreground mb-4">{product.name}</h1>
             <p className="text-3xl font-semibold text-foreground mb-8">€{product.price.toFixed(2)}</p>
 
             <p className="text-muted-foreground leading-relaxed mb-8">{product.description}</p>

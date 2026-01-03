@@ -1,14 +1,13 @@
 "use client"
 
 import type React from "react"
-
+import { useCart } from "@/components/cart-provider" // Updated import
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CartButton } from "@/components/cart-button"
-import { useCart } from "@/components/cart-provider"
 import { ArrowLeft } from "lucide-react"
 import { useState } from "react"
 
@@ -35,7 +34,7 @@ export default function CheckoutPage() {
         <header className="border-b border-border">
           <div className="container mx-auto px-4 py-6 flex items-center justify-between">
             <Link href="/" className="flex items-center">
-              <img src="/orife-logo.svg" alt="Orife" className="h-8 w-auto" />
+              <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
             </Link>
             <nav className="hidden md:flex items-center gap-8">
               <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -54,7 +53,7 @@ export default function CheckoutPage() {
 
         {/* Empty Cart */}
         <div className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-4xl font-serif font-semibold text-foreground mb-4">Uw winkelwagen is leeg</h1>
+          <h1 className="text-4xl font-sans font-semibold text-foreground mb-4">Uw winkelwagen is leeg</h1>
           <p className="text-muted-foreground mb-8">
             Voeg eerst producten toe aan uw winkelwagen voordat u naar de checkout gaat.
           </p>
@@ -75,7 +74,7 @@ export default function CheckoutPage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/orife-logo.svg" alt="Orife" className="h-8 w-auto" />
+            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -104,7 +103,7 @@ export default function CheckoutPage() {
           </Link>
         </div>
 
-        <h1 className="text-4xl font-serif font-semibold text-foreground mb-12">Afrekenen</h1>
+        <h1 className="text-4xl font-sans font-semibold text-foreground mb-12">Afrekenen</h1>
 
         <div className="grid lg:grid-cols-3 gap-12">
           {/* Checkout Form */}
@@ -112,7 +111,7 @@ export default function CheckoutPage() {
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Contact Information */}
               <div className="space-y-4">
-                <h2 className="text-xl font-serif font-semibold text-foreground">Contactgegevens</h2>
+                <h2 className="text-xl font-sans font-semibold text-foreground">Contactgegevens</h2>
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -137,7 +136,7 @@ export default function CheckoutPage() {
 
               {/* Shipping Address */}
               <div className="space-y-4 pt-8 border-t border-border">
-                <h2 className="text-xl font-serif font-semibold text-foreground">Verzendadres</h2>
+                <h2 className="text-xl font-sans font-semibold text-foreground">Verzendadres</h2>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="address">Straat en huisnummer</Label>
@@ -162,7 +161,7 @@ export default function CheckoutPage() {
 
               {/* Payment Method */}
               <div className="space-y-4 pt-8 border-t border-border">
-                <h2 className="text-xl font-serif font-semibold text-foreground">Betaalmethode</h2>
+                <h2 className="text-xl font-sans font-semibold text-foreground">Betaalmethode</h2>
                 <div className="bg-muted/50 border border-border rounded-lg p-6">
                   <p className="text-sm text-muted-foreground">
                     Na het plaatsen van uw bestelling ontvangt u een e-mail met betaalinstructies. U kunt betalen via
@@ -180,7 +179,7 @@ export default function CheckoutPage() {
           {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-card border border-border rounded-lg p-6 sticky top-6">
-              <h2 className="text-xl font-serif font-semibold text-foreground mb-6">Overzicht bestelling</h2>
+              <h2 className="text-xl font-sans font-semibold text-foreground mb-6">Overzicht bestelling</h2>
               <div className="space-y-4 mb-6">
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4">

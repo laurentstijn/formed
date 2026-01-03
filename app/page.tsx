@@ -10,7 +10,7 @@ export default function HomePage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/orife-logo.svg" alt="Orife" className="h-8 w-auto" />
+            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-sm text-foreground font-medium transition-colors">
@@ -30,11 +30,11 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="py-20 md:py-32">
         <div className="container mx-auto px-4 max-w-3xl text-center">
-          <h1 className="text-4xl md:text-6xl font-serif font-semibold text-foreground mb-6 text-balance">
-            Tijdloos Design voor Uw Interieur
+          <h1 className="text-4xl md:text-6xl font-sans font-semibold text-foreground mb-6 text-balance">
+            formed in steel
           </h1>
           <p className="text-lg text-muted-foreground mb-8 text-pretty leading-relaxed">
-            Ontdek onze zorgvuldig geselecteerde collectie van minimalistische woonaccessoires en meubels.
+            Ontdek onze zorgvuldig geselecteerde collectie van minimalistische woonaccessoires.
           </p>
           <Button size="lg" className="px-8">
             Ontdek de Collectie
@@ -45,7 +45,7 @@ export default function HomePage() {
       {/* Products Grid */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-serif font-semibold text-foreground mb-12 text-center">Onze Collectie</h2>
+          <h2 className="text-3xl font-sans font-semibold text-foreground mb-12 text-center">Onze Collectie</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {products.map((product) => (
               <Link key={product.id} href={`/product/${product.id}`} className="group">
@@ -74,9 +74,9 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <img src="/orife-logo.svg" alt="Orife" className="h-6 w-auto mb-4" />
+              <img src="/formed-secondary.png" alt="FORMED" className="h-16 w-auto mb-4" />
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Tijdloos design voor uw interieur. Kwaliteit en minimalisme in perfecte harmonie.
+                Gevouwen staal. Tijdloos design voor uw interieur.
               </p>
             </div>
             <div>
@@ -102,13 +102,13 @@ export default function HomePage() {
             <div>
               <h4 className="font-semibold text-foreground mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>info@orife.be</li>
+                <li>info@formed.be</li>
                 <li>+32 477 655 655</li>
               </ul>
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-            <p>© 2025 Studio. Alle rechten voorbehouden.</p>
+            <p>© 2025 FORMED. Alle rechten voorbehouden.</p>
           </div>
         </div>
       </footer>

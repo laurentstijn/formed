@@ -16,7 +16,7 @@ export default function CartPage() {
         <header className="border-b border-border">
           <div className="container mx-auto px-4 py-6 flex items-center justify-between">
             <Link href="/" className="flex items-center">
-              <img src="/orife-logo.svg" alt="Orife" className="h-8 w-auto" />
+              <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
             </Link>
             <nav className="hidden md:flex items-center gap-8">
               <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -35,7 +35,7 @@ export default function CartPage() {
 
         {/* Empty Cart */}
         <div className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-4xl font-serif font-semibold text-foreground mb-4">Uw winkelwagen is leeg</h1>
+          <h1 className="text-4xl font-sans font-semibold text-foreground mb-4">Uw winkelwagen is leeg</h1>
           <p className="text-muted-foreground mb-8">Ontdek onze collectie en voeg producten toe aan uw winkelwagen.</p>
           <Link href="/">
             <Button size="lg">
@@ -54,7 +54,7 @@ export default function CartPage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/orife-logo.svg" alt="Orife" className="h-8 w-auto" />
+            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -83,7 +83,7 @@ export default function CartPage() {
           </Link>
         </div>
 
-        <h1 className="text-4xl font-serif font-semibold text-foreground mb-12">Winkelwagen</h1>
+        <h1 className="text-4xl font-sans font-semibold text-foreground mb-12">Winkelwagen</h1>
 
         <div className="grid lg:grid-cols-3 gap-12">
           {/* Cart Items */}
@@ -141,7 +141,7 @@ export default function CartPage() {
           {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-card border border-border rounded-lg p-6 sticky top-6">
-              <h2 className="text-xl font-serif font-semibold text-foreground mb-6">Overzicht</h2>
+              <h2 className="text-xl font-sans font-semibold text-foreground mb-6">Overzicht</h2>
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotaal</span>

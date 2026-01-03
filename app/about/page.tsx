@@ -32,7 +32,7 @@ export default function AboutPage() {
             Over FORMED
           </h1>
           <p className="text-xl text-muted-foreground mb-12 leading-relaxed text-pretty">
-            Wij vormgeven staal tot tijdloze designobjecten. Geïnspireerd door origami, gemaakt in Antwerpen.
+            Wij vormen staal tot tijdloze designobjecten. Geïnspireerd door origami, gemaakt in Antwerpen.
           </p>
         </div>
       </section>

@@ -1,0 +1,67 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Technical drawing background -->
+  <rect width="800" height="600" fill="#ffffff"/>
+  
+  <!-- Grid -->
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0e0e0" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="600" fill="url(#grid)"/>
+  
+  <!-- Title -->
+  <text x="400" y="40" font-family="Arial" font-size="24" font-weight="bold" text-anchor="middle" fill="#000000">
+    CACTUS WANDHAAKJE - TECHNISCHE TEKENING
+  </text>
+  
+  <!-- Front view -->
+  <g transform="translate(150, 120)">
+    <text x="0" y="-10" font-family="Arial" font-size="16" font-weight="bold" fill="#000000">VOORAANZICHT</text>
+    <!-- Cactus outline -->
+    <path d="M 50 200 L 50 100 Q 50 80 60 70 Q 70 60 75 40 Q 80 60 90 70 Q 100 80 100 100 L 100 200 Z" 
+          fill="none" stroke="#000000" stroke-width="2"/>
+    <!-- Dimensions -->
+    <line x1="110" y1="40" x2="110" y2="200" stroke="#d32f2f" stroke-width="1"/>
+    <line x1="105" y1="40" x2="115" y2="40" stroke="#d32f2f" stroke-width="1"/>
+    <line x1="105" y1="200" x2="115" y2="200" stroke="#d32f2f" stroke-width="1"/>
+    <text x="125" y="125" font-family="Arial" font-size="14" fill="#d32f2f">150mm</text>
+    
+    <line x1="40" y1="210" x2="110" y2="210" stroke="#d32f2f" stroke-width="1"/>
+    <line x1="40" y1="205" x2="40" y2="215" stroke="#d32f2f" stroke-width="1"/>
+    <line x1="110" y1="205" x2="110" y2="215" stroke="#d32f2f" stroke-width="1"/>
+    <text x="70" y="230" font-family="Arial" font-size="14" text-anchor="middle" fill="#d32f2f">100mm</text>
+  </g>
+  
+  <!-- Side view -->
+  <g transform="translate(450, 120)">
+    <text x="0" y="-10" font-family="Arial" font-size="16" font-weight="bold" fill="#000000">ZIJAANZICHT</text>
+    <!-- Hook profile -->
+    <path d="M 50 200 L 50 100 L 80 100 L 80 120 L 60 120 L 60 200 Z" 
+          fill="none" stroke="#000000" stroke-width="2"/>
+    <!-- Dimension -->
+    <line x1="90" y1="100" x2="90" y2="120" stroke="#d32f2f" stroke-width="1"/>
+    <line x1="85" y1="100" x2="95" y2="100" stroke="#d32f2f" stroke-width="1"/>
+    <line x1="85" y1="120" x2="95" y2="120" stroke="#d32f2f" stroke-width="1"/>
+    <text x="105" y="112" font-family="Arial" font-size="14" fill="#d32f2f">50mm</text>
+  </g>
+  
+  <!-- Specifications -->
+  <g transform="translate(50, 420)">
+    <text x="0" y="0" font-family="Arial" font-size="18" font-weight="bold" fill="#000000">SPECIFICATIES</text>
+    <text x="0" y="25" font-family="Arial" font-size="14" fill="#000000">Materiaal: Geplooide staalplaat</text>
+    <text x="0" y="45" font-family="Arial" font-size="14" fill="#000000">Dikte: 2mm</text>
+    <text x="0" y="65" font-family="Arial" font-size="14" fill="#000000">Afwerking: Poedercoating</text>
+    <text x="0" y="85" font-family="Arial" font-size="14" fill="#000000">Draagvermogen: 5kg</text>
+    <text x="0" y="105" font-family="Arial" font-size="14" fill="#000000">Montage: 2x schroeven (meegeleverd)</text>
+    
+    <text x="400" y="0" font-family="Arial" font-size="18" font-weight="bold" fill="#000000">AFMETINGEN</text>
+    <text x="400" y="25" font-family="Arial" font-size="14" fill="#000000">Hoogte: 150mm</text>
+    <text x="400" y="45" font-family="Arial" font-size="14" fill="#000000">Breedte: 100mm</text>
+    <text x="400" y="65" font-family="Arial" font-size="14" fill="#000000">Diepte: 50mm</text>
+    <text x="400" y="85" font-family="Arial" font-size="14" fill="#000000">Gewicht: 0.3kg</text>
+  </g>
+  
+  <!-- Logo/watermark -->
+  <text x="700" y="580" font-family="Arial" font-size="14" font-weight="bold" text-anchor="end" fill="#666666">FORMED</text>
+</svg>

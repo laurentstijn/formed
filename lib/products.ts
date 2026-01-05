@@ -3,11 +3,17 @@ export type Product = {
   name: string
   price: number
   image: string
+  technicalDrawing?: string
   category: string
   description: string
   features: string[]
   materials: string
   dimensions: string
+  colors?: {
+    name: string
+    hex: string
+    images: string[] // Foto's specifiek voor deze kleur
+  }[]
 }
 
 export const products: Product[] = [
@@ -16,6 +22,48 @@ export const products: Product[] = [
     name: "Cactus Wandhaakje",
     price: 49.99,
     image: "/products/cactus.png",
+    technicalDrawing: "/products/technical/cactus-technical.svg",
+    colors: [
+      {
+        name: "Koper Rosé",
+        hex: "#B87333",
+        images: [
+          "/products/cactus.png",
+          "/products/cactus-detail-1.jpg",
+          "/products/cactus-side.jpg",
+          "/products/cactus-lifestyle.jpg",
+        ],
+      },
+      {
+        name: "Zwart Mat",
+        hex: "#2C2C2C",
+        images: [
+          "/products/cactus.png", // Placeholder - vervang met zwarte variant
+          "/products/cactus-detail-1.jpg",
+        ],
+      },
+      {
+        name: "Wit",
+        hex: "#F5F5F5",
+        images: [
+          "/products/cactus.png", // Placeholder - vervang met witte variant
+        ],
+      },
+      {
+        name: "Grijs",
+        hex: "#808080",
+        images: [
+          "/products/cactus.png", // Placeholder - vervang met grijze variant
+        ],
+      },
+      {
+        name: "Goud",
+        hex: "#D4AF37",
+        images: [
+          "/products/cactus.png", // Placeholder - vervang met gouden variant
+        ],
+      },
+    ],
     category: "Decoration",
     description: "Een elegante haakje dat tijdloze schoonheid combineert met functioneel design.",
     features: ["Handgemaakt sheetmetal", "poedercoat"],
@@ -78,7 +126,7 @@ export const products: Product[] = [
     materials: "Hoogwaardig alluminium",
     dimensions: "H: 15cm, B: 18cm, D: 18cm",
   },
-    {
+  {
     id: 7,
     name: "Hoek schabje",
     price: 89.99,

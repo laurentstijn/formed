@@ -1,0 +1,625 @@
+"use client"
+
+import type React from "react"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { createProduct, updateProduct, deleteProduct, updateProductOrder, type Product } from "@/lib/supabase/products"
+import { getAllProducts } from "@/lib/supabase/products"
+import { GripVertical, Pencil, Trash2, Plus, Power, PowerOff, X, Upload } from "lucide-react"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { toast } from "sonner"
+
+export default function ProductsManagement() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [draggedItem, setDraggedItem] = useState<number | null>(null)
+  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({})
+
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: "",
+    category: "",
+    image: "",
+    technical_drawing: "",
+    isActive: true,
+    colors: [] as { name: string; hex: string; stock: number; images: string[] }[],
+    features: "",
+    materials: "",
+    dimensions: "",
+  })
+
+  useEffect(() => {
+    loadProducts()
+  }, [])
+
+  const loadProducts = async () => {
+    try {
+      const response = await getAllProducts()
+      setProducts(response)
+    } catch (error) {
+      console.error("Error loading products:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleColorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, colorIndex: number) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const maxSize = 2 * 1024 * 1024 // 2MB
+    if (file.size > maxSize) {
+      toast.error("Afbeelding is te groot (max 2MB)")
+      return
+    }
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) throw new Error("Upload failed")
+
+      const { url } = await response.json()
+
+      console.log("[v0] Upload successful, URL:", url)
+
+      // Add image to color
+      setFormData((prev) => {
+        const newColors = [...prev.colors]
+        newColors[colorIndex].images = [url] // Single image per color
+        console.log("[v0] Updated color images:", newColors[colorIndex])
+        return { ...prev, colors: newColors }
+      })
+
+      toast.success("Afbeelding succesvol geüpload!")
+    } catch (error) {
+      console.error("[v0] Upload error:", error)
+      toast.error("Fout bij uploaden afbeelding")
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Validate: need at least one color with an image if colors are added
+    if (formData.colors.length > 0) {
+      const hasImages = formData.colors.some((c) => c.images && c.images.length > 0)
+      if (!hasImages) {
+        toast.error("Upload minimaal één afbeelding per kleur")
+        return
+      }
+
+      // Set first color image as main image if no main image selected
+      if (!formData.image) {
+        const firstImage = formData.colors.find((c) => c.images && c.images.length > 0)?.images[0]
+        if (firstImage) {
+          setFormData((prev) => ({ ...prev, image: firstImage }))
+        }
+      }
+    }
+
+    const featuresArray = formData.features
+      ? formData.features
+          .split(",")
+          .map((f) => f.trim())
+          .filter((f) => f.length > 0)
+      : []
+
+    const productData = {
+      name: formData.name,
+      price: Number.parseFloat(formData.price),
+      image: formData.image || "",
+      technical_drawing: formData.technical_drawing,
+      category: formData.category,
+      description: formData.description,
+      features: featuresArray, // Use array instead of string
+      materials: formData.materials,
+      dimensions: formData.dimensions,
+      colors: formData.colors.filter((c) => c != null), // Filter null colors
+      is_active: formData.isActive,
+    }
+
+    try {
+      console.log("[v0] Saving product with data:", productData)
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, productData)
+        toast.success("Product bijgewerkt!")
+      } else {
+        await createProduct(productData)
+        toast.success("Product aangemaakt!")
+      }
+
+      handleCancelEdit()
+      await loadProducts()
+    } catch (error) {
+      console.error("[v0] Error updating product:", error)
+      toast.error(`Fout bij opslaan: ${error instanceof Error ? error.message : "Onbekende fout"}`)
+    }
+  }
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product)
+    setFormData({
+      name: product.name,
+      price: product.price.toString(),
+      image: product.image || "",
+      technical_drawing: product.technical_drawing || "",
+      category: product.category,
+      description: product.description,
+      features: Array.isArray(product.features) ? product.features.join(", ") : "", // Convert array to string for editing
+      materials: product.materials || "",
+      dimensions: product.dimensions || "",
+      colors: product.colors || [],
+      isActive: product.is_active ?? true,
+    })
+    setIsDialogOpen(true)
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Product verwijderen?")) return
+
+    try {
+      await deleteProduct(id)
+      await loadProducts()
+      toast.success("Product verwijderd")
+    } catch (error) {
+      console.error("Error deleting product:", error)
+      toast.error("Fout bij verwijderen")
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingProduct(null)
+    setIsDialogOpen(false)
+    setFormData({
+      name: "",
+      description: "",
+      price: "",
+      category: "",
+      image: "",
+      technical_drawing: "",
+      isActive: true,
+      colors: [],
+      features: "",
+      materials: "",
+      dimensions: "",
+    })
+  }
+
+  const handleToggleActive = async (product: Product) => {
+    try {
+      await updateProduct(product.id, { is_active: !product.is_active })
+      await loadProducts()
+      toast.success("Status bijgewerkt")
+    } catch (error) {
+      console.error("Error toggling product:", error)
+      toast.error("Fout bij wijzigen status")
+    }
+  }
+
+  const addColor = () => {
+    setFormData({
+      ...formData,
+      colors: [...formData.colors, { name: "", hex: "#000000", stock: 0, images: [] }],
+    })
+  }
+
+  const updateColor = (index: number, field: string, value: any) => {
+    const newColors = [...formData.colors]
+    newColors[index] = { ...newColors[index], [field]: value }
+    setFormData({ ...formData, colors: newColors })
+  }
+
+  const removeColor = (index: number) => {
+    setFormData({
+      ...formData,
+      colors: formData.colors.filter((_, i) => i !== index),
+    })
+  }
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedItem(index)
+    e.dataTransfer.effectAllowed = "move"
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+  }
+
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+
+    if (draggedItem === null || draggedItem === dropIndex) {
+      setDraggedItem(null)
+      return
+    }
+
+    const newProducts = [...products]
+    const [removed] = newProducts.splice(draggedItem, 1)
+    newProducts.splice(dropIndex, 0, removed)
+
+    const updates = newProducts.map((product, index) => ({
+      id: product.id,
+      display_order: index,
+    }))
+
+    setProducts(newProducts)
+    setDraggedItem(null)
+
+    try {
+      await updateProductOrder(updates)
+    } catch (error) {
+      console.error("Error updating order:", error)
+      await loadProducts()
+    }
+  }
+
+  const handleDragEnd = () => {
+    setDraggedItem(null)
+  }
+
+  const getTotalStock = (product: Product) => {
+    if (!product.colors || !Array.isArray(product.colors)) return 0
+    return product.colors.filter((color) => color != null).reduce((sum, color) => sum + (color?.stock || 0), 0)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-lg">Producten laden...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Producten</h1>
+          <p className="text-muted-foreground mt-1">Beheer je productcatalogus</p>
+        </div>
+        <Button onClick={() => setIsDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nieuw Product
+        </Button>
+      </div>
+
+      {/* Product List */}
+      <div className="grid gap-4">
+        {products.map((product, index) => (
+          <Card
+            key={product.id}
+            draggable
+            onDragStart={(e) => handleDragStart(e, index)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, index)}
+            onDragEnd={handleDragEnd}
+            className={`cursor-move transition-opacity ${draggedItem === index ? "opacity-50" : ""}`}
+          >
+            <CardContent className="flex items-center gap-4 p-4">
+              <GripVertical className="h-5 w-5 text-muted-foreground" />
+
+              <div className="relative w-16 h-16 rounded overflow-hidden bg-gray-100">
+                {product.image ? (
+                  <img
+                    src={product.image || "/placeholder.svg"}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <Upload className="h-6 w-6" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <h3 className="font-semibold">{product.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  €{product.price} • {getTotalStock(product)} op voorraad
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => handleToggleActive(product)}>
+                  {product.is_active ? (
+                    <Power className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <PowerOff className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleEdit(product)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
+                  <Trash2 className="h-4 w-4 text-red-600" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Product Edit/Create Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCancelEdit()}>
+        <DialogContent
+          className="max-w-none w-[90vw] max-h-[90vh] overflow-y-auto"
+          style={{ maxWidth: "1600px", width: "90vw" }}
+        >
+          <DialogHeader>
+            <DialogTitle>{editingProduct ? "Product bewerken" : "Nieuw product"}</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Productnaam *</Label>
+                <Input
+                  id="name"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="price">Prijs (€) *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Categorie *</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecteer een categorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Accessoires">Accessoires</SelectItem>
+                  <SelectItem value="Haakjes">Haakjes</SelectItem>
+                  <SelectItem value="Planchet">Planchet</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Beschrijving</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            {/* Colors Section */}
+            <div className="border-t pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <Label>Kleuren</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addColor}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Kleur toevoegen
+                </Button>
+              </div>
+
+              {formData.colors.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8 border-2 border-dashed rounded-lg">
+                  Geen kleuren toegevoegd. Klik op "Kleur toevoegen" om te beginnen.
+                </p>
+              ) : (
+                <Accordion type="multiple" className="space-y-4">
+                  {formData.colors.map((color, index) => (
+                    <AccordionItem key={index} value={`color-${index}`} className="border rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-8 h-8 rounded-full border-2 border-gray-300"
+                            style={{ backgroundColor: color.hex }}
+                          />
+                          <span className="font-medium">{color.name || "Nieuwe kleur"}</span>
+                          <span className="text-sm text-muted-foreground">{color.stock} op voorraad</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4 space-y-4">
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label>Kleur Naam</Label>
+                            <Input
+                              value={color.name}
+                              onChange={(e) => updateColor(index, "name", e.target.value)}
+                              placeholder="bijv. Mint Green"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Kleurcode</Label>
+                            <Input
+                              type="color"
+                              value={color.hex}
+                              onChange={(e) => updateColor(index, "hex", e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Voorraad</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={color.stock}
+                              onChange={(e) => updateColor(index, "stock", Number.parseInt(e.target.value) || 0)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Afbeelding voor deze kleur</Label>
+                          {color.images && color.images.length > 0 ? (
+                            <div className="relative w-full h-64 border rounded-lg overflow-hidden bg-gray-100">
+                              <img
+                                key={color.images[0]}
+                                src={color.images[0] || "/placeholder.svg"}
+                                alt={color.name}
+                                className="w-full h-full object-contain bg-white"
+                                onError={(e) => {
+                                  console.error("[v0] Image failed to load:", color.images[0])
+                                  e.currentTarget.src = "/placeholder.svg?height=300&width=300"
+                                }}
+                                onLoad={() => {
+                                  console.log("[v0] Image loaded successfully:", color.images[0])
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white"
+                                onClick={() => updateColor(index, "images", [])}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                              <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                              <Label
+                                htmlFor={`color-image-${index}`}
+                                className="cursor-pointer text-primary hover:underline"
+                              >
+                                Afbeelding uploaden
+                              </Label>
+                              <Input
+                                id={`color-image-${index}`}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => handleColorImageUpload(e, index)}
+                                disabled={uploading}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeColor(index)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Kleur verwijderen
+                        </Button>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
+            </div>
+
+            {/* Main Image Selection */}
+            {formData.colors.some((c) => c.images && c.images.length > 0) && (
+              <div className="border-t pt-6">
+                <Label className="mb-4 block">Hoofdafbeelding selecteren *</Label>
+                <div className="grid grid-cols-4 gap-4">
+                  {formData.colors
+                    .filter((c) => c.images && c.images.length > 0)
+                    .map((color, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, image: color.images[0] })}
+                        className={`relative border-2 rounded-lg overflow-hidden hover:border-primary transition-colors ${
+                          formData.image === color.images[0] ? "border-primary ring-2 ring-primary" : "border-gray-200"
+                        }`}
+                      >
+                        <img
+                          src={color.images[0] || "/placeholder.svg"}
+                          alt={color.name}
+                          className="w-full h-32 object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full border border-white"
+                            style={{ backgroundColor: color.hex }}
+                          />
+                          {color.name}
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Additional Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="materials">Materiaal</Label>
+                <Input
+                  id="materials"
+                  value={formData.materials}
+                  onChange={(e) => setFormData({ ...formData, materials: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dimensions">Afmetingen</Label>
+                <Input
+                  id="dimensions"
+                  value={formData.dimensions}
+                  onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="features">Features (komma gescheiden)</Label>
+              <Textarea
+                id="features"
+                value={formData.features}
+                onChange={(e) => setFormData({ ...formData, features: e.target.value })}
+                placeholder="Compact design, Eenvoudige montage, Veelzijdig gebruik"
+                rows={2}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                Annuleren
+              </Button>
+              <Button type="submit" disabled={uploading}>
+                {uploading ? "Uploaden..." : editingProduct ? "Wijzigingen opslaan" : "Product aanmaken"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

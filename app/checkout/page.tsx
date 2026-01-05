@@ -1,57 +1,217 @@
 "use client"
 
 import type React from "react"
-import { useCart } from "@/components/cart-provider" // Updated import
+import { useCart } from "@/components/cart-provider"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { CartButton } from "@/components/cart-button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [defaultCountry, setDefaultCountry] = useState("België")
+  const [userId, setUserId] = useState<string | null>(null)
+  const [createAccount, setCreateAccount] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [selectedCountry, setSelectedCountry] = useState("België")
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    postalCode: "",
+  })
+
+  const SHIPPING_COST = 7.5
+  const FREE_SHIPPING_THRESHOLD = 75.0
+  const shippingCost = totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
+  const subtotal = totalPrice
+  const tax = (subtotal + shippingCost) * 0.21
+  const finalTotal = subtotal + shippingCost + tax
+
+  useEffect(() => {
+    setDefaultCountry("België")
+    setSelectedCountry("België")
+
+    const checkUser = async () => {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+        setIsLoggedIn(true)
+
+        const { data: customer } = await supabase
+          .from("customers")
+          .select("first_name, last_name, email, phone, address_line1, city, postal_code, country")
+          .eq("id", user.id)
+          .maybeSingle()
+
+        if (customer) {
+          setFormData({
+            firstName: customer.first_name || "",
+            lastName: customer.last_name || "",
+            email: customer.email || user.email || "",
+            phone: customer.phone || "",
+            address: customer.address_line1 || "",
+            city: customer.city || "",
+            postalCode: customer.postal_code || "",
+          })
+          if (customer.country) {
+            setSelectedCountry(customer.country)
+          }
+        } else {
+          // If no customer record, at least set the email from auth
+          setFormData((prev) => ({
+            ...prev,
+            email: user.email || "",
+          }))
+        }
+      }
+    }
+    checkUser()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsProcessing(true)
 
-    // Simulate order processing
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const formDataFromForm = new FormData(e.currentTarget)
+      const email = formDataFromForm.get("email") as string
+      const firstName = formDataFromForm.get("firstName") as string
+      const lastName = formDataFromForm.get("lastName") as string
 
-    clearCart()
-    router.push("/order-confirmation")
+      let accountUserId = userId
+      if (createAccount && !isLoggedIn) {
+        const password = formDataFromForm.get("password") as string
+        const supabase = createClient()
+
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+            },
+          },
+        })
+
+        if (error) {
+          console.error("[v0] Error creating account:", error)
+          alert("Account aanmaken mislukt. We plaatsen uw bestelling als gast.")
+        } else if (data.user) {
+          accountUserId = data.user.id
+          console.log("[v0] Account created successfully:", data.user.id)
+
+          await supabase.from("customers").insert({
+            id: data.user.id,
+            email,
+            first_name: firstName,
+            last_name: lastName,
+          })
+        }
+      }
+
+      const domain = typeof window !== "undefined" && window.location.hostname.includes("formd.be") ? "be" : "nl"
+
+      const orderData = {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        phone: formData.phone,
+        address_line1: formData.address,
+        city: formData.city,
+        postal_code: formData.postalCode,
+        country: selectedCountry,
+        customer_id: accountUserId,
+        items: items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        })),
+        total_amount: finalTotal,
+        domain,
+      }
+
+      console.log("[v0] Creating order:", orderData)
+
+      const response = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to create order")
+      }
+
+      console.log("[v0] Order created successfully:", result.order)
+
+      try {
+        const emailResponse = await fetch("/api/send-order-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            order: result.order,
+            email: orderData.email,
+            domain,
+          }),
+        })
+
+        const emailResult = await emailResponse.json()
+        if (!emailResult.emailsSent) {
+          console.warn("[v0] Emails not sent, but order was placed:", emailResult.emailError)
+        }
+      } catch (emailError) {
+        console.warn("[v0] Email service error, but order was placed:", emailError)
+      }
+
+      for (const item of items) {
+        await fetch("/api/update-stock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId: item.id,
+            quantity: item.quantity,
+          }),
+        })
+      }
+
+      clearCart()
+      router.push("/order-confirmation")
+    } catch (error) {
+      console.error("[v0] Error creating order:", error)
+      alert("Er is iets misgegaan bij het plaatsen van je bestelling. Probeer het opnieuw.")
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="border-b border-border">
-          <div className="container mx-auto px-4 py-6 flex items-center justify-between">
-            <Link href="/" className="flex items-center">
-              <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
-            </Link>
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Shop
-              </Link>
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Over Ons
-              </Link>
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Contact
-              </Link>
-            </nav>
-            <CartButton />
-          </div>
-        </header>
+        <SiteHeader />
 
-        {/* Empty Cart */}
         <div className="container mx-auto px-4 py-20 text-center">
           <h1 className="text-4xl font-sans font-semibold text-foreground mb-4">Uw winkelwagen is leeg</h1>
           <p className="text-muted-foreground mb-8">
@@ -64,34 +224,16 @@ export default function CheckoutPage() {
             </Button>
           </Link>
         </div>
+
+        <SiteFooter />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
-          </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Shop
-            </Link>
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Over Ons
-            </Link>
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Contact
-            </Link>
-          </nav>
-          <CartButton />
-        </div>
-      </header>
+      <SiteHeader />
 
-      {/* Checkout Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
           <Link
@@ -106,60 +248,149 @@ export default function CheckoutPage() {
         <h1 className="text-4xl font-sans font-semibold text-foreground mb-12">Afrekenen</h1>
 
         <div className="grid lg:grid-cols-3 gap-12">
-          {/* Checkout Form */}
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Contact Information */}
               <div className="space-y-4">
                 <h2 className="text-xl font-sans font-semibold text-foreground">Contactgegevens</h2>
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">Voornaam</Label>
-                      <Input id="firstName" name="firstName" required />
+                      <Input
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Achternaam</Label>
-                      <Input id="lastName" name="lastName" required />
+                      <Input
+                        id="lastName"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        required
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">E-mailadres</Label>
-                    <Input id="email" name="email" type="email" required />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefoonnummer</Label>
-                    <Input id="phone" name="phone" type="tel" required />
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      required
+                    />
                   </div>
+
+                  {!isLoggedIn && (
+                    <div className="pt-4 border-t border-border space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="createAccount"
+                          checked={createAccount}
+                          onCheckedChange={(checked) => setCreateAccount(checked === true)}
+                        />
+                        <Label htmlFor="createAccount" className="text-sm font-normal cursor-pointer">
+                          Account aanmaken om bestellingen te volgen
+                        </Label>
+                      </div>
+
+                      {createAccount && (
+                        <div className="space-y-2 pl-6">
+                          <Label htmlFor="password">Wachtwoord</Label>
+                          <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            minLength={6}
+                            required={createAccount}
+                            placeholder="Minimaal 6 karakters"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Met een account kunt u al uw bestellingen bekijken
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Shipping Address */}
               <div className="space-y-4 pt-8 border-t border-border">
                 <h2 className="text-xl font-sans font-semibold text-foreground">Verzendadres</h2>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="address">Straat en huisnummer</Label>
-                    <Input id="address" name="address" required />
+                    <Input
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      required
+                    />
                   </div>
                   <div className="grid md:grid-cols-3 gap-4">
                     <div className="space-y-2 md:col-span-1">
                       <Label htmlFor="postalCode">Postcode</Label>
-                      <Input id="postalCode" name="postalCode" required />
+                      <Input
+                        id="postalCode"
+                        name="postalCode"
+                        value={formData.postalCode}
+                        onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                        required
+                      />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="city">Plaats</Label>
-                      <Input id="city" name="city" required />
+                      <Input
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        required
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="country">Land</Label>
-                    <Input id="country" name="country" defaultValue="Nederland" required />
+                    <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                      <SelectTrigger id="country" name="country">
+                        <SelectValue placeholder="Selecteer een land" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="België">België</SelectItem>
+                        <SelectItem value="Nederland">Nederland</SelectItem>
+                        <SelectItem value="Duitsland">Duitsland</SelectItem>
+                        <SelectItem value="Frankrijk">Frankrijk</SelectItem>
+                        <SelectItem value="Luxemburg">Luxemburg</SelectItem>
+                        <SelectItem value="Verenigd Koninkrijk">Verenigd Koninkrijk</SelectItem>
+                        <SelectItem value="Spanje">Spanje</SelectItem>
+                        <SelectItem value="Italië">Italië</SelectItem>
+                        <SelectItem value="Portugal">Portugal</SelectItem>
+                        <SelectItem value="Oostenrijk">Oostenrijk</SelectItem>
+                        <SelectItem value="Zwitserland">Zwitserland</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
 
-              {/* Payment Method */}
               <div className="space-y-4 pt-8 border-t border-border">
                 <h2 className="text-xl font-sans font-semibold text-foreground">Betaalmethode</h2>
                 <div className="bg-muted/50 border border-border rounded-lg p-6">
@@ -176,7 +407,6 @@ export default function CheckoutPage() {
             </form>
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-card border border-border rounded-lg p-6 sticky top-6">
               <h2 className="text-xl font-sans font-semibold text-foreground mb-6">Overzicht bestelling</h2>
@@ -203,20 +433,27 @@ export default function CheckoutPage() {
               <div className="space-y-3 pt-4 border-t border-border">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotaal</span>
-                  <span className="text-foreground font-semibold">€{totalPrice.toFixed(2)}</span>
+                  <span className="text-foreground font-semibold">€{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Verzendkosten</span>
-                  <span className="text-foreground font-semibold">Gratis</span>
+                  <span className="text-foreground font-semibold">
+                    {shippingCost === 0 ? "Gratis" : `€${shippingCost.toFixed(2)}`}
+                  </span>
                 </div>
+                {totalPrice < FREE_SHIPPING_THRESHOLD && (
+                  <div className="text-xs text-muted-foreground">
+                    Nog €{(FREE_SHIPPING_THRESHOLD - totalPrice).toFixed(2)} tot gratis verzending
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">BTW (21%)</span>
-                  <span className="text-foreground font-semibold">€{(totalPrice * 0.21).toFixed(2)}</span>
+                  <span className="text-foreground font-semibold">€{tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-border pt-3">
                   <div className="flex justify-between">
                     <span className="font-semibold text-foreground">Totaal</span>
-                    <span className="text-xl font-semibold text-foreground">€{(totalPrice * 1.21).toFixed(2)}</span>
+                    <span className="text-xl font-semibold text-foreground">€{finalTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -224,6 +461,8 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      <SiteFooter />
     </div>
   )
 }

@@ -1,31 +1,13 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { CartButton } from "@/components/cart-button"
+import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
 import { CheckCircle } from "lucide-react"
 
 export default function OrderConfirmationPage() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
-          </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Shop
-            </Link>
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Over Ons
-            </Link>
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Contact
-            </Link>
-          </nav>
-          <CartButton />
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Order Confirmation */}
       <div className="container mx-auto px-4 py-20">
@@ -73,6 +55,8 @@ export default function OrderConfirmationPage() {
           </div>
         </div>
       </div>
+
+      <SiteFooter />
     </div>
   )
 }

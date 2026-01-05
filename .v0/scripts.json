@@ -1,0 +1,6 @@
+{
+  "ignoreScriptsWarning": true,
+  "executedScripts": [],
+  "disabled": true,
+  "note": "All database migrations are handled via Supabase migrations tool, not local scripts"
+}

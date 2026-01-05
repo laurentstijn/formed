@@ -2,36 +2,22 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { CartButton } from "@/components/cart-button"
 import { useCart } from "@/components/cart-provider"
 import { Minus, Plus, Trash2, ArrowLeft } from "lucide-react"
+import { SiteHeader } from "@/components/site-header"
+import { SiteFooter } from "@/components/site-footer"
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, totalPrice } = useCart()
+  const SHIPPING_COST = 7.5
+  const FREE_SHIPPING_THRESHOLD = 75.0
+  const shippingCost = totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
+  const finalTotal = totalPrice + shippingCost
 
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="border-b border-border">
-          <div className="container mx-auto px-4 py-6 flex items-center justify-between">
-            <Link href="/" className="flex items-center">
-              <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
-            </Link>
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Shop
-              </Link>
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Over Ons
-              </Link>
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Contact
-              </Link>
-            </nav>
-            <CartButton />
-          </div>
-        </header>
+        <SiteHeader />
 
         {/* Empty Cart */}
         <div className="container mx-auto px-4 py-20 text-center">
@@ -44,32 +30,15 @@ export default function CartPage() {
             </Button>
           </Link>
         </div>
+
+        <SiteFooter />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <img src="/formed-primary.png" alt="FORMED" className="h-8 w-auto" />
-          </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Shop
-            </Link>
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Over Ons
-            </Link>
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Contact
-            </Link>
-          </nav>
-          <CartButton />
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Cart Content */}
       <div className="container mx-auto px-4 py-12">
@@ -149,12 +118,19 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Verzendkosten</span>
-                  <span className="text-foreground font-semibold">Gratis</span>
+                  <span className="text-foreground font-semibold">
+                    {shippingCost === 0 ? "Gratis" : `€${shippingCost.toFixed(2)}`}
+                  </span>
                 </div>
+                {totalPrice < FREE_SHIPPING_THRESHOLD && (
+                  <div className="text-xs text-muted-foreground">
+                    Nog €{(FREE_SHIPPING_THRESHOLD - totalPrice).toFixed(2)} tot gratis verzending
+                  </div>
+                )}
                 <div className="border-t border-border pt-4">
                   <div className="flex justify-between">
                     <span className="font-semibold text-foreground">Totaal</span>
-                    <span className="text-xl font-semibold text-foreground">€{totalPrice.toFixed(2)}</span>
+                    <span className="text-xl font-semibold text-foreground">€{finalTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -167,6 +143,8 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      <SiteFooter />
     </div>
   )
 }

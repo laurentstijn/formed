@@ -1,0 +1,141 @@
+"use client"
+
+import type React from "react"
+
+import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { SiteHeader } from "@/components/site-header"
+
+export default function CustomerLogin() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const supabase = createClient()
+    setIsLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      if (isSignUp) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}`,
+            data: {
+              is_customer: true,
+            },
+          },
+        })
+
+        if (error) throw error
+
+        setSuccessMessage("Account aangemaakt! Check je email om je account te bevestigen.")
+        setIsSignUp(false)
+        setPassword("")
+        setIsLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) throw error
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        const { data: adminData } = await supabase.from("admins").select("*").eq("id", user.id).single()
+        localStorage.setItem("isAdmin", adminData ? "true" : "false")
+      }
+
+      window.location.href = "/"
+    } catch (error: any) {
+      console.error("[v0] Login error:", error)
+      if (error.message === "Email not confirmed") {
+        setError("Email nog niet bevestigd. Check je inbox voor de bevestigingslink.")
+      } else {
+        setError(error.message || "Er is een fout opgetreden")
+      }
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
+
+      <div className="flex items-center justify-center p-4 py-20">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-sans">{isSignUp ? "Account Aanmaken" : "Inloggen"}</CardTitle>
+            <CardDescription>
+              {isSignUp ? "Maak een account aan om je bestellingen te volgen" : "Log in om je bestellingen te bekijken"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="jouw@email.nl"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Wachtwoord</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              {successMessage && (
+                <p className="text-sm text-center text-green-600 bg-green-50 p-3 rounded-md">{successMessage}</p>
+              )}
+              {error && <p className="text-sm text-center text-red-600 bg-red-50 p-3 rounded-md">{error}</p>}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Bezig..." : isSignUp ? "Registreren" : "Inloggen"}
+              </Button>
+              <div className="text-center text-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(!isSignUp)
+                    setError(null)
+                    setSuccessMessage(null)
+                  }}
+                  className="text-primary hover:underline"
+                >
+                  {isSignUp ? "Al een account? Log in" : "Nog geen account? Registreer"}
+                </button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

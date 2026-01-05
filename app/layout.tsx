@@ -8,7 +8,7 @@ import { CartProvider } from "@/components/cart-provider"
 const openSans = Open_Sans({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "FORMED - formed in steel",
+  title: "FORMD - formd in steel",
   description: "Gevouwen staal. Tijdloos design voor uw interieur",
   icons: {
     icon: "/favicon.png",
@@ -17,24 +17,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "nl_BE",
-    url: "https://formed-webshop.vercel.app",
-    title: "FORMED - Gevouwen Staal",
+    url: "https://formd.be",
+    title: "FORMD - Gevouwen Staal",
     description: "Gevouwen staal. Tijdloos design voor uw interieur",
-    siteName: "FORMED",
+    siteName: "FORMD",
     images: [
       {
-        url: "https://formed-webshop.vercel.app/og-image.png",
+        url: "https://formd.be/og-image.png",
         width: 1200,
         height: 630,
-        alt: "FORMED - formed in steel",
+        alt: "FORMD - formd in steel",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "FORMED - Gevouwen Staal",
+    title: "FORMD - Gevouwen Staal",
     description: "Gevouwen staal. Tijdloos design voor uw interieur",
-    images: ["https://formed-webshop.vercel.app/og-image.png"],
+    images: ["https://formd.be/og-image.png"],
   },
     generator: 'v0.app'
 }

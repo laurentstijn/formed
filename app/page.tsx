@@ -1,13 +1,13 @@
 "use client"
-
-import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useProducts } from "@/hooks/use-products"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 
 export default function HomePage() {
   const { products, isLoading } = useProducts()
+  const router = useRouter()
 
   const getProductStock = (product: any) => {
     if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
@@ -17,6 +17,11 @@ export default function HomePage() {
       }, 0)
     }
     return product.stock || 0
+  }
+
+  const handleProductClick = (productId: number, productName: string) => {
+    console.log("[v0] Navigating to product:", productId, productName)
+    router.push(`/product/${productId}`)
   }
 
   return (
@@ -51,15 +56,12 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {products.map((product) => (
-                <Link
+                <div
                   key={product.id}
-                  href={`/product/${product.id}`}
-                  className="group"
-                  onClick={() => {
-                    console.log("[v0] Product clicked:", product.id, product.name)
-                  }}
+                  onClick={() => handleProductClick(product.id, product.name)}
+                  className="group cursor-pointer"
                 >
-                  <div className="bg-card rounded-lg overflow-hidden border border-border transition-all hover:shadow-lg hover:border-foreground/20 cursor-pointer">
+                  <div className="bg-card rounded-lg overflow-hidden border border-border transition-all hover:shadow-lg hover:border-foreground/20">
                     <div className="aspect-square overflow-hidden bg-muted relative">
                       <img
                         src={product.image || "/placeholder.svg"}
@@ -108,7 +110,7 @@ export default function HomePage() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}

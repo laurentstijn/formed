@@ -51,7 +51,14 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {products.map((product) => (
-                <Link key={product.id} href={`/product/${product.id}`} className="group">
+                <Link
+                  key={product.id}
+                  href={`/product/${product.id}`}
+                  className="group"
+                  onClick={() => {
+                    console.log("[v0] Product clicked:", product.id, product.name)
+                  }}
+                >
                   <div className="bg-card rounded-lg overflow-hidden border border-border transition-all hover:shadow-lg hover:border-foreground/20 cursor-pointer">
                     <div className="aspect-square overflow-hidden bg-muted relative">
                       <img

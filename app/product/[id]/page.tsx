@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { ArrowLeft } from "lucide-react"
-import { getProductByIdServer } from "@/lib/supabase/products"
 import { ProductDetailClient } from "@/components/product-detail-client"
 
 export async function generateStaticParams() {
@@ -20,8 +19,41 @@ export async function generateStaticParams() {
   }
 }
 
-export default async function ProductPage({ params }: { params: { id: string } }) {
-  const product = await getProductByIdServer(Number(params.id))
+export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const { sql } = await import("@vercel/postgres")
+
+  let product = null
+
+  try {
+    const { rows } = await sql`
+      SELECT * FROM products WHERE id = ${Number(id)}
+    `
+
+    if (rows.length > 0) {
+      const row = rows[0]
+      product = {
+        id: row.id,
+        name: row.name,
+        price: Number(row.price),
+        image: row.image || "",
+        technical_drawing: row.technical_drawing,
+        category: row.category,
+        description: row.description,
+        features: row.features || [],
+        materials: row.materials,
+        dimensions: row.dimensions,
+        colors: row.colors,
+        stock: row.stock,
+        display_order: row.display_order,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }
+    }
+  } catch (error) {
+    console.error("[v0] Error fetching product:", error)
+  }
 
   if (!product) {
     return (

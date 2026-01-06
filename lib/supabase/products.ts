@@ -26,27 +26,24 @@ export type Product = {
 
 export async function getProducts(): Promise<Product[]> {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?select=*&is_active=eq.true&order=display_order.asc`,
-      {
-        headers: {
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-        },
-      },
-    )
+    const supabase = createClient()
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+
+    if (error) {
+      console.error("[v0] Error fetching products:", error)
+      return []
     }
-
-    const data = await response.json()
 
     return (data || []).map((product: any) => ({
       id: product.id,
       name: product.name,
       price: Number(product.price),
-      image: product.image || "", // Reverted to single image field
+      image: product.image || "",
       technical_drawing: product.technical_drawing,
       category: product.category,
       description: product.description,
@@ -73,27 +70,20 @@ export async function getProductsServer(): Promise<Product[]> {
 
 export async function getAllProducts(): Promise<Product[]> {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?select=*&order=display_order.asc`,
-      {
-        headers: {
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-        },
-      },
-    )
+    const supabase = createClient()
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    const { data, error } = await supabase.from("products").select("*").order("display_order", { ascending: true })
+
+    if (error) {
+      console.error("[v0] Error fetching all products:", error)
+      return []
     }
-
-    const data = await response.json()
 
     return (data || []).map((product: any) => ({
       id: product.id,
       name: product.name,
       price: Number(product.price),
-      image: product.image || "", // Reverted to single image field
+      image: product.image || "",
       technical_drawing: product.technical_drawing,
       category: product.category,
       description: product.description,
@@ -113,31 +103,22 @@ export async function getAllProducts(): Promise<Product[]> {
   }
 }
 
-// Get single product by ID
 export async function getProductById(id: number): Promise<Product | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?id=eq.${id}&select=*`, {
-      headers: {
-        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-      },
-    })
+    const supabase = createClient()
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    const { data: product, error } = await supabase.from("products").select("*").eq("id", id).single()
+
+    if (error || !product) {
+      console.error("[v0] Error fetching product:", error)
+      return null
     }
-
-    const data = await response.json()
-
-    if (!data || data.length === 0) return null
-
-    const product = data[0]
 
     return {
       id: product.id,
       name: product.name,
       price: Number(product.price),
-      image: product.image || "", // Reverted to single image field
+      image: product.image || "",
       technical_drawing: product.technical_drawing,
       category: product.category,
       description: product.description,

@@ -23,6 +23,9 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
         ? [product.image]
         : []
 
+  const availableStock =
+    product.colors && product.colors.length > 0 ? product.colors[selectedColorIndex]?.stock || 0 : product.stock
+
   return (
     <div className="grid md:grid-cols-2 gap-12 lg:gap-16">
       {/* Product Info - Mobile Priority */}
@@ -34,14 +37,14 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
         <p className="text-muted-foreground leading-relaxed mb-8">{product.description}</p>
 
         <div className="mb-6">
-          {product.stock === 0 ? (
+          {availableStock === 0 ? (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               <p className="font-semibold">Uitverkocht</p>
               <p className="text-sm">Dit product is momenteel niet op voorraad.</p>
             </div>
-          ) : product.stock !== undefined && product.stock <= 5 ? (
+          ) : availableStock !== undefined && availableStock <= 5 ? (
             <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-lg">
-              <p className="text-sm">Nog maar {product.stock} stuks op voorraad</p>
+              <p className="text-sm">Nog maar {availableStock} stuks op voorraad</p>
             </div>
           ) : (
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -53,7 +56,7 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
         {product.colors && product.colors.length > 0 && (
           <div className="mb-8 pb-8 border-b border-border">
             <ColorSelector
-              colors={product.colors.map((c) => ({ name: c.name, hex: c.hex }))}
+              colors={product.colors.map((c) => ({ name: c.name, hex: c.hex, stock: c.stock }))}
               onColorChange={setSelectedColorIndex}
             />
           </div>

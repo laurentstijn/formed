@@ -52,11 +52,18 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {products.map((product) => (
                 <Link key={product.id} href={`/product/${product.id}`} className="group">
-                  <div className="bg-card rounded-lg overflow-hidden border border-border transition-all hover:shadow-lg">
+                  <div className="bg-card rounded-lg overflow-hidden border border-border transition-all hover:shadow-lg hover:border-foreground/20 cursor-pointer">
                     <div className="aspect-square overflow-hidden bg-muted relative">
                       <img
                         src={product.image || "/placeholder.svg"}
                         alt={product.name}
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          if (target.src !== "/placeholder.svg") {
+                            target.src = "/placeholder.svg"
+                          }
+                        }}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       {(() => {
@@ -70,7 +77,9 @@ export default function HomePage() {
                     </div>
                     <div className="p-6">
                       <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">{product.category}</p>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">{product.name}</h3>
+                      <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                        {product.name}
+                      </h3>
                       <div className="flex items-center justify-between">
                         <p className="text-xl font-semibold text-foreground">€{product.price.toFixed(2)}</p>
                         {(() => {

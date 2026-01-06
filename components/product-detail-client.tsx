@@ -42,13 +42,6 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
                 className="w-full h-auto"
               />
             </div>
-            <a
-              href={product.technical_drawing}
-              download
-              className="inline-flex items-center gap-2 mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Download technische tekening
-            </a>
           </div>
         )}
       </div>

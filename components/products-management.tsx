@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { createProduct, updateProduct, deleteProduct, updateProductOrder, type Product } from "@/lib/supabase/products"
 import { getAllProducts } from "@/lib/supabase/products"
-import { GripVertical, Pencil, Trash2, Plus, Power, PowerOff, X, Upload } from "lucide-react"
+import { GripVertical, Pencil, Trash2, Plus, Power, PowerOff, X, Upload, FileText } from "lucide-react"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -53,6 +53,39 @@ export default function ProductsManagement() {
     }
   }
 
+  const handleTechnicalDrawingUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const maxSize = 5 * 1024 * 1024 // 5MB for technical drawings
+    if (file.size > maxSize) {
+      toast.error("Technische tekening is te groot (max 5MB)")
+      return
+    }
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) throw new Error("Upload failed")
+
+      const { url } = await response.json()
+
+      setFormData((prev) => ({ ...prev, technical_drawing: url }))
+      toast.success("Technische tekening geüpload")
+    } catch (error) {
+      toast.error("Fout bij uploaden technische tekening")
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleColorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, colorIndex: number) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -77,19 +110,15 @@ export default function ProductsManagement() {
 
       const { url } = await response.json()
 
-      console.log("[v0] Upload successful, URL:", url)
-
-      // Add image to color
       setFormData((prev) => {
         const newColors = [...prev.colors]
         newColors[colorIndex].images = [url] // Single image per color
-        console.log("[v0] Updated color images:", newColors[colorIndex])
         return { ...prev, colors: newColors }
       })
 
       toast.success("Afbeelding succesvol geüpload!")
     } catch (error) {
-      console.error("[v0] Upload error:", error)
+      console.error("Upload error:", error)
       toast.error("Fout bij uploaden afbeelding")
     } finally {
       setUploading(false)
@@ -99,7 +128,6 @@ export default function ProductsManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate: need at least one color with an image if colors are added
     if (formData.colors.length > 0) {
       const hasImages = formData.colors.some((c) => c.images && c.images.length > 0)
       if (!hasImages) {
@@ -107,7 +135,6 @@ export default function ProductsManagement() {
         return
       }
 
-      // Set first color image as main image if no main image selected
       if (!formData.image) {
         const firstImage = formData.colors.find((c) => c.images && c.images.length > 0)?.images[0]
         if (firstImage) {
@@ -130,10 +157,10 @@ export default function ProductsManagement() {
       technical_drawing: formData.technical_drawing,
       category: formData.category,
       description: formData.description,
-      features: featuresArray, // Use array instead of string
+      features: featuresArray,
       materials: formData.materials,
       dimensions: formData.dimensions,
-      colors: formData.colors.filter((c) => c != null), // Filter null colors
+      colors: formData.colors.filter((c) => c != null),
       is_active: formData.isActive,
     }
 
@@ -164,7 +191,7 @@ export default function ProductsManagement() {
       technical_drawing: product.technical_drawing || "",
       category: product.category,
       description: product.description,
-      features: Array.isArray(product.features) ? product.features.join(", ") : "", // Convert array to string for editing
+      features: Array.isArray(product.features) ? product.features.join(", ") : "",
       materials: product.materials || "",
       dimensions: product.dimensions || "",
       colors: product.colors || [],
@@ -313,7 +340,9 @@ export default function ProductsManagement() {
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, index)}
             onDragEnd={handleDragEnd}
-            className={`cursor-move transition-opacity ${draggedItem === index ? "opacity-50" : ""}`}
+            className={`cursor-move transition-opacity ${
+              draggedItem === index ? "opacity-50" : product.is_active ? "" : "opacity-40"
+            }`}
           >
             <CardContent className="flex items-center gap-4 p-4">
               <GripVertical className="h-5 w-5 text-muted-foreground" />
@@ -422,6 +451,63 @@ export default function ProductsManagement() {
               />
             </div>
 
+            {/* Technical Drawing Section */}
+            <div className="space-y-2 border-t pt-6">
+              <Label>Technische Tekening</Label>
+              {formData.technical_drawing ? (
+                <div className="relative border rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 p-4">
+                    <img
+                      src={formData.technical_drawing || "/placeholder.svg"}
+                      alt="Technische tekening preview"
+                      className="w-full h-auto max-h-96 object-contain"
+                    />
+                  </div>
+                  <div className="p-4 flex items-center justify-between bg-white border-t">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm font-medium">Technische tekening geüpload</p>
+                        <a
+                          href={formData.technical_drawing}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Bekijk in nieuw venster
+                        </a>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setFormData({ ...formData, technical_drawing: "" })}
+                      className="text-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                  <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <Label htmlFor="technical-drawing" className="cursor-pointer text-primary hover:underline block">
+                    Technische tekening uploaden
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">PDF, PNG, JPG (max 5MB)</p>
+                  <Input
+                    id="technical-drawing"
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={handleTechnicalDrawingUpload}
+                    disabled={uploading}
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Colors Section */}
             <div className="border-t pt-6">
               <div className="flex justify-between items-center mb-4">
@@ -488,13 +574,6 @@ export default function ProductsManagement() {
                                 src={color.images[0] || "/placeholder.svg"}
                                 alt={color.name}
                                 className="w-full h-full object-contain bg-white"
-                                onError={(e) => {
-                                  console.error("[v0] Image failed to load:", color.images[0])
-                                  e.currentTarget.src = "/placeholder.svg?height=300&width=300"
-                                }}
-                                onLoad={() => {
-                                  console.log("[v0] Image loaded successfully:", color.images[0])
-                                }}
                               />
                               <Button
                                 type="button"

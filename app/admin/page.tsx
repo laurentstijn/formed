@@ -34,11 +34,12 @@ export default async function AdminPage() {
   if (!adminData || adminData.length === 0 || adminData.code) {
     redirect("/")
   }
-  // </CHANGE>
 
   return (
     <AdminLayout userEmail={user.email || ""}>
-      <ProductsManagement />
+      <div className="space-y-6">
+        <ProductsManagement />
+      </div>
     </AdminLayout>
   )
 }

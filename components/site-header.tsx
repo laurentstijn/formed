@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { CartButton } from "@/components/cart-button"
-import { User, Settings } from "lucide-react"
+import { User, Settings, Menu, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -11,6 +11,7 @@ export function SiteHeader() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userName, setUserName] = useState("")
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export function SiteHeader() {
     setIsLoggedIn(false)
     setIsAdmin(false)
     setUserName("")
+    setMobileMenuOpen(false)
 
     window.location.href = "/"
   }
@@ -77,6 +79,8 @@ export function SiteHeader() {
         <Link href="/" className="flex items-center">
           <img src="/formd-primary.png" alt="FORMD" className="h-8 w-auto" />
         </Link>
+
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Shop
@@ -122,8 +126,83 @@ export function SiteHeader() {
             </Link>
           )}
         </nav>
-        <CartButton />
+
+        <div className="flex items-center gap-4">
+          <CartButton />
+          <button
+            className="md:hidden text-foreground"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
+
+      {mobileMenuOpen && (
+        <nav className="md:hidden border-t border-border bg-background">
+          <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
+            <Link
+              href="/"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Shop
+            </Link>
+            <Link
+              href="/about"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Over Ons
+            </Link>
+            <Link
+              href="/contact"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Contact
+            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link
+                  href="/account"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <User className="h-4 w-4" />
+                  {userName}
+                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Settings className="h-4 w-4" />
+                    Admin Dashboard
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left py-2"
+                >
+                  Uitloggen
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/account/login"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <User className="h-4 w-4" />
+                Inloggen
+              </Link>
+            )}
+          </div>
+        </nav>
+      )}
     </header>
   )
 }

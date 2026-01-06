@@ -3,14 +3,21 @@ import { SiteHeader } from "@/components/site-header"
 import { ArrowLeft } from "lucide-react"
 import { getProductByIdServer } from "@/lib/supabase/products"
 import { ProductDetailClient } from "@/components/product-detail-client"
-import { createServerClient } from "@/lib/supabase/server"
 
 export async function generateStaticParams() {
-  const supabase = createServerClient()
-  const { data: products } = await supabase.from("products").select("id").eq("is_active", true)
-  return (products || []).map((product) => ({
-    id: product.id.toString(),
-  }))
+  const { sql } = await import("@vercel/postgres")
+
+  try {
+    const { rows } = await sql`
+      SELECT id FROM products WHERE is_active = true
+    `
+    return rows.map((row) => ({
+      id: row.id.toString(),
+    }))
+  } catch (error) {
+    console.error("Error generating static params:", error)
+    return []
+  }
 }
 
 export default async function ProductPage({ params }: { params: { id: string } }) {

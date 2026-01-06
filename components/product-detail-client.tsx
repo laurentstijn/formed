@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { AddToCartButton } from "@/components/add-to-cart-button"
 import { ShareButtons } from "@/components/share-buttons"
 import { ProductGallery } from "@/components/product-gallery"
 import { ColorSelector } from "@/components/color-selector"
-import { FileText } from "lucide-react"
 import type { Product } from "@/lib/supabase/products"
 
 interface ProductDetailClientProps {
@@ -14,25 +13,63 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product, productUrl }: ProductDetailClientProps) {
-  const [selectedColorIndex, setSelectedColorIndex] = useState(0)
+  const sortedColors = useMemo(() => {
+    if (!product.colors || product.colors.length === 0) return []
+
+    return [...product.colors].sort((a, b) => {
+      const aIsMain = a.images?.[0] === product.image
+      const bIsMain = b.images?.[0] === product.image
+      const aStock = a.stock || 0
+      const bStock = b.stock || 0
+
+      // If main image color is in stock, it comes first
+      if (aIsMain && aStock > 0) return -1
+      if (bIsMain && bStock > 0) return 1
+
+      // If main image color is out of stock, prioritize colors with stock
+      if (aStock > 0 && bStock === 0) return -1
+      if (aStock === 0 && bStock > 0) return 1
+
+      // If main image is out of stock but we need to maintain its position among out-of-stock items
+      if (aIsMain) return -1
+      if (bIsMain) return 1
+
+      return 0
+    })
+  }, [product.colors, product.image])
+
+  const defaultColorIndex = useMemo(() => {
+    if (!sortedColors || sortedColors.length === 0) return 0
+
+    // Find first color with stock > 0
+    const firstInStockIndex = sortedColors.findIndex((color) => (color.stock || 0) > 0)
+
+    // Return that index, or 0 if none have stock
+    return firstInStockIndex !== -1 ? firstInStockIndex : 0
+  }, [sortedColors])
+
+  const [selectedColorIndex, setSelectedColorIndex] = useState(defaultColorIndex)
 
   const displayImages = (() => {
-    const colorImages = product.colors && product.colors.length > 0 ? product.colors[selectedColorIndex].images : []
+    const colorImages = sortedColors && sortedColors.length > 0 ? sortedColors[selectedColorIndex].images : []
     const galleryImages = product.gallery_images || []
     const mainImage = product.image ? [product.image] : []
+    const technicalDrawing = product.technical_drawing ? [product.technical_drawing] : []
 
-    // Combine: color-specific images first, then gallery images, fallback to main image
+    // Combine: color-specific images first, then gallery images, then technical drawing, fallback to main image
     if (colorImages.length > 0) {
-      return [...colorImages, ...galleryImages]
+      return [...colorImages, ...galleryImages, ...technicalDrawing]
     } else if (galleryImages.length > 0) {
-      return galleryImages
+      return [...galleryImages, ...technicalDrawing]
+    } else if (technicalDrawing.length > 0) {
+      return technicalDrawing
     } else {
       return mainImage
     }
   })()
 
   const availableStock =
-    product.colors && product.colors.length > 0 ? product.colors[selectedColorIndex]?.stock || 0 : product.stock
+    sortedColors && sortedColors.length > 0 ? sortedColors[selectedColorIndex]?.stock || 0 : product.stock
 
   return (
     <div className="grid md:grid-cols-2 gap-12 lg:gap-16">
@@ -61,11 +98,12 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
           )}
         </div>
 
-        {product.colors && product.colors.length > 0 && (
+        {sortedColors && sortedColors.length > 0 && (
           <div className="mb-8">
             <ColorSelector
-              colors={product.colors.map((c) => ({ name: c.name, hex: c.hex, stock: c.stock }))}
+              colors={sortedColors.map((c) => ({ name: c.name, hex: c.hex, stock: c.stock }))}
               onColorChange={setSelectedColorIndex}
+              initialColorIndex={defaultColorIndex}
             />
           </div>
         )}
@@ -77,7 +115,7 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
         <AddToCartButton
           product={product}
           availableStock={availableStock}
-          selectedColor={product.colors?.[selectedColorIndex]?.name}
+          selectedColor={sortedColors?.[selectedColorIndex]?.name}
         />
 
         {/* Share Buttons */}
@@ -119,22 +157,6 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
               Verzendkosten: €7,50. Gratis verzending vanaf €75,00. Levering binnen 3-5 werkdagen.
             </p>
           </div>
-
-          {product.technical_drawing && (
-            <div className="border-t border-border pt-8">
-              <div className="flex items-center gap-2 mb-4">
-                <FileText className="w-5 h-5 text-muted-foreground" />
-                <h3 className="font-semibold text-foreground">Technische Tekening</h3>
-              </div>
-              <div className="bg-white rounded-lg overflow-hidden border border-border">
-                <img
-                  src={product.technical_drawing || "/placeholder.svg"}
-                  alt={`${product.name} technische tekening`}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

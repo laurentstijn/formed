@@ -1,15 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Check } from "lucide-react"
 
 interface ColorSelectorProps {
   colors: { name: string; hex: string; image?: string; stock?: number }[]
   onColorChange?: (colorIndex: number) => void
+  initialColorIndex?: number
 }
 
-export function ColorSelector({ colors, onColorChange }: ColorSelectorProps) {
-  const [selectedColor, setSelectedColor] = useState(0)
+export function ColorSelector({ colors, onColorChange, initialColorIndex = 0 }: ColorSelectorProps) {
+  const [selectedColor, setSelectedColor] = useState(initialColorIndex)
+
+  useEffect(() => {
+    setSelectedColor(initialColorIndex)
+  }, [initialColorIndex])
 
   const handleColorSelect = (index: number) => {
     setSelectedColor(index)

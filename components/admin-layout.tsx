@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Package, Users, ShoppingCart, Menu, X, Settings } from "lucide-react"
+import { Package, Users, ShoppingCart, Menu, X, Settings, BarChart3 } from "lucide-react"
 import SiteHeader from "@/components/site-header"
 
 interface AdminLayoutProps {
@@ -42,6 +42,7 @@ export function AdminLayout({ children, userEmail }: AdminLayoutProps) {
     { name: "Producten", href: "/admin", icon: Package },
     { name: "Klanten", href: "/admin/customers", icon: Users },
     { name: "Bestellingen", href: "/admin/orders", icon: ShoppingCart, count: orderCount },
+    { name: "Statistieken", href: "/admin/statistics", icon: BarChart3 },
     { name: "Instellingen", href: "/admin/settings", icon: Settings },
   ]
 
@@ -62,9 +63,7 @@ export function AdminLayout({ children, userEmail }: AdminLayoutProps) {
 
         {/* Sidebar */}
         <aside
-          className={`${
-            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-          } lg:translate-x-0 fixed lg:static top-16 inset-y-0 left-0 z-40 w-64 bg-card border-r transition-transform duration-300 ease-in-out`}
+          className={`${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 fixed lg:static top-16 inset-y-0 left-0 z-40 w-64 bg-card border-r transition-transform duration-300 ease-in-out`}
         >
           <div className="flex flex-col h-full">
             {/* Header */}

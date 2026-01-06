@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-export async function DELETE(request: NextRequest, { params }: { params: { orderId: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ orderId: string }> }) {
   try {
-    const { orderId } = params
+    const { orderId } = await params
 
     // Create Supabase client with service role key to bypass RLS
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {

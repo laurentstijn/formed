@@ -25,29 +25,8 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
 
   return (
     <div className="grid md:grid-cols-2 gap-12 lg:gap-16">
-      {/* Product Image Gallery */}
-      <div>
-        <ProductGallery images={displayImages} productName={product.name} />
-
-        {product.technical_drawing && (
-          <div className="mt-8 border border-border rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="w-5 h-5 text-muted-foreground" />
-              <h3 className="font-semibold text-foreground">Technische Tekening</h3>
-            </div>
-            <div className="bg-white rounded-lg overflow-hidden">
-              <img
-                src={product.technical_drawing || "/placeholder.svg"}
-                alt={`${product.name} technische tekening`}
-                className="w-full h-auto"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Product Info */}
-      <div className="flex flex-col">
+      {/* Product Info - Mobile Priority */}
+      <div className="flex flex-col md:order-2">
         <p className="text-sm text-muted-foreground mb-2 uppercase tracking-wider">{product.category}</p>
         <h1 className="text-4xl font-sans font-semibold text-foreground mb-4">{product.name}</h1>
         <p className="text-3xl font-semibold text-foreground mb-8">€{product.price.toFixed(2)}</p>
@@ -80,6 +59,15 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
           </div>
         )}
 
+        <div className="mb-8 md:hidden border-t border-border" />
+      </div>
+
+      {/* Product Image Gallery - comes after info on mobile */}
+      <div className="md:order-1">
+        <ProductGallery images={displayImages} productName={product.name} />
+      </div>
+
+      <div className="md:order-2 md:col-start-2">
         <AddToCartButton product={product} />
 
         {/* Share Buttons */}
@@ -121,6 +109,22 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
               Verzendkosten: €7,50. Gratis verzending vanaf €75,00. Levering binnen 3-5 werkdagen.
             </p>
           </div>
+
+          {product.technical_drawing && (
+            <div className="border-t border-border pt-8">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-muted-foreground" />
+                <h3 className="font-semibold text-foreground">Technische Tekening</h3>
+              </div>
+              <div className="bg-white rounded-lg overflow-hidden border border-border">
+                <img
+                  src={product.technical_drawing || "/placeholder.svg"}
+                  alt={`${product.name} technische tekening`}
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

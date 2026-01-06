@@ -15,13 +15,22 @@ import {
 } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
 
-export function AddToCartButton({ product }: { product: Product }) {
+export function AddToCartButton({
+  product,
+  availableStock,
+  selectedColor,
+}: {
+  product: Product
+  availableStock?: number
+  selectedColor?: string
+}) {
   const { addItem } = useCart()
   const [added, setAdded] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const router = useRouter()
 
-  const isOutOfStock = product.stock === 0
+  const stock = availableStock !== undefined ? availableStock : product.stock
+  const isOutOfStock = stock === 0
 
   const handleAddToCart = () => {
     if (isOutOfStock) return
@@ -30,7 +39,8 @@ export function AddToCartButton({ product }: { product: Product }) {
       id: product.id,
       name: product.name,
       price: product.price,
-      image: product.image || "/placeholder.svg", // Reverted from images[0] to single image field
+      image: product.image || "/placeholder.svg",
+      color: selectedColor,
     })
     setAdded(true)
     setShowDialog(true)

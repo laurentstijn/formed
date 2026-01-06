@@ -36,7 +36,7 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
 
   return (
     <div className="grid md:grid-cols-2 gap-12 lg:gap-16">
-      {/* Product Info - Mobile Priority */}
+      {/* Product Info - comes first on mobile, second on desktop */}
       <div className="flex flex-col md:order-2">
         <p className="text-sm text-muted-foreground mb-2 uppercase tracking-wider">{product.category}</p>
         <h1 className="text-4xl font-sans font-semibold text-foreground mb-4">{product.name}</h1>
@@ -62,7 +62,7 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
         </div>
 
         {product.colors && product.colors.length > 0 && (
-          <div className="mb-8 pb-8 border-b border-border">
+          <div className="mb-8">
             <ColorSelector
               colors={product.colors.map((c) => ({ name: c.name, hex: c.hex, stock: c.stock }))}
               onColorChange={setSelectedColorIndex}
@@ -70,16 +70,15 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
           </div>
         )}
 
-        <div className="mb-8 md:hidden border-t border-border" />
-      </div>
+        <div className="md:hidden mb-8">
+          <ProductGallery images={displayImages} productName={product.name} />
+        </div>
 
-      {/* Product Image Gallery - comes after info on mobile */}
-      <div className="md:order-1">
-        <ProductGallery images={displayImages} productName={product.name} />
-      </div>
-
-      <div className="md:order-2 md:col-start-2">
-        <AddToCartButton product={product} />
+        <AddToCartButton
+          product={product}
+          availableStock={availableStock}
+          selectedColor={product.colors?.[selectedColorIndex]?.name}
+        />
 
         {/* Share Buttons */}
         <div className="mt-6 pt-6 border-t border-border">
@@ -137,6 +136,10 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
             </div>
           )}
         </div>
+      </div>
+
+      <div className="hidden md:block md:order-1">
+        <ProductGallery images={displayImages} productName={product.name} />
       </div>
     </div>
   )

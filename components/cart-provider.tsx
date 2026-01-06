@@ -10,6 +10,7 @@ export type CartItem = {
   price: number
   quantity: number
   image: string
+  color?: string // Added optional color field to track selected color variant
 }
 
 type CartContextType = {
@@ -42,9 +43,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = (item: Omit<CartItem, "quantity">) => {
     setItems((currentItems) => {
-      const existingItem = currentItems.find((i) => i.id === item.id)
+      const existingItem = currentItems.find((i) => i.id === item.id && i.color === item.color)
       if (existingItem) {
-        return currentItems.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))
+        return currentItems.map((i) =>
+          i.id === item.id && i.color === item.color ? { ...i, quantity: i.quantity + 1 } : i,
+        )
       }
       return [...currentItems, { ...item, quantity: 1 }]
     })

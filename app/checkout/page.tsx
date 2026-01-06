@@ -32,6 +32,7 @@ export default function CheckoutPage() {
     address: "",
     city: "",
     postalCode: "",
+    color: "", // Added color field to formData
   })
 
   const SHIPPING_COST = 7.5
@@ -69,6 +70,7 @@ export default function CheckoutPage() {
             address: customer.address_line1 || "",
             city: customer.city || "",
             postalCode: customer.postal_code || "",
+            color: "", // Initialize color field
           })
           if (customer.country) {
             setSelectedCountry(customer.country)
@@ -146,6 +148,7 @@ export default function CheckoutPage() {
           price: item.price,
           quantity: item.quantity,
           image: item.image,
+          color: item.color, // Include selected color in order data
         })),
         total_amount: finalTotal,
         domain,
@@ -167,6 +170,7 @@ export default function CheckoutPage() {
 
       console.log("[v0] Order created successfully:", result.order)
 
+      /* 
       try {
         const emailResponse = await fetch("/api/send-order-email", {
           method: "POST",
@@ -196,6 +200,7 @@ export default function CheckoutPage() {
           }),
         })
       }
+      */
 
       clearCart()
       router.push("/order-confirmation")

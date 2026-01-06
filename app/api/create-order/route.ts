@@ -5,12 +5,20 @@ export async function POST(request: Request) {
     const orderData = await request.json()
 
     console.log("[v0] Server: Creating order:", orderData)
+    console.log("[v0] Server: Order items:", JSON.stringify(orderData.items, null, 2))
 
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
     for (const item of orderData.items) {
-      const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}&select=stock`, {
+      console.log(`[v0] Server: Checking stock for item:`, {
+        id: item.id,
+        name: item.name,
+        color: item.color,
+        quantity: item.quantity,
+      })
+
+      const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}&select=stock,colors`, {
         headers: {
           apikey: serviceRoleKey,
           Authorization: `Bearer ${serviceRoleKey}`,
@@ -20,7 +28,44 @@ export async function POST(request: Request) {
       const products = await productResponse.json()
       const product = products[0]
 
-      if (!product || product.stock < item.quantity) {
+      console.log(`[v0] Server: Product data for ${item.name}:`, {
+        hasColors: !!product?.colors,
+        colors: product?.colors,
+        generalStock: product?.stock,
+      })
+
+      if (!product) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Product "${item.name}" niet gevonden.`,
+          },
+          { status: 404 },
+        )
+      }
+
+      if (item.color && product.colors) {
+        const selectedColorData = product.colors.find((c: any) => c.name === item.color)
+        console.log(`[v0] Server: Color check for "${item.color}":`, {
+          found: !!selectedColorData,
+          colorData: selectedColorData,
+        })
+
+        if (!selectedColorData || !selectedColorData.stock || selectedColorData.stock < item.quantity) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Product "${item.name}" in kleur "${item.color}" is niet meer op voorraad of er is onvoldoende voorraad beschikbaar.`,
+            },
+            { status: 400 },
+          )
+        }
+      } else if (product.stock < item.quantity) {
+        console.log(`[v0] Server: Fallback stock check failed:`, {
+          productStock: product.stock,
+          requestedQuantity: item.quantity,
+        })
+        // Fallback to general stock check
         return NextResponse.json(
           {
             success: false,
@@ -107,7 +152,7 @@ export async function POST(request: Request) {
 
     for (const item of orderData.items) {
       try {
-        const stockResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}&select=stock`, {
+        const stockResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}&select=stock,colors`, {
           headers: {
             apikey: serviceRoleKey,
             Authorization: `Bearer ${serviceRoleKey}`,
@@ -115,21 +160,44 @@ export async function POST(request: Request) {
         })
 
         const products = await stockResponse.json()
-        const currentStock = products[0]?.stock || 0
-        const newStock = Math.max(0, currentStock - item.quantity)
+        const product = products[0]
 
-        const updateResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: serviceRoleKey,
-            Authorization: `Bearer ${serviceRoleKey}`,
-          },
-          body: JSON.stringify({ stock: newStock }),
-        })
+        if (item.color && product.colors) {
+          // Update color-specific stock
+          const updatedColors = product.colors.map((c: any) => {
+            if (c.name === item.color) {
+              return { ...c, stock: Math.max(0, (c.stock || 0) - item.quantity) }
+            }
+            return c
+          })
 
-        if (!updateResponse.ok) {
-          console.error(`[v0] CRITICAL: Failed to update stock for product ${item.id}`)
+          await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: serviceRoleKey,
+              Authorization: `Bearer ${serviceRoleKey}`,
+            },
+            body: JSON.stringify({ colors: updatedColors }),
+          })
+
+          console.log(`[v0] Server: Updated stock for product ${item.id}, color ${item.color}`)
+        } else {
+          // Update general stock
+          const currentStock = product.stock || 0
+          const newStock = Math.max(0, currentStock - item.quantity)
+
+          await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: serviceRoleKey,
+              Authorization: `Bearer ${serviceRoleKey}`,
+            },
+            body: JSON.stringify({ stock: newStock }),
+          })
+
+          console.log(`[v0] Server: Updated general stock for product ${item.id}`)
         }
       } catch (stockError) {
         console.error(`[v0] CRITICAL: Stock update error for product ${item.id}:`, stockError)
@@ -142,9 +210,11 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           order: createdOrder[0] || createdOrder,
+          email: orderData.email,
           domain: orderData.domain || "be",
         }),
       })
+      console.log("[v0] Server: Order confirmation email sent")
     } catch (emailError) {
       console.error("[v0] Email sending failed (non-critical):", emailError)
     }

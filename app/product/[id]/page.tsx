@@ -1,14 +1,20 @@
-"use client"
-
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { ArrowLeft } from "lucide-react"
 import { getProductByIdServer } from "@/lib/supabase/products"
 import { ProductDetailClient } from "@/components/product-detail-client"
+import { createServerClient } from "@/lib/supabase/server"
 
-export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params
-  const product = await getProductByIdServer(Number(resolvedParams.id))
+export async function generateStaticParams() {
+  const supabase = createServerClient()
+  const { data: products } = await supabase.from("products").select("id").eq("is_active", true)
+  return (products || []).map((product) => ({
+    id: product.id.toString(),
+  }))
+}
+
+export default async function ProductPage({ params }: { params: { id: string } }) {
+  const product = await getProductByIdServer(Number(params.id))
 
   if (!product) {
     return (

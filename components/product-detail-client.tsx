@@ -16,12 +16,20 @@ interface ProductDetailClientProps {
 export function ProductDetailClient({ product, productUrl }: ProductDetailClientProps) {
   const [selectedColorIndex, setSelectedColorIndex] = useState(0)
 
-  const displayImages =
-    product.colors && product.colors.length > 0
-      ? product.colors[selectedColorIndex].images
-      : product.image
-        ? [product.image]
-        : []
+  const displayImages = (() => {
+    const colorImages = product.colors && product.colors.length > 0 ? product.colors[selectedColorIndex].images : []
+    const galleryImages = product.gallery_images || []
+    const mainImage = product.image ? [product.image] : []
+
+    // Combine: color-specific images first, then gallery images, fallback to main image
+    if (colorImages.length > 0) {
+      return [...colorImages, ...galleryImages]
+    } else if (galleryImages.length > 0) {
+      return galleryImages
+    } else {
+      return mainImage
+    }
+  })()
 
   const availableStock =
     product.colors && product.colors.length > 0 ? product.colors[selectedColorIndex]?.stock || 0 : product.stock

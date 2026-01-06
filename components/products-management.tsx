@@ -30,6 +30,7 @@ export default function ProductsManagement() {
     price: "",
     category: "",
     image: "",
+    gallery_images: [] as string[], // Added gallery_images to formData
     technical_drawing: "",
     isActive: true,
     colors: [] as { name: string; hex: string; stock: number; images: string[] }[],
@@ -86,7 +87,7 @@ export default function ProductsManagement() {
     }
   }
 
-  const handleColorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, colorIndex: number) => {
+  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -98,88 +99,35 @@ export default function ProductsManagement() {
 
     setUploading(true)
     try {
-      const formData = new FormData()
-      formData.append("file", file)
+      const uploadFormData = new FormData()
+      uploadFormData.append("file", file)
 
       const response = await fetch("/api/upload", {
         method: "POST",
-        body: formData,
+        body: uploadFormData,
       })
 
       if (!response.ok) throw new Error("Upload failed")
 
       const { url } = await response.json()
 
-      setFormData((prev) => {
-        const newColors = [...prev.colors]
-        newColors[colorIndex].images = [url] // Single image per color
-        return { ...prev, colors: newColors }
-      })
-
-      toast.success("Afbeelding succesvol geüpload!")
+      setFormData((prev) => ({
+        ...prev,
+        gallery_images: [...prev.gallery_images, url],
+      }))
+      toast.success("Afbeelding toegevoegd aan gallery")
     } catch (error) {
-      console.error("Upload error:", error)
       toast.error("Fout bij uploaden afbeelding")
     } finally {
       setUploading(false)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (formData.colors.length > 0) {
-      const hasImages = formData.colors.some((c) => c.images && c.images.length > 0)
-      if (!hasImages) {
-        toast.error("Upload minimaal één afbeelding per kleur")
-        return
-      }
-
-      if (!formData.image) {
-        const firstImage = formData.colors.find((c) => c.images && c.images.length > 0)?.images[0]
-        if (firstImage) {
-          setFormData((prev) => ({ ...prev, image: firstImage }))
-        }
-      }
-    }
-
-    const featuresArray = formData.features
-      ? formData.features
-          .split(",")
-          .map((f) => f.trim())
-          .filter((f) => f.length > 0)
-      : []
-
-    const productData = {
-      name: formData.name,
-      price: Number.parseFloat(formData.price),
-      image: formData.image || "",
-      technical_drawing: formData.technical_drawing,
-      category: formData.category,
-      description: formData.description,
-      features: featuresArray,
-      materials: formData.materials,
-      dimensions: formData.dimensions,
-      colors: formData.colors.filter((c) => c != null),
-      is_active: formData.isActive,
-    }
-
-    try {
-      console.log("[v0] Saving product with data:", productData)
-      if (editingProduct) {
-        await updateProduct(editingProduct.id, productData)
-        toast.success("Product bijgewerkt!")
-      } else {
-        await createProduct(productData)
-        toast.success("Product aangemaakt!")
-      }
-
-      handleCancelEdit()
-      await loadProducts()
-    } catch (error) {
-      console.error("[v0] Error updating product:", error)
-      toast.error(`Fout bij opslaan: ${error instanceof Error ? error.message : "Onbekende fout"}`)
-    }
+  const removeGalleryImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      gallery_images: prev.gallery_images.filter((_, i) => i !== index),
+    }))
   }
 
   const handleEdit = (product: Product) => {
@@ -188,6 +136,7 @@ export default function ProductsManagement() {
       name: product.name,
       price: product.price.toString(),
       image: product.image || "",
+      gallery_images: product.gallery_images || [], // Load gallery_images when editing
       technical_drawing: product.technical_drawing || "",
       category: product.category,
       description: product.description,
@@ -222,6 +171,7 @@ export default function ProductsManagement() {
       price: "",
       category: "",
       image: "",
+      gallery_images: [], // Reset gallery_images
       technical_drawing: "",
       isActive: true,
       colors: [],
@@ -307,6 +257,102 @@ export default function ProductsManagement() {
   const getTotalStock = (product: Product) => {
     if (!product.colors || !Array.isArray(product.colors)) return 0
     return product.colors.filter((color) => color != null).reduce((sum, color) => sum + (color?.stock || 0), 0)
+  }
+
+  const handleColorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, colorIndex: number) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const maxSize = 2 * 1024 * 1024 // 2MB
+    if (file.size > maxSize) {
+      toast.error("Afbeelding is te groot (max 2MB)")
+      return
+    }
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) throw new Error("Upload failed")
+
+      const { url } = await response.json()
+
+      setFormData((prev) => {
+        const newColors = [...prev.colors]
+        newColors[colorIndex].images = [url]
+        return { ...prev, colors: newColors }
+      })
+
+      toast.success("Afbeelding succesvol geüpload!")
+    } catch (error) {
+      console.error("Upload error:", error)
+      toast.error("Fout bij uploaden afbeelding")
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (formData.colors.length > 0) {
+      const hasImages = formData.colors.some((c) => c.images && c.images.length > 0)
+      if (!hasImages) {
+        toast.error("Upload minimaal één afbeelding per kleur")
+        return
+      }
+
+      if (!formData.image) {
+        const firstImage = formData.colors.find((c) => c.images && c.images.length > 0)?.images[0]
+        if (firstImage) {
+          setFormData((prev) => ({ ...prev, image: firstImage }))
+        }
+      }
+    }
+
+    const featuresArray = formData.features
+      ? formData.features
+          .split(",")
+          .map((f) => f.trim())
+          .filter((f) => f.length > 0)
+      : []
+
+    const productData = {
+      name: formData.name,
+      price: Number.parseFloat(formData.price),
+      image: formData.image || "",
+      gallery_images: formData.gallery_images,
+      technical_drawing: formData.technical_drawing,
+      category: formData.category,
+      description: formData.description,
+      features: featuresArray,
+      materials: formData.materials,
+      dimensions: formData.dimensions,
+      colors: formData.colors.filter((c) => c != null),
+      is_active: formData.isActive,
+    }
+
+    try {
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, productData)
+        toast.success("Product bijgewerkt!")
+      } else {
+        await createProduct(productData)
+        toast.success("Product aangemaakt!")
+      }
+
+      handleCancelEdit()
+      await loadProducts()
+    } catch (error) {
+      console.error("[v0] Error updating product:", error)
+      toast.error(`Fout bij opslaan: ${error instanceof Error ? error.message : "Onbekende fout"}`)
+    }
   }
 
   if (isLoading) {
@@ -451,6 +497,58 @@ export default function ProductsManagement() {
               />
             </div>
 
+            <div className="space-y-2 border-t pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <Label>Product Gallery Afbeeldingen</Label>
+                  <p className="text-sm text-muted-foreground">Algemene product foto's (lifestyle, details, context)</p>
+                </div>
+                <Label htmlFor="gallery-upload" className="cursor-pointer">
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <span>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Afbeelding toevoegen
+                    </span>
+                  </Button>
+                </Label>
+                <Input
+                  id="gallery-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleGalleryImageUpload}
+                  disabled={uploading}
+                />
+              </div>
+
+              {formData.gallery_images.length > 0 ? (
+                <div className="grid grid-cols-4 gap-4">
+                  {formData.gallery_images.map((imageUrl, index) => (
+                    <div key={index} className="relative group aspect-square border rounded-lg overflow-hidden">
+                      <img
+                        src={imageUrl || "/placeholder.svg"}
+                        alt={`Gallery ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeGalleryImage(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                  <p className="text-sm">Geen gallery afbeeldingen toegevoegd</p>
+                </div>
+              )}
+            </div>
+
             {/* Technical Drawing Section */}
             <div className="space-y-2 border-t pt-6">
               <Label>Technische Tekening</Label>
@@ -468,22 +566,14 @@ export default function ProductsManagement() {
                       <FileText className="h-5 w-5 text-blue-600" />
                       <div>
                         <p className="text-sm font-medium">Technische tekening geüpload</p>
-                        <a
-                          href={formData.technical_drawing}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline"
-                        >
-                          Bekijk in nieuw venster
-                        </a>
                       </div>
                     </div>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={() => setFormData({ ...formData, technical_drawing: "" })}
                       className="text-red-600"
+                      onClick={() => setFormData({ ...formData, technical_drawing: "" })}
                     >
                       <X className="h-4 w-4" />
                     </Button>

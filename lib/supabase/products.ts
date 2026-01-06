@@ -4,7 +4,8 @@ export type Product = {
   id: number
   name: string
   price: number
-  image: string // Reverted from 'images' array back to single 'image' string to match database
+  image: string // Hoofdafbeelding
+  gallery_images?: string[] // Toegevoegd: extra product afbeeldingen (lifestyle, details, etc.)
   technical_drawing?: string
   category: string
   description: string
@@ -44,6 +45,7 @@ export async function getProducts(): Promise<Product[]> {
       name: product.name,
       price: Number(product.price),
       image: product.image || "",
+      gallery_images: product.gallery_images || [], // Map gallery_images
       technical_drawing: product.technical_drawing,
       category: product.category,
       description: product.description,
@@ -84,6 +86,7 @@ export async function getAllProducts(): Promise<Product[]> {
       name: product.name,
       price: Number(product.price),
       image: product.image || "",
+      gallery_images: product.gallery_images || [], // Map gallery_images
       technical_drawing: product.technical_drawing,
       category: product.category,
       description: product.description,
@@ -119,6 +122,7 @@ export async function getProductById(id: number): Promise<Product | null> {
       name: product.name,
       price: Number(product.price),
       image: product.image || "",
+      gallery_images: product.gallery_images || [], // Map gallery_images
       technical_drawing: product.technical_drawing,
       category: product.category,
       description: product.description,
@@ -152,7 +156,8 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
     .insert({
       name: product.name,
       price: product.price,
-      image: product.image, // Reverted to single image field
+      image: product.image,
+      gallery_images: product.gallery_images || [], // Include gallery_images
       technical_drawing: product.technical_drawing,
       category: product.category,
       description: product.description,
@@ -184,7 +189,8 @@ export async function updateProduct(id: number, updates: Partial<Product>) {
     .update({
       name: updates.name,
       price: updates.price,
-      image: updates.image, // Reverted to single image field
+      image: updates.image,
+      gallery_images: updates.gallery_images, // Include gallery_images
       technical_drawing: updates.technical_drawing,
       category: updates.category,
       description: updates.description,

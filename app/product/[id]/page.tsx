@@ -2,6 +2,7 @@ import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { ArrowLeft } from "lucide-react"
 import { ProductDetailClient } from "@/components/product-detail-client"
+import { createClient } from "@/lib/supabase/server"
 
 export async function generateStaticParams() {
   const { sql } = await import("@vercel/postgres")
@@ -19,43 +20,13 @@ export async function generateStaticParams() {
   }
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const { sql } = await import("@vercel/postgres")
+export default async function ProductPage({ params }: { params: { id: string } }) {
+  const { id } = params
+  const supabase = await createClient()
 
-  let product = null
+  const { data: product, error } = await supabase.from("products").select("*").eq("id", Number(id)).single()
 
-  try {
-    const { rows } = await sql`
-      SELECT * FROM products WHERE id = ${Number(id)}
-    `
-
-    if (rows.length > 0) {
-      const row = rows[0]
-      product = {
-        id: row.id,
-        name: row.name,
-        price: Number(row.price),
-        image: row.image || "",
-        technical_drawing: row.technical_drawing,
-        category: row.category,
-        description: row.description,
-        features: row.features || [],
-        materials: row.materials,
-        dimensions: row.dimensions,
-        colors: row.colors,
-        stock: row.stock,
-        display_order: row.display_order,
-        is_active: row.is_active,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-      }
-    }
-  } catch (error) {
-    console.error("[v0] Error fetching product:", error)
-  }
-
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

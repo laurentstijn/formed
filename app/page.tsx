@@ -20,7 +20,6 @@ export default function HomePage() {
   }
 
   const handleProductClick = (productId: number, productName: string) => {
-    console.log("[v0] Navigating to product:", productId, productName)
     router.push(`/product/${productId}`)
   }
 

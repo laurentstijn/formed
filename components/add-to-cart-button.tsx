@@ -75,7 +75,7 @@ export function AddToCartButton({ product }: { product: Product }) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-[#E91E63]" />
+              <Check className="h-5 w-5 text-primary" />
               Product toegevoegd
             </DialogTitle>
             <DialogDescription>{product.name} is toegevoegd aan je winkelwagen</DialogDescription>
@@ -86,7 +86,7 @@ export function AddToCartButton({ product }: { product: Product }) {
               <Package className="mr-2 h-4 w-4" />
               Verder winkelen
             </Button>
-            <Button onClick={handleGoToCheckout} className="w-full sm:w-auto bg-[#E91E63] hover:bg-[#C2185B]">
+            <Button onClick={handleGoToCheckout} className="w-full sm:w-auto bg-primary hover:bg-primary-dark">
               Doorgaan naar afrekenen
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

@@ -106,33 +106,33 @@ export async function POST(request: Request) {
     console.log("[v0] Server: Order created successfully:", createdOrder)
 
     for (const item of orderData.items) {
-      // Fetch current stock
-      const stockResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}&select=stock`, {
-        headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-        },
-      })
+      try {
+        const stockResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}&select=stock`, {
+          headers: {
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+          },
+        })
 
-      const products = await stockResponse.json()
-      const currentStock = products[0]?.stock || 0
-      const newStock = Math.max(0, currentStock - item.quantity)
+        const products = await stockResponse.json()
+        const currentStock = products[0]?.stock || 0
+        const newStock = Math.max(0, currentStock - item.quantity)
 
-      // Update stock
-      const updateResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-        },
-        body: JSON.stringify({ stock: newStock }),
-      })
+        const updateResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({ stock: newStock }),
+        })
 
-      if (!updateResponse.ok) {
-        console.error("[v0] Server: Failed to decrease stock for product:", item.id)
-      } else {
-        console.log(`[v0] Server: Stock decreased for ${item.name}: ${currentStock} -> ${newStock}`)
+        if (!updateResponse.ok) {
+          console.error(`[v0] CRITICAL: Failed to update stock for product ${item.id}`)
+        }
+      } catch (stockError) {
+        console.error(`[v0] CRITICAL: Stock update error for product ${item.id}:`, stockError)
       }
     }
 
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
         }),
       })
     } catch (emailError) {
-      console.error("[v0] Server: Failed to send emails:", emailError)
+      console.error("[v0] Email sending failed (non-critical):", emailError)
     }
 
     return NextResponse.json({ success: true, order: createdOrder[0] || createdOrder })

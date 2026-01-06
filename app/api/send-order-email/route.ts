@@ -17,7 +17,7 @@ function replaceTemplateVariables(template: string, data: Record<string, string>
 
 export async function POST(request: NextRequest) {
   try {
-    const { order, email, domain } = await request.json()
+    const { order, domain } = await request.json()
 
     const supabase = await createClient()
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const customer = {
       firstName: order.first_name,
       lastName: order.last_name,
-      email: email,
+      email: order.email,
       address: `${order.address_line1}, ${order.postal_code} ${order.city}, ${order.country}`,
     }
 
@@ -52,14 +52,30 @@ export async function POST(request: NextRequest) {
     let emailsSent = true
     let emailError = null
 
+    if (!process.env.RESEND_API_KEY) {
+      console.error("[v0] RESEND_API_KEY not configured!")
+      return NextResponse.json({
+        success: true,
+        emailsSent: false,
+        message: "Bestelling geplaatst, emails worden later verzonden",
+        error: "RESEND_API_KEY not configured",
+      })
+    }
+
+    console.log("[v0] Sending order emails for order:", order.id.substring(0, 8))
+    console.log("[v0] Customer email:", order.email)
+    console.log("[v0] RESEND_API_KEY configured:", !!process.env.RESEND_API_KEY)
+
     try {
       const customerSubject = settings?.order_email_subject || `Bedankt voor je bestelling! 🎉`
 
       const customerHtml = ProfessionalOrderEmail({ order, customer, companyInfo })
 
+      console.log("[v0] Attempting to send customer email from:", fromEmail, "to:", order.email)
+
       customerEmailResult = await resend.emails.send({
         from: `FORMD <${fromEmail}>`,
-        to: email,
+        to: order.email,
         subject: customerSubject,
         html: customerHtml,
       })
@@ -68,7 +84,12 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
       emailsSent = false
       emailError = error?.message || "Email domain not verified"
-      console.warn("[v0] Could not send customer email:", error)
+      console.error("[v0] Could not send customer email:", {
+        message: error?.message,
+        statusCode: error?.statusCode,
+        name: error?.name,
+        fullError: error,
+      })
     }
 
     try {
@@ -122,7 +143,7 @@ export async function POST(request: NextRequest) {
                         <h2 style="color: #2c3e50; font-size: 18px; margin: 0 0 15px; font-weight: 600;">Klantgegevens</h2>
                         <p style="margin: 0 0 20px; color: #34495e; font-size: 15px; line-height: 1.6;">
                           <strong>${order.first_name} ${order.last_name}</strong><br>
-                          ${email}<br>
+                          ${order.email}<br>
                           ${order.address_line1}${order.address_line2 ? ", " + order.address_line2 : ""}<br>
                           ${order.postal_code} ${order.city}<br>
                           ${order.country}
@@ -170,6 +191,8 @@ export async function POST(request: NextRequest) {
         </html>
       `
 
+      console.log("[v0] Attempting to send admin email from:", fromEmail, "to:", adminEmail)
+
       adminEmailResult = await resend.emails.send({
         from: `FORMD <${fromEmail}>`,
         to: adminEmail,
@@ -181,7 +204,12 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
       emailsSent = false
       emailError = error?.message || "Email domain not verified"
-      console.warn("[v0] Could not send admin email:", error)
+      console.error("[v0] Could not send admin email:", {
+        message: error?.message,
+        statusCode: error?.statusCode,
+        name: error?.name,
+        fullError: error,
+      })
     }
 
     return NextResponse.json({
@@ -195,7 +223,10 @@ export async function POST(request: NextRequest) {
       emailError,
     })
   } catch (error) {
-    console.error("[v0] Error in email route:", error)
+    console.error("[v0] Error in email route:", {
+      message: error instanceof Error ? error.message : String(error),
+      fullError: error,
+    })
     return NextResponse.json({
       success: true,
       emailsSent: false,

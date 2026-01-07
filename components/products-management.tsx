@@ -40,6 +40,7 @@ export default function ProductsManagement() {
     features: "",
     materials: "",
     dimensions: "",
+    main_image_source: "" as string,
   })
 
   const addCategory = () => {
@@ -168,6 +169,7 @@ export default function ProductsManagement() {
       dimensions: product.dimensions || "",
       colors: product.colors || [],
       isActive: product.is_active ?? true,
+      main_image_source: (product as any).main_image_source || "",
     })
     setIsDialogOpen(true)
   }
@@ -201,6 +203,7 @@ export default function ProductsManagement() {
       features: "",
       materials: "",
       dimensions: "",
+      main_image_source: "",
     })
   }
 
@@ -359,6 +362,7 @@ export default function ProductsManagement() {
       dimensions: formData.dimensions,
       colors: formData.colors.filter((c) => c != null),
       is_active: formData.isActive,
+      main_image_source: formData.main_image_source,
     }
 
     try {
@@ -431,10 +435,23 @@ export default function ProductsManagement() {
               </div>
 
               <div className="flex-1">
-                <h3 className="font-semibold">{product.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  €{product.price} • {getTotalStock(product)} op voorraad
-                </p>
+                <h3 className="font-medium">{product.name}</h3>
+                <p className="text-sm text-muted-foreground">€{product.price}</p>
+                {product.colors && product.colors.length > 0 ? (
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                    {product.colors.map((color, idx) => (
+                      <span key={idx} className="text-xs text-muted-foreground flex items-center gap-1">
+                        <span
+                          className="w-2 h-2 rounded-full border border-gray-300"
+                          style={{ backgroundColor: color.hex }}
+                        />
+                        {color.name}: {color.stock}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">{getTotalStock(product)} op voorraad</p>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -587,24 +604,33 @@ export default function ProductsManagement() {
 
               {formData.gallery_images.length > 0 ? (
                 <div className="grid grid-cols-4 gap-4">
-                  {formData.gallery_images.map((imageUrl, index) => (
-                    <div key={index} className="relative group aspect-square border rounded-lg overflow-hidden">
-                      <img
-                        src={imageUrl || "/placeholder.svg"}
-                        alt={`Gallery ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <Button
+                  {formData.gallery_images.map((imageUrl, index) => {
+                    const isSelected = formData.image === imageUrl
+                    return (
+                      <button
+                        key={`gallery-${index}`}
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => removeGalleryImage(index)}
+                        onClick={() => setFormData({ ...formData, image: imageUrl })}
+                        className={`relative border-2 rounded-lg overflow-hidden hover:border-primary transition-colors ${
+                          isSelected ? "border-primary ring-2 ring-primary" : "border-gray-200"
+                        }`}
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                        <img
+                          src={imageUrl || "/placeholder.svg"}
+                          alt={`Gallery ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-green-600 text-white text-xs p-2 font-medium">
+                          Gallery Foto {index + 1}
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded">
+                            Hoofdfoto
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
@@ -678,135 +704,196 @@ export default function ProductsManagement() {
                 </p>
               ) : (
                 <Accordion type="multiple" className="space-y-4">
-                  {formData.colors.map((color, index) => (
-                    <AccordionItem key={index} value={`color-${index}`} className="border rounded-lg px-4">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-8 h-8 rounded-full border-2 border-gray-300"
-                            style={{ backgroundColor: color.hex }}
-                          />
-                          <span className="font-medium">{color.name || "Nieuwe kleur"}</span>
-                          <span className="text-sm text-muted-foreground">{color.stock} op voorraad</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-4 space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <Label>Kleur Naam</Label>
-                            <Input
-                              value={color.name}
-                              onChange={(e) => updateColor(index, "name", e.target.value)}
-                              placeholder="bijv. Mint Green"
+                  {formData.colors.map((color, index) => {
+                    const isSelected = formData.image === color.images[0]
+                    return (
+                      <AccordionItem key={index} value={`color-${index}`} className="border rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-8 h-8 rounded-full border-2 border-gray-300"
+                              style={{ backgroundColor: color.hex }}
                             />
+                            <span className="font-medium">{color.name || "Nieuwe kleur"}</span>
+                            <span className="text-sm text-muted-foreground">{color.stock} op voorraad</span>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Kleurcode</Label>
-                            <Input
-                              type="color"
-                              value={color.hex}
-                              onChange={(e) => updateColor(index, "hex", e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Voorraad</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              value={color.stock}
-                              onChange={(e) => updateColor(index, "stock", Number.parseInt(e.target.value) || 0)}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Afbeelding voor deze kleur</Label>
-                          {color.images && color.images.length > 0 ? (
-                            <div className="relative w-full h-64 border rounded-lg overflow-hidden bg-gray-100">
-                              <img
-                                key={color.images[0]}
-                                src={color.images[0] || "/placeholder.svg"}
-                                alt={color.name}
-                                className="w-full h-full object-contain bg-white"
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white"
-                                onClick={() => updateColor(index, "images", [])}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                              <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                              <Label
-                                htmlFor={`color-image-${index}`}
-                                className="cursor-pointer text-primary hover:underline"
-                              >
-                                Afbeelding uploaden
-                              </Label>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-4 space-y-4">
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label>Kleur Naam</Label>
                               <Input
-                                id={`color-image-${index}`}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => handleColorImageUpload(e, index)}
-                                disabled={uploading}
+                                value={color.name}
+                                onChange={(e) => updateColor(index, "name", e.target.value)}
+                                placeholder="bijv. Mint Green"
                               />
                             </div>
-                          )}
-                        </div>
+                            <div className="space-y-2">
+                              <Label>Kleurcode</Label>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="text"
+                                  placeholder="#000000"
+                                  value={color.hex}
+                                  onChange={(e) => {
+                                    let hex = e.target.value
+                                    // Auto-add # if missing
+                                    if (hex && !hex.startsWith("#")) {
+                                      hex = "#" + hex
+                                    }
+                                    updateColor(index, "hex", hex)
+                                  }}
+                                  className="flex-1"
+                                />
+                                <Input
+                                  type="color"
+                                  value={color.hex}
+                                  onChange={(e) => updateColor(index, "hex", e.target.value)}
+                                  className="w-16 h-10 cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Voorraad</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={color.stock}
+                                onChange={(e) => updateColor(index, "stock", Number.parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                          </div>
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeColor(index)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Kleur verwijderen
-                        </Button>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
+                          <div className="space-y-2">
+                            <Label>Afbeelding voor deze kleur</Label>
+                            {color.images && color.images.length > 0 ? (
+                              <div className="relative w-full h-64 border rounded-lg overflow-hidden bg-gray-100">
+                                <img
+                                  key={color.images[0]}
+                                  src={color.images[0] || "/placeholder.svg"}
+                                  alt={color.name}
+                                  className="w-full h-full object-contain bg-white"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white"
+                                  onClick={() => updateColor(index, "images", [])}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                <Label
+                                  htmlFor={`color-image-${index}`}
+                                  className="cursor-pointer text-primary hover:underline"
+                                >
+                                  Afbeelding uploaden
+                                </Label>
+                                <Input
+                                  id={`color-image-${index}`}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleColorImageUpload(e, index)}
+                                  disabled={uploading}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeColor(index)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Kleur verwijderen
+                          </Button>
+                        </AccordionContent>
+                      </AccordionItem>
+                    )
+                  })}
                 </Accordion>
               )}
             </div>
 
             {/* Main Image Selection */}
-            {formData.colors.some((c) => c.images && c.images.length > 0) && (
+            {(formData.colors.some((c) => c.images && c.images.length > 0) || formData.gallery_images.length > 0) && (
               <div className="border-t pt-6">
                 <Label className="mb-4 block">Hoofdafbeelding selecteren *</Label>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Kies welke afbeelding als hoofdfoto op de homepage wordt getoond
+                </p>
                 <div className="grid grid-cols-4 gap-4">
-                  {formData.colors
-                    .filter((c) => c.images && c.images.length > 0)
-                    .map((color, idx) => (
+                  {/* Gallery images */}
+                  {formData.gallery_images.map((imageUrl, idx) => {
+                    const isSelected = formData.image === imageUrl
+                    return (
                       <button
-                        key={idx}
+                        key={`gallery-${idx}`}
                         type="button"
-                        onClick={() => setFormData({ ...formData, image: color.images[0] })}
+                        onClick={() => setFormData({ ...formData, image: imageUrl })}
                         className={`relative border-2 rounded-lg overflow-hidden hover:border-primary transition-colors ${
-                          formData.image === color.images[0] ? "border-primary ring-2 ring-primary" : "border-gray-200"
+                          isSelected ? "border-primary ring-2 ring-primary" : "border-gray-200"
                         }`}
                       >
                         <img
-                          src={color.images[0] || "/placeholder.svg"}
-                          alt={color.name}
+                          src={imageUrl || "/placeholder.svg"}
+                          alt={`Gallery ${idx + 1}`}
                           className="w-full h-32 object-cover"
                         />
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full border border-white"
-                            style={{ backgroundColor: color.hex }}
-                          />
-                          {color.name}
+                        <div className="absolute bottom-0 left-0 right-0 bg-green-600 text-white text-xs p-2 font-medium">
+                          Gallery Foto {idx + 1}
                         </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded">
+                            Hoofdfoto
+                          </div>
+                        )}
                       </button>
-                    ))}
+                    )
+                  })}
+
+                  {/* Color images */}
+                  {formData.colors
+                    .filter((c) => c.images && c.images.length > 0)
+                    .map((color, idx) => {
+                      const isSelected = formData.image === color.images[0]
+                      return (
+                        <button
+                          key={`color-${idx}`}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, image: color.images[0] })}
+                          className={`relative border-2 rounded-lg overflow-hidden hover:border-primary transition-colors ${
+                            isSelected ? "border-primary ring-2 ring-primary" : "border-gray-200"
+                          }`}
+                        >
+                          <img
+                            src={color.images[0] || "/placeholder.svg"}
+                            alt={color.name}
+                            className="w-full h-32 object-cover"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full border border-white"
+                              style={{ backgroundColor: color.hex }}
+                            />
+                            {color.name}
+                          </div>
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded">
+                              Hoofdfoto
+                            </div>
+                          )}
+                        </button>
+                      )
+                    })}
                 </div>
               </div>
             )}

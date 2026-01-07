@@ -15,7 +15,7 @@ export type Product = {
   colors?: {
     name: string
     hex: string
-    inStock: boolean
+    stock: number
     images: string[]
   }[]
   stock?: number
@@ -192,27 +192,25 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
 export async function updateProduct(id: string, updates: Partial<Product>) {
   const supabase = createClient()
 
-  const { data, error } = await supabase
-    .from("products")
-    .update({
-      name: updates.name,
-      price: updates.price,
-      image_url: updates.image,
-      gallery_images: updates.gallery_images,
-      technical_drawing_url: updates.technical_drawing,
-      category: updates.category,
-      description: updates.description,
-      features: updates.features,
-      materials: updates.materials,
-      dimensions: updates.dimensions,
-      colors: updates.colors,
-      stock: updates.stock,
-      display_order: updates.display_order,
-      is_active: updates.is_active,
-    })
-    .eq("id", id)
-    .select()
-    .single()
+  // Build update object with proper field mappings
+  const updateData: any = {}
+
+  if (updates.name !== undefined) updateData.name = updates.name
+  if (updates.price !== undefined) updateData.price = updates.price
+  if (updates.image !== undefined) updateData.image_url = updates.image
+  if (updates.gallery_images !== undefined) updateData.gallery_images = updates.gallery_images
+  if (updates.technical_drawing !== undefined) updateData.technical_drawing_url = updates.technical_drawing
+  if (updates.category !== undefined) updateData.category = updates.category
+  if (updates.description !== undefined) updateData.description = updates.description
+  if (updates.features !== undefined) updateData.features = updates.features
+  if (updates.materials !== undefined) updateData.materials = updates.materials
+  if (updates.dimensions !== undefined) updateData.dimensions = updates.dimensions
+  if (updates.colors !== undefined) updateData.colors = updates.colors
+  if (updates.stock !== undefined) updateData.stock = updates.stock
+  if (updates.display_order !== undefined) updateData.display_order = updates.display_order
+  if (updates.is_active !== undefined) updateData.is_active = updates.is_active
+
+  const { data, error } = await supabase.from("products").update(updateData).eq("id", id).select().single()
 
   if (error) {
     console.error("[v0] Error updating product:", error)

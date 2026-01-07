@@ -22,6 +22,23 @@ export default function HomePage() {
   }, [products, selectedCategory])
 
   const getDisplayImage = (product: any) => {
+    // Check if current image is a gallery image
+    const isGalleryImage = product.gallery_images?.includes(product.image)
+
+    if (isGalleryImage) {
+      // Gallery images are always shown (fixed)
+      return product.image
+    }
+
+    // Check if current image is from a color that's in stock
+    const currentColor = product.colors?.find((c: any) => c.images?.[0] === product.image)
+
+    if (currentColor && currentColor.stock > 0) {
+      // Current color is in stock, use it
+      return product.image
+    }
+
+    // Current color is out of stock or not set, find first color in stock
     if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
       const inStockColor = product.colors.find((color: any) => color?.stock > 0)
       if (inStockColor && inStockColor.images && inStockColor.images.length > 0) {
@@ -33,6 +50,8 @@ export default function HomePage() {
         return firstColor.images[0]
       }
     }
+
+    // Fallback to product.image
     return product.image
   }
 

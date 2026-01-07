@@ -139,7 +139,7 @@ export async function POST(request: Request) {
           },
           body: JSON.stringify({
             id: orderData.customer_id,
-            user_id: orderData.customer_id, // Link to Supabase Auth user
+            user_id: orderData.customer_id,
             email: orderData.email,
             first_name: orderData.first_name,
             last_name: orderData.last_name,
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
             Authorization: `Bearer ${serviceRoleKey}`,
           },
           body: JSON.stringify({
-            user_id: orderData.customer_id, // Link to Supabase Auth user
+            user_id: orderData.customer_id,
             first_name: orderData.first_name,
             last_name: orderData.last_name,
             phone: orderData.phone,
@@ -198,12 +198,6 @@ export async function POST(request: Request) {
       const products = await productResponse.json()
       const product = products[0]
 
-      console.log(`[v0] Server: Product data for ${item.name}:`, {
-        hasColors: !!product?.colors,
-        colors: product?.colors,
-        generalStock: product?.stock,
-      })
-
       if (!product) {
         return NextResponse.json(
           {
@@ -216,10 +210,6 @@ export async function POST(request: Request) {
 
       if (item.color && product.colors) {
         const selectedColorData = product.colors.find((c: any) => c.name === item.color)
-        console.log(`[v0] Server: Color check for "${item.color}":`, {
-          found: !!selectedColorData,
-          colorData: selectedColorData,
-        })
 
         if (!selectedColorData || !selectedColorData.stock || selectedColorData.stock < item.quantity) {
           return NextResponse.json(
@@ -231,11 +221,6 @@ export async function POST(request: Request) {
           )
         }
       } else if (product.stock < item.quantity) {
-        console.log(`[v0] Server: Fallback stock check failed:`, {
-          productStock: product.stock,
-          requestedQuantity: item.quantity,
-        })
-        // Fallback to general stock check
         return NextResponse.json(
           {
             success: false,
@@ -255,11 +240,12 @@ export async function POST(request: Request) {
       city: orderData.city,
       postal_code: orderData.postal_code,
       country: orderData.country,
-      customer_id: finalCustomerId, // Always link to customer
+      customer_id: finalCustomerId,
       items: orderData.items,
       total_amount: correctedTotalAmount,
       shipping_cost: shippingCost,
       status: "pending",
+      payment_status: "pending", // Payment not yet completed
     }
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/orders`, {
@@ -280,96 +266,9 @@ export async function POST(request: Request) {
     }
 
     const createdOrder = await response.json()
-    console.log("[v0] Server: Order created successfully:", createdOrder)
+    console.log("[v0] Server: Order created successfully with pending payment:", createdOrder)
 
-    for (const item of orderData.items) {
-      try {
-        const stockResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}&select=stock,colors`, {
-          headers: {
-            apikey: serviceRoleKey,
-            Authorization: `Bearer ${serviceRoleKey}`,
-          },
-        })
-
-        const products = await stockResponse.json()
-        const product = products[0]
-
-        if (item.color && product.colors) {
-          // Update color-specific stock
-          const updatedColors = product.colors.map((c: any) => {
-            if (c.name === item.color) {
-              return { ...c, stock: Math.max(0, (c.stock || 0) - item.quantity) }
-            }
-            return c
-          })
-
-          await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              apikey: serviceRoleKey,
-              Authorization: `Bearer ${serviceRoleKey}`,
-            },
-            body: JSON.stringify({ colors: updatedColors }),
-          })
-
-          console.log(`[v0] Server: Updated stock for product ${item.id}, color ${item.color}`)
-        } else {
-          // Update general stock
-          const currentStock = product.stock || 0
-          const newStock = Math.max(0, currentStock - item.quantity)
-
-          await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              apikey: serviceRoleKey,
-              Authorization: `Bearer ${serviceRoleKey}`,
-            },
-            body: JSON.stringify({ stock: newStock }),
-          })
-
-          console.log(`[v0] Server: Updated general stock for product ${item.id}`)
-        }
-      } catch (stockError) {
-        console.error(`[v0] CRITICAL: Stock update error for product ${item.id}:`, stockError)
-      }
-    }
-
-    try {
-      console.log("[v0] Server: Attempting to send order emails...")
-      const baseUrl =
-        process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : request.headers.get("origin") || "http://localhost:3000"
-
-      console.log("[v0] Server: Email API URL:", `${baseUrl}/api/send-order-email`)
-
-      const emailResponse = await fetch(`${baseUrl}/api/send-order-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          order: createdOrder[0] || createdOrder,
-          email: orderData.email,
-          domain: orderData.domain || "be",
-        }),
-      })
-
-      const emailResult = await emailResponse.json()
-      console.log("[v0] Server: Email API response:", emailResult)
-
-      if (!emailResult.emailsSent) {
-        console.error("[v0] Server: ⚠️ Emails NOT sent:", emailResult.emailError || emailResult.message)
-      } else {
-        console.log("[v0] Server: ✅ Order confirmation emails sent successfully")
-      }
-    } catch (emailError) {
-      console.error("[v0] Server: ❌ Email sending FAILED:", emailError)
-      console.error("[v0] Server: Email error details:", {
-        message: emailError instanceof Error ? emailError.message : String(emailError),
-        stack: emailError instanceof Error ? emailError.stack : undefined,
-      })
-    }
+    console.log("[v0] Server: Order created, awaiting payment confirmation...")
 
     return NextResponse.json({ success: true, order: createdOrder[0] || createdOrder })
   } catch (error) {

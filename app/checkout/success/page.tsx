@@ -1,15 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useCart } from "@/components/cart-provider"
+import Link from "next/link"
 
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const sessionId = searchParams.get("session_id")
   const [loading, setLoading] = useState(true)
   const { clearCart } = useCart()
@@ -19,30 +19,9 @@ export default function CheckoutSuccessPage() {
       clearCart()
       setLoading(false)
     } else {
-      // If no session_id, just show the success page
       setLoading(false)
     }
   }, [sessionId, clearCart])
-
-  const handleViewOrders = () => {
-    try {
-      console.log("[v0] Navigating to account page")
-      router.push("/account")
-    } catch (error) {
-      console.error("[v0] Error navigating to account:", error)
-      window.location.href = "/account"
-    }
-  }
-
-  const handleBackToShop = () => {
-    try {
-      console.log("[v0] Navigating to shop")
-      router.push("/")
-    } catch (error) {
-      console.error("[v0] Error navigating to shop:", error)
-      window.location.href = "/"
-    }
-  }
 
   if (loading) {
     return (
@@ -61,10 +40,14 @@ export default function CheckoutSuccessPage() {
           Bedankt voor je bestelling. Je ontvangt binnenkort een bevestigingsmail met de details.
         </p>
         <div className="flex flex-col gap-2">
-          <Button onClick={handleViewOrders}>Bekijk Mijn Bestellingen</Button>
-          <Button variant="outline" onClick={handleBackToShop}>
-            Terug naar Shop
-          </Button>
+          <Link href="/account">
+            <Button className="w-full">Bekijk Mijn Bestellingen</Button>
+          </Link>
+          <Link href="/">
+            <Button variant="outline" className="w-full bg-transparent">
+              Terug naar Shop
+            </Button>
+          </Link>
         </div>
       </Card>
     </div>

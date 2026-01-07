@@ -4,10 +4,13 @@ import { useEffect, useState } from "react"
 import { CheckCircle2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useCart } from "@/components/cart-provider"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
 
 export default function CheckoutSuccessPage() {
   const [loading, setLoading] = useState(true)
   const { clearCart } = useCart()
+  const router = useRouter()
 
   useEffect(() => {
     clearCart()
@@ -31,18 +34,12 @@ export default function CheckoutSuccessPage() {
           Bedankt voor je bestelling. Je ontvangt binnenkort een bevestigingsmail met de details.
         </p>
         <div className="flex flex-col gap-3">
-          <a
-            href="/account"
-            className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition-colors text-center block"
-          >
+          <Button onClick={() => router.push("/account")} className="w-full" size="lg">
             Bekijk Mijn Bestellingen
-          </a>
-          <a
-            href="/"
-            className="w-full px-4 py-3 bg-transparent border border-input rounded-md font-medium hover:bg-accent hover:text-accent-foreground transition-colors text-center block"
-          >
+          </Button>
+          <Button onClick={() => router.push("/")} variant="outline" className="w-full" size="lg">
             Terug naar Shop
-          </a>
+          </Button>
         </div>
       </Card>
     </div>

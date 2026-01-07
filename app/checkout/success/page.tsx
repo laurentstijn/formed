@@ -5,20 +5,22 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { useCart } from "@/components/cart-provider"
 
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const sessionId = searchParams.get("session_id")
   const [loading, setLoading] = useState(true)
+  const { clearCart } = useCart()
 
   useEffect(() => {
     // Clear cart after successful payment
     if (sessionId) {
-      localStorage.removeItem("cart")
+      clearCart()
       setLoading(false)
     }
-  }, [sessionId])
+  }, [sessionId, clearCart])
 
   if (loading) {
     return (

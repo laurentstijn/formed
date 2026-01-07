@@ -5,8 +5,14 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[v0] Creating checkout session...")
+
     const body = await request.json()
     const { items, customerEmail, customerName, shippingCost, orderId } = body
+
+    console.log("[v0] Order ID:", orderId)
+    console.log("[v0] Customer:", customerName, customerEmail)
+    console.log("[v0] Items:", items.length)
 
     // Calculate line items
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item: any) => ({
@@ -39,6 +45,9 @@ export async function POST(request: NextRequest) {
       ? `https://${process.env.VERCEL_URL}`
       : request.headers.get("origin") || "http://localhost:3000"
 
+    const stripeKey = process.env.STRIPE_SECRET_KEY || ""
+    console.log("[v0] Using Stripe key starting with:", stripeKey.substring(0, 20))
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card", "bancontact"],
       line_items: lineItems,
@@ -50,7 +59,19 @@ export async function POST(request: NextRequest) {
         orderId,
         customerName,
       },
+      custom_text: {
+        submit: {
+          message: "Veilig betalen via Stripe",
+        },
+      },
+      payment_intent_data: {
+        description: `Bestelling #${orderId.substring(0, 8)}`,
+      },
+      locale: "nl",
+      billing_address_collection: "auto",
     })
+
+    console.log("[v0] ✅ Checkout session created:", session.id)
 
     const supabase = await createClient()
     const { error: updateError } = await supabase
@@ -59,12 +80,14 @@ export async function POST(request: NextRequest) {
       .eq("id", orderId)
 
     if (updateError) {
-      console.error("Error updating order with session ID:", updateError)
+      console.error("[v0] Error updating order with session ID:", updateError)
+    } else {
+      console.log("[v0] Order updated with session ID")
     }
 
     return NextResponse.json({ sessionId: session.id, url: session.url })
   } catch (error: any) {
-    console.error("Error creating checkout session:", error)
+    console.error("[v0] ❌ Error creating checkout session:", error)
     return NextResponse.json({ error: error.message || "Failed to create checkout session" }, { status: 500 })
   }
 }

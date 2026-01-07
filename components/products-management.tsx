@@ -23,6 +23,9 @@ export default function ProductsManagement() {
   const [uploading, setUploading] = useState(false)
   const [draggedItem, setDraggedItem] = useState<number | null>(null)
   const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({})
+  const [categories, setCategories] = useState<string[]>([])
+  const [newCategory, setNewCategory] = useState("")
+  const [showCategoryInput, setShowCategoryInput] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -39,8 +42,18 @@ export default function ProductsManagement() {
     dimensions: "",
   })
 
+  const addCategory = () => {
+    if (newCategory.trim()) {
+      setCategories([...categories, newCategory.trim()])
+      setFormData({ ...formData, category: newCategory.trim() })
+      setNewCategory("")
+      setShowCategoryInput(false)
+    }
+  }
+
   useEffect(() => {
     loadProducts()
+    loadCategories()
   }, [])
 
   const loadProducts = async () => {
@@ -51,6 +64,16 @@ export default function ProductsManagement() {
       console.error("Error loading products:", error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadCategories = async () => {
+    try {
+      const response = await getAllProducts()
+      const uniqueCategories = Array.from(new Set(response.map((p) => p.category).filter(Boolean)))
+      setCategories(uniqueCategories as string[])
+    } catch (error) {
+      console.error("Error loading categories:", error)
     }
   }
 
@@ -471,20 +494,61 @@ export default function ProductsManagement() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Categorie *</Label>
+              <Label htmlFor="category">Categorie (optioneel)</Label>
               <Select
                 value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                onValueChange={(value) => {
+                  if (value === "__new__") {
+                    setShowCategoryInput(true)
+                  } else if (value === "__none__") {
+                    setFormData({ ...formData, category: "" })
+                  } else {
+                    setFormData({ ...formData, category: value })
+                  }
+                }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecteer een categorie" />
+                  <SelectValue placeholder="Geen categorie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Accessoires">Accessoires</SelectItem>
-                  <SelectItem value="Haakjes">Haakjes</SelectItem>
-                  <SelectItem value="Planchet">Planchet</SelectItem>
+                  <SelectItem value="__none__">Geen categorie</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__new__">+ Nieuwe categorie...</SelectItem>
                 </SelectContent>
               </Select>
+
+              {showCategoryInput && (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    placeholder="Nieuwe categorie naam"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        addCategory()
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={addCategory}>
+                    Toevoegen
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowCategoryInput(false)
+                      setNewCategory("")
+                    }}
+                  >
+                    Annuleer
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

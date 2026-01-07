@@ -1,13 +1,25 @@
 "use client"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { useState, useMemo } from "react"
 import { useProducts } from "@/hooks/use-products"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { Button } from "@/components/ui/button"
 
 export default function HomePage() {
   const { products, isLoading } = useProducts()
   const router = useRouter()
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(products.map((p) => p.category).filter(Boolean)))
+    return cats as string[]
+  }, [products])
+
+  const filteredProducts = useMemo(() => {
+    if (!selectedCategory) return products
+    return products.filter((p) => p.category === selectedCategory)
+  }, [products, selectedCategory])
 
   const getDisplayImage = (product: any) => {
     if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
@@ -49,34 +61,38 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <SiteHeader />
 
-      {/* Hero Section */}
-      <section className="py-12 md:py-16">
-        <div className="container mx-auto px-4 max-w-3xl text-center">
-          <div className="mb-8 flex justify-center">
-            <Image
-              src="/formed-in-steel-logo.png"
-              alt="formd in steel"
-              width={400}
-              height={100}
-              className="h-auto w-full max-w-xs md:max-w-lg"
-              priority
-            />
-          </div>
-          <p className="text-lg text-muted-foreground mb-8 text-pretty leading-relaxed">
-            Ontdek onze zorgvuldig geselecteerde collectie van formd in steel
-          </p>
-        </div>
-      </section>
-
       {/* Products Grid */}
       <section className="py-8">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-sans font-semibold text-foreground mb-12 text-center">Onze Collectie</h2>
+          <h2 className="text-3xl font-sans font-semibold text-foreground mb-8 text-center">Onze Collectie</h2>
+
+          {categories.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mb-8">
+              <Button
+                variant={selectedCategory === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(null)}
+              >
+                Alle Producten
+              </Button>
+              {categories.map((category) => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </Button>
+              ))}
+            </div>
+          )}
+
           {isLoading ? (
             <div className="text-center text-muted-foreground">Producten laden...</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <div
                   key={product.id}
                   onClick={() => handleProductClick(product.id, product.name)}

@@ -33,7 +33,6 @@ export function SiteFooter() {
             <h4 className="font-semibold text-foreground mb-4">Contact</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>info@formd.be</li>
-              <li>+32 477 655 655</li>
             </ul>
             <div className="mt-6">
               <ShareButtons

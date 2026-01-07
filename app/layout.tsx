@@ -4,6 +4,7 @@ import { Open_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { CartProvider } from "@/components/cart-provider"
+import { Toaster } from "@/components/ui/toaster"
 
 const openSans = Open_Sans({ subsets: ["latin"] })
 
@@ -48,6 +49,7 @@ export default function RootLayout({
     <html lang="nl">
       <body className={`${openSans.className} antialiased`}>
         <CartProvider>{children}</CartProvider>
+        <Toaster />
         <Analytics />
       </body>
     </html>

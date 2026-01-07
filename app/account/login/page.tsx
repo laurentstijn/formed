@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { SiteHeader } from "@/components/site-header"
 
@@ -20,6 +20,8 @@ export default function CustomerLogin() {
   const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirect") || "/"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,7 +80,7 @@ export default function CustomerLogin() {
         localStorage.setItem("isAdmin", adminData ? "true" : "false")
       }
 
-      window.location.href = "/"
+      window.location.href = redirectTo
     } catch (error: any) {
       console.error("[v0] Login error:", error)
       if (error.message === "Email not confirmed") {

@@ -40,14 +40,12 @@ export default function CheckoutSuccessPage() {
           Bedankt voor je bestelling. Je ontvangt binnenkort een bevestigingsmail met de details.
         </p>
         <div className="flex flex-col gap-2">
-          <Link href="/account">
-            <Button className="w-full">Bekijk Mijn Bestellingen</Button>
-          </Link>
-          <Link href="/">
-            <Button variant="outline" className="w-full bg-transparent">
-              Terug naar Shop
-            </Button>
-          </Link>
+          <Button className="w-full" asChild>
+            <Link href="/account">Bekijk Mijn Bestellingen</Link>
+          </Button>
+          <Button variant="outline" className="w-full bg-transparent" asChild>
+            <Link href="/">Terug naar Shop</Link>
+          </Button>
         </div>
       </Card>
     </div>

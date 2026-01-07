@@ -5,6 +5,7 @@ interface ShippingConfirmationEmailProps {
   customerName: string
   items: Array<{
     name: string
+    color?: string
     quantity: number
     price: number
   }>
@@ -80,7 +81,10 @@ export const ShippingConfirmationEmail: React.FC<ShippingConfirmationEmailProps>
               <h3>Producten in dit pakket:</h3>
               {items.map((item, index) => (
                 <div key={index} className="item">
-                  <strong>{item.name}</strong>
+                  <strong>
+                    {item.name}
+                    {item.color ? ` - ${item.color}` : ""}
+                  </strong>
                   <div>Aantal: {item.quantity}</div>
                 </div>
               ))}

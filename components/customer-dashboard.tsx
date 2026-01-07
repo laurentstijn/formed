@@ -727,6 +727,7 @@ export default function CustomerDashboard() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">{item.name}</p>
+                              {item.color && <p className="text-sm text-muted-foreground">Kleur: {item.color}</p>}
                               <p className="text-sm text-muted-foreground">Aantal: {item.quantity}</p>
                             </div>
                             <div className="text-right">

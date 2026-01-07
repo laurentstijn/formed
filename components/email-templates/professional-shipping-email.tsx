@@ -67,7 +67,7 @@ export function generateShippingConfirmationEmail(order: any): string {
                           .map(
                             (item: any, index: number) => `
                           <tr style="background-color: ${index % 2 === 0 ? "white" : "#fef9f9"};">
-                            <td style="padding: 12px; color: #1a1a1a; border-bottom: 1px solid #f7e8e8;">${item.name}</td>
+                            <td style="padding: 12px; color: #1a1a1a; border-bottom: 1px solid #f7e8e8;">${item.name}${item.color ? ` - ${item.color}` : ""}</td>
                             <td style="padding: 12px; text-align: center; color: #666666; border-bottom: 1px solid #f7e8e8;">${item.quantity}</td>
                             <td style="padding: 12px; text-align: right; color: #1a1a1a; border-bottom: 1px solid #f7e8e8;">€${(item.price * item.quantity).toFixed(2)}</td>
                           </tr>

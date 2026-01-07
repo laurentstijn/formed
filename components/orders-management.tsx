@@ -82,77 +82,95 @@ export default function OrdersManagement() {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Verzendlabel - Bestelling ${order.id.substring(0, 8)}</title>
+        <title>Verzendlabel - ${order.id.substring(0, 8)}</title>
         <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          @page {
+            size: 89mm 36mm;
+            margin: 0;
+          }
+          
           body {
             font-family: Arial, sans-serif;
-            padding: 20px;
+            width: 89mm;
+            height: 36mm;
+            padding: 2mm;
+            font-size: 8pt;
+            line-height: 1.2;
           }
+          
           .label {
-            border: 2px solid #000;
-            padding: 20px;
-            width: 400px;
-            margin: 0 auto;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
           }
+          
           .header {
-            text-align: center;
             font-weight: bold;
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-size: 10pt;
+            border-bottom: 1px solid #000;
+            padding-bottom: 1mm;
+            margin-bottom: 1mm;
           }
-          .section {
-            margin-bottom: 15px;
+          
+          .address {
+            flex: 1;
           }
-          .section-title {
+          
+          .address-line {
+            margin-bottom: 0.5mm;
+          }
+          
+          .name {
             font-weight: bold;
-            margin-bottom: 5px;
+            font-size: 9pt;
           }
-          .barcode {
-            text-align: center;
-            font-family: 'Courier New', monospace;
-            font-size: 24px;
-            letter-spacing: 2px;
-            margin: 20px 0;
+          
+          .footer {
+            border-top: 1px solid #000;
+            padding-top: 1mm;
+            margin-top: 1mm;
+            font-size: 7pt;
+            display: flex;
+            justify-content: space-between;
           }
+          
           @media print {
-            body { margin: 0; }
+            body {
+              margin: 0;
+              padding: 2mm;
+            }
           }
         </style>
       </head>
       <body>
         <div class="label">
-          <div class="header">FORMD - Verzendlabel</div>
+          <div class="header">FORMD</div>
           
-          <div class="section">
-            <div class="section-title">VAN:</div>
-            <div>FORMD</div>
-            <div>België</div>
+          <div class="address">
+            <div class="address-line name">${order.first_name} ${order.last_name}</div>
+            <div class="address-line">${order.address_line1}</div>
+            ${order.address_line2 ? `<div class="address-line">${order.address_line2}</div>` : ""}
+            <div class="address-line">${order.postal_code} ${order.city}</div>
+            <div class="address-line">${order.country}</div>
           </div>
           
-          <div class="section">
-            <div class="section-title">NAAR:</div>
-            <div>${order.first_name} ${order.last_name}</div>
-            <div>${order.address_line1}</div>
-            ${order.address_line2 ? `<div>${order.address_line2}</div>` : ""}
-            <div>${order.postal_code} ${order.city}</div>
-            <div>${order.country}</div>
-            ${order.phone ? `<div>Tel: ${order.phone}</div>` : ""}
-          </div>
-          
-          <div class="barcode">
-            ${order.id.substring(0, 8).toUpperCase()}
-          </div>
-          
-          <div class="section">
-            <div class="section-title">BESTELGEGEVENS:</div>
-            <div>Bestelnummer: ${order.id.substring(0, 8)}</div>
-            <div>Datum: ${new Date(order.created_at).toLocaleDateString("nl-NL")}</div>
-            <div>Aantal items: ${order.order_items.length}</div>
+          <div class="footer">
+            <span>#${order.id.substring(0, 8).toUpperCase()}</span>
+            <span>${new Date(order.created_at).toLocaleDateString("nl-NL")}</span>
+            <span>${order.order_items.length} item${order.order_items.length !== 1 ? "s" : ""}</span>
           </div>
         </div>
         <script>
           window.onload = function() {
-            window.print();
+            setTimeout(() => window.print(), 250);
           }
         </script>
       </body>

@@ -15,12 +15,34 @@ export default function CheckoutSuccessPage() {
   const { clearCart } = useCart()
 
   useEffect(() => {
-    // Clear cart after successful payment
     if (sessionId) {
       clearCart()
       setLoading(false)
+    } else {
+      // If no session_id, just show the success page
+      setLoading(false)
     }
   }, [sessionId, clearCart])
+
+  const handleViewOrders = () => {
+    try {
+      console.log("[v0] Navigating to account page")
+      router.push("/account")
+    } catch (error) {
+      console.error("[v0] Error navigating to account:", error)
+      window.location.href = "/account"
+    }
+  }
+
+  const handleBackToShop = () => {
+    try {
+      console.log("[v0] Navigating to shop")
+      router.push("/")
+    } catch (error) {
+      console.error("[v0] Error navigating to shop:", error)
+      window.location.href = "/"
+    }
+  }
 
   if (loading) {
     return (
@@ -39,8 +61,8 @@ export default function CheckoutSuccessPage() {
           Bedankt voor je bestelling. Je ontvangt binnenkort een bevestigingsmail met de details.
         </p>
         <div className="flex flex-col gap-2">
-          <Button onClick={() => router.push("/account")}>Bekijk Mijn Bestellingen</Button>
-          <Button variant="outline" onClick={() => router.push("/")}>
+          <Button onClick={handleViewOrders}>Bekijk Mijn Bestellingen</Button>
+          <Button variant="outline" onClick={handleBackToShop}>
             Terug naar Shop
           </Button>
         </div>

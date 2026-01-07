@@ -16,6 +16,18 @@ export function SiteHeader() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      const checkAdminResponse = await fetch("/api/admin/check")
+      if (checkAdminResponse.ok) {
+        const { isAdmin: adminStatus, email } = await checkAdminResponse.json()
+        if (adminStatus) {
+          setIsAdmin(true)
+          setIsLoggedIn(true)
+          setUserName(email.split("@")[0])
+          return
+        }
+      }
+
+      // Check regular Supabase Auth
       const supabase = createClient()
       const {
         data: { user },
@@ -33,7 +45,6 @@ export function SiteHeader() {
         if (customerData?.first_name) {
           setUserName(customerData.first_name)
         } else {
-          // Fallback to email username if no name found
           const emailName = user.email?.split("@")[0] || "Account"
           setUserName(emailName.charAt(0).toUpperCase() + emailName.slice(1))
         }
@@ -61,6 +72,10 @@ export function SiteHeader() {
   }, [])
 
   const handleLogout = async () => {
+    if (isAdmin) {
+      await fetch("/api/admin/logout", { method: "POST" })
+    }
+
     const supabase = createClient()
     await supabase.auth.signOut()
 

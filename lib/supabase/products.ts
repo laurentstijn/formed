@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/client"
 
 export type Product = {
-  id: number
+  id: string
   name: string
   price: number
   image: string // Hoofdafbeelding
@@ -44,9 +44,9 @@ export async function getProducts(): Promise<Product[]> {
       id: product.id,
       name: product.name,
       price: Number(product.price),
-      image: product.image || "",
-      gallery_images: product.gallery_images || [], // Map gallery_images
-      technical_drawing: product.technical_drawing,
+      image: product.image_url || product.image || "",
+      gallery_images: product.gallery_images || [],
+      technical_drawing: product.technical_drawing_url || product.technical_drawing,
       category: product.category,
       description: product.description,
       features: product.features || [],
@@ -85,9 +85,9 @@ export async function getAllProducts(): Promise<Product[]> {
       id: product.id,
       name: product.name,
       price: Number(product.price),
-      image: product.image || "",
-      gallery_images: product.gallery_images || [], // Map gallery_images
-      technical_drawing: product.technical_drawing,
+      image: product.image_url || product.image || "",
+      gallery_images: product.gallery_images || [],
+      technical_drawing: product.technical_drawing_url || product.technical_drawing,
       category: product.category,
       description: product.description,
       features: product.features || [],
@@ -106,7 +106,7 @@ export async function getAllProducts(): Promise<Product[]> {
   }
 }
 
-export async function getProductById(id: number): Promise<Product | null> {
+export async function getProductById(id: string): Promise<Product | null> {
   try {
     const supabase = createClient()
 
@@ -117,13 +117,21 @@ export async function getProductById(id: number): Promise<Product | null> {
       return null
     }
 
+    console.log("[v0] Raw product from DB:", {
+      id: product.id,
+      name: product.name,
+      image_url: product.image_url,
+      technical_drawing_url: product.technical_drawing_url,
+      gallery_images: product.gallery_images,
+    })
+
     return {
       id: product.id,
       name: product.name,
       price: Number(product.price),
-      image: product.image || "",
-      gallery_images: product.gallery_images || [], // Map gallery_images
-      technical_drawing: product.technical_drawing,
+      image: product.image_url || product.image || "",
+      gallery_images: product.gallery_images || [],
+      technical_drawing: product.technical_drawing_url || product.technical_drawing,
       category: product.category,
       description: product.description,
       features: product.features || [],
@@ -143,7 +151,7 @@ export async function getProductById(id: number): Promise<Product | null> {
 }
 
 // Server-side: Get single product by ID
-export async function getProductByIdServer(id: number): Promise<Product | null> {
+export async function getProductByIdServer(id: string): Promise<Product | null> {
   return getProductById(id)
 }
 
@@ -156,9 +164,9 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
     .insert({
       name: product.name,
       price: product.price,
-      image: product.image,
-      gallery_images: product.gallery_images || [], // Include gallery_images
-      technical_drawing: product.technical_drawing,
+      image_url: product.image,
+      gallery_images: product.gallery_images || [],
+      technical_drawing_url: product.technical_drawing,
       category: product.category,
       description: product.description,
       features: product.features,
@@ -181,7 +189,7 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
 }
 
 // Update a product (admin only)
-export async function updateProduct(id: number, updates: Partial<Product>) {
+export async function updateProduct(id: string, updates: Partial<Product>) {
   const supabase = createClient()
 
   const { data, error } = await supabase
@@ -189,9 +197,9 @@ export async function updateProduct(id: number, updates: Partial<Product>) {
     .update({
       name: updates.name,
       price: updates.price,
-      image: updates.image,
-      gallery_images: updates.gallery_images, // Include gallery_images
-      technical_drawing: updates.technical_drawing,
+      image_url: updates.image,
+      gallery_images: updates.gallery_images,
+      technical_drawing_url: updates.technical_drawing,
       category: updates.category,
       description: updates.description,
       features: updates.features,
@@ -215,7 +223,7 @@ export async function updateProduct(id: number, updates: Partial<Product>) {
 }
 
 // Delete a product (admin only)
-export async function deleteProduct(id: number) {
+export async function deleteProduct(id: string) {
   const supabase = createClient()
 
   const { error } = await supabase.from("products").delete().eq("id", id)
@@ -226,7 +234,7 @@ export async function deleteProduct(id: number) {
   }
 }
 
-export async function updateProductOrder(updates: { id: number; display_order: number }[]) {
+export async function updateProductOrder(updates: { id: string; display_order: number }[]) {
   const supabase = createClient()
 
   // Update each product's display_order

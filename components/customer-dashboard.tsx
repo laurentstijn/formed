@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,6 +29,8 @@ type Order = {
   created_at: string
   tracking_number: string | null
   tracking_url: string | null
+  order_number: string
+  shipping_cost: number
 }
 
 type Customer = {
@@ -71,6 +75,13 @@ export default function CustomerDashboard() {
     company_email: null,
     invoice_footer: "Bedankt voor je bestelling!",
   })
+
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     const loadCustomerData = async () => {
@@ -136,10 +147,10 @@ export default function CustomerDashboard() {
     const loadInvoiceSettings = async () => {
       try {
         const supabase = createBrowserClient()
-        const { data, error } = await supabase.from("invoice_settings").select("*").maybeSingle()
+        const { data, error } = await supabase.from("settings").select("*").maybeSingle()
 
         if (error) {
-          console.error("[v0] Error loading invoice settings:", error)
+          console.error("[v0] Error loading invoice settings:", error.message)
           setInvoiceSettingsLoading(false)
           return
         }
@@ -211,6 +222,48 @@ export default function CustomerDashboard() {
     }
   }
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError(null)
+    setPasswordSuccess(null)
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError("Wachtwoorden komen niet overeen")
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError("Wachtwoord moet minimaal 6 karakters lang zijn")
+      return
+    }
+
+    try {
+      const supabase = createBrowserClient()
+
+      // First verify current password by trying to sign in
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user?.email) throw new Error("Geen gebruiker gevonden")
+
+      // Update password
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (error) throw error
+
+      setPasswordSuccess("Wachtwoord succesvol gewijzigd!")
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmNewPassword("")
+      setIsChangingPassword(false)
+    } catch (error: any) {
+      console.error("[v0] Password change error:", error)
+      setPasswordError(error.message || "Er is een fout opgetreden")
+    }
+  }
+
   const generateInvoiceNumber = (order: Order) => {
     const date = new Date(order.created_at)
     const year = date.getFullYear()
@@ -242,12 +295,29 @@ export default function CustomerDashboard() {
   }
 
   const generateInvoiceHTML = (order: Order) => {
-    const invoiceNumber = generateInvoiceNumber(order)
+    const invoiceNumber = order.order_number
     const orderDate = new Date(order.created_at).toLocaleDateString("nl-BE", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     })
+
+    const VAT_RATE = 0.21
+
+    // Calculate product subtotal (items are stored with incl. BTW prices)
+    const productSubtotalInclVAT = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const productSubtotalExclVAT = productSubtotalInclVAT / (1 + VAT_RATE)
+    const productVAT = productSubtotalInclVAT - productSubtotalExclVAT
+
+    // Shipping is also incl. VAT
+    const shippingInclVAT = order.shipping_cost || 0
+    const shippingExclVAT = shippingInclVAT / (1 + VAT_RATE)
+    const shippingVAT = shippingInclVAT - shippingExclVAT
+
+    // Totals
+    const totalExclVAT = productSubtotalExclVAT + shippingExclVAT
+    const totalVAT = productVAT + shippingVAT
+    const totalInclVAT = order.total_amount
 
     return `<!DOCTYPE html>
 <html>
@@ -282,13 +352,13 @@ export default function CustomerDashboard() {
       border-bottom: 2px solid #7C7D7E;
     }
     
-    .logo-section img {
+    .logo img {
       height: 60px;
       width: auto;
       display: block;
     }
     
-    .invoice-meta {
+    .invoice-info {
       text-align: right;
     }
     
@@ -449,10 +519,10 @@ export default function CustomerDashboard() {
 <body>
   <div class="invoice-container">
     <div class="header">
-      <div class="logo-section">
-        <img src="/formed-in-steel-logo.png" alt="formd in steel" />
+      <div class="logo">
+        <img src="/formed-primary.png" alt="FORMD" />
       </div>
-      <div class="invoice-meta">
+      <div class="invoice-info">
         <div class="invoice-title">FACTUUR</div>
         <div class="invoice-number">Nr: ${invoiceNumber}</div>
         <div class="invoice-date">Datum: ${orderDate}</div>
@@ -492,32 +562,46 @@ export default function CustomerDashboard() {
       </thead>
       <tbody>
         ${order.items
-          .map(
-            (item: any) => `
+          .map((item: any) => {
+            const priceExclVAT = item.price / (1 + VAT_RATE)
+            const totalExclVAT = priceExclVAT * item.quantity
+            return `
           <tr>
-            <td>${item.name}</td>
+            <td>${item.name}${item.color ? ` <span style="color: #666;">- ${item.color}</span>` : ""}</td>
             <td class="text-center">${item.quantity}</td>
-            <td class="text-right">€${item.price.toFixed(2)}</td>
-            <td class="text-right">€${(item.price * item.quantity).toFixed(2)}</td>
+            <td class="text-right">€${priceExclVAT.toFixed(2)}</td>
+            <td class="text-right">€${totalExclVAT.toFixed(2)}</td>
           </tr>
-        `,
-          )
+        `
+          })
           .join("")}
+        ${
+          shippingInclVAT > 0
+            ? `
+        <tr>
+          <td>Verzendkosten</td>
+          <td class="text-center">1</td>
+          <td class="text-right">€${shippingExclVAT.toFixed(2)}</td>
+          <td class="text-right">€${shippingExclVAT.toFixed(2)}</td>
+        </tr>
+        `
+            : ""
+        }
       </tbody>
     </table>
     
     <div class="totals">
       <div class="totals-row">
         <div class="totals-label">Subtotaal (excl. BTW)</div>
-        <div class="totals-value">€${(order.total_amount / 1.21).toFixed(2)}</div>
+        <div class="totals-value">€${totalExclVAT.toFixed(2)}</div>
       </div>
       <div class="totals-row">
         <div class="totals-label">BTW (21%)</div>
-        <div class="totals-value">€${(order.total_amount - order.total_amount / 1.21).toFixed(2)}</div>
+        <div class="totals-value">€${totalVAT.toFixed(2)}</div>
       </div>
       <div class="totals-row final">
         <div class="totals-label">TOTAAL (incl. BTW)</div>
-        <div class="totals-value">€${order.total_amount.toFixed(2)}</div>
+        <div class="totals-value">€${totalInclVAT.toFixed(2)}</div>
       </div>
     </div>
     
@@ -840,27 +924,93 @@ export default function CustomerDashboard() {
                 )}
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Wachtwoord Wijzigen
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!isChangingPassword ? (
+                  <Button onClick={() => setIsChangingPassword(true)} variant="outline">
+                    Wachtwoord Wijzigen
+                  </Button>
+                ) : (
+                  <form onSubmit={handlePasswordChange} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">Nieuw Wachtwoord</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        required
+                        minLength={6}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Minimaal 6 karakters"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmNewPassword">Bevestig Nieuw Wachtwoord</Label>
+                      <Input
+                        id="confirmNewPassword"
+                        type="password"
+                        required
+                        minLength={6}
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="Herhaal je nieuwe wachtwoord"
+                      />
+                    </div>
+                    {passwordError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{passwordError}</p>}
+                    {passwordSuccess && (
+                      <p className="text-sm text-green-600 bg-green-50 p-3 rounded-md">{passwordSuccess}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button type="submit">Wachtwoord Opslaan</Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setIsChangingPassword(false)
+                          setCurrentPassword("")
+                          setNewPassword("")
+                          setConfirmNewPassword("")
+                          setPasswordError(null)
+                          setPasswordSuccess(null)
+                        }}
+                      >
+                        Annuleren
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
 
       {!invoiceSettingsLoading && selectedInvoiceOrder && (
         <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
-          <DialogContent className="max-w-7xl h-[85vh] flex flex-col">
+          {/* Invoice Dialog */}
+          <DialogContent className="!max-w-[96vw] w-full h-[90vh] flex flex-col p-3">
             <DialogHeader>
               <DialogTitle>Factuur {selectedInvoiceOrder && generateInvoiceNumber(selectedInvoiceOrder)}</DialogTitle>
               <DialogDescription>Besteldetails en factuurinformatie</DialogDescription>
             </DialogHeader>
             {selectedInvoiceOrder && (
-              <div className="bg-white rounded-lg">
+              <div className="flex-1 bg-white rounded-lg border overflow-hidden">
                 <iframe
                   srcDoc={generateInvoiceHTML(selectedInvoiceOrder)}
                   className="w-full h-full border-0"
+                  style={{ minHeight: "600px" }}
                   title="Invoice Preview"
                 />
               </div>
             )}
-            <div className="flex gap-2 justify-end pt-4 border-t">
+            <div className="flex gap-2 justify-end pt-4 border-t mt-auto">
               <Button variant="outline" onClick={() => setInvoiceDialogOpen(false)}>
                 Sluiten
               </Button>

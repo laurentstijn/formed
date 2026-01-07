@@ -1,42 +1,51 @@
-import { redirect } from "next/navigation"
-import { createServerClient } from "@/lib/supabase/server"
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/admin-layout"
 import ProductsManagement from "@/components/products-management"
 
-export default async function AdminPage() {
-  const supabase = await createServerClient()
+export default function AdminPage() {
+  const router = useRouter()
+  const [adminEmail, setAdminEmail] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const response = await fetch("/api/admin/check", {
+          credentials: "include",
+        })
 
-  if (!user) {
-    redirect("/admin/login")
-  }
+        if (response.ok) {
+          const data = await response.json()
+          setAdminEmail(data.email)
+          setLoading(false)
+        } else {
+          router.replace("/admin/login")
+        }
+      } catch (error) {
+        console.error("[v0] Admin check failed:", error)
+        router.replace("/admin/login")
+      }
+    }
 
-  const { data: sessionData } = await supabase.auth.getSession()
-  const token = sessionData.session?.access_token
+    checkAdmin()
+  }, [router])
 
-  if (!token) {
-    redirect("/admin/login")
-  }
-
-  const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/admins?id=eq.${user.id}&select=*`, {
-    headers: {
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      Authorization: `Bearer ${token}`,
-    },
-    cache: "no-store",
-  })
-
-  const adminData = await response.json()
-
-  if (!adminData || adminData.length === 0 || adminData.code) {
-    redirect("/")
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p>Laden...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <AdminLayout userEmail={user.email || ""}>
+    <AdminLayout userEmail={adminEmail || "admin@formed.nl"}>
       <div className="space-y-6">
         <ProductsManagement />
       </div>

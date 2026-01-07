@@ -10,6 +10,176 @@ export async function POST(request: Request) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
+    const FREE_SHIPPING_THRESHOLD = 75.0
+    const SHIPPING_COST = 7.5
+
+    // Calculate subtotal from items
+    const subtotal = orderData.items.reduce((sum: number, item: any) => {
+      return sum + item.price * item.quantity
+    }, 0)
+
+    // Apply free shipping threshold
+    const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
+    const correctedTotalAmount = subtotal + shippingCost
+
+    console.log("[v0] Server: Pricing breakdown:", {
+      subtotal,
+      shippingCost,
+      freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
+      originalTotal: orderData.total_amount,
+      correctedTotal: correctedTotalAmount,
+    })
+
+    let finalCustomerId = orderData.customer_id
+
+    if (!finalCustomerId) {
+      // Guest checkout or account created during checkout - check if customer with this email already exists
+      console.log("[v0] Server: Checking for existing customer by email:", orderData.email)
+
+      const customerCheckResponse = await fetch(
+        `${supabaseUrl}/rest/v1/customers?email=eq.${encodeURIComponent(orderData.email)}`,
+        {
+          headers: {
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+          },
+        },
+      )
+
+      const existingCustomers = await customerCheckResponse.json()
+
+      if (existingCustomers && existingCustomers.length > 0) {
+        // Update existing customer with latest info and auth link if provided
+        finalCustomerId = existingCustomers[0].id
+        console.log("[v0] Server: Found existing customer:", finalCustomerId)
+
+        const updatePayload: any = {
+          first_name: orderData.first_name,
+          last_name: orderData.last_name,
+          phone: orderData.phone,
+          address_line1: orderData.address_line1,
+          address_line2: orderData.address_line2,
+          city: orderData.city,
+          postal_code: orderData.postal_code,
+          country: orderData.country,
+        }
+
+        if (orderData.auth_user_id) {
+          updatePayload.user_id = orderData.auth_user_id
+          console.log("[v0] Server: Linking auth user to existing customer:", orderData.auth_user_id)
+        }
+
+        await fetch(`${supabaseUrl}/rest/v1/customers?id=eq.${finalCustomerId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify(updatePayload),
+        })
+
+        console.log("[v0] Server: Updated existing customer with latest info, address, and auth link")
+      } else {
+        // Create new customer
+        console.log("[v0] Server: Creating new customer:", orderData.email)
+
+        const newCustomerPayload: any = {
+          email: orderData.email,
+          first_name: orderData.first_name,
+          last_name: orderData.last_name,
+          phone: orderData.phone,
+          address_line1: orderData.address_line1,
+          address_line2: orderData.address_line2,
+          city: orderData.city,
+          postal_code: orderData.postal_code,
+          country: orderData.country,
+        }
+
+        if (orderData.auth_user_id) {
+          newCustomerPayload.user_id = orderData.auth_user_id
+          console.log("[v0] Server: Creating customer with auth link:", orderData.auth_user_id)
+        }
+
+        const createCustomerResponse = await fetch(`${supabaseUrl}/rest/v1/customers`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify(newCustomerPayload),
+        })
+
+        const newCustomer = await createCustomerResponse.json()
+        finalCustomerId = newCustomer[0]?.id || newCustomer.id
+        console.log("[v0] Server: Created new customer:", finalCustomerId)
+      }
+    } else {
+      const customerCheckResponse = await fetch(`${supabaseUrl}/rest/v1/customers?id=eq.${orderData.customer_id}`, {
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+      })
+
+      const existingCustomers = await customerCheckResponse.json()
+
+      if (!existingCustomers || existingCustomers.length === 0) {
+        console.log("[v0] Server: Creating customer record for logged-in user with auth link:", orderData.customer_id)
+
+        await fetch(`${supabaseUrl}/rest/v1/customers`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify({
+            id: orderData.customer_id,
+            user_id: orderData.customer_id, // Link to Supabase Auth user
+            email: orderData.email,
+            first_name: orderData.first_name,
+            last_name: orderData.last_name,
+            phone: orderData.phone,
+            address_line1: orderData.address_line1,
+            address_line2: orderData.address_line2,
+            city: orderData.city,
+            postal_code: orderData.postal_code,
+            country: orderData.country,
+          }),
+        })
+
+        console.log("[v0] Server: Customer record created successfully with auth link and address")
+      } else {
+        console.log("[v0] Server: Updating existing customer with auth link and latest info")
+
+        await fetch(`${supabaseUrl}/rest/v1/customers?id=eq.${orderData.customer_id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({
+            user_id: orderData.customer_id, // Link to Supabase Auth user
+            first_name: orderData.first_name,
+            last_name: orderData.last_name,
+            phone: orderData.phone,
+            address_line1: orderData.address_line1,
+            address_line2: orderData.address_line2,
+            city: orderData.city,
+            postal_code: orderData.postal_code,
+            country: orderData.country,
+          }),
+        })
+
+        console.log("[v0] Server: Updated customer with auth link and address")
+      }
+    }
+
     for (const item of orderData.items) {
       console.log(`[v0] Server: Checking stock for item:`, {
         id: item.id,
@@ -76,45 +246,6 @@ export async function POST(request: Request) {
       }
     }
 
-    if (orderData.customer_id) {
-      // Check if customer exists
-      const customerCheckResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/customers?id=eq.${orderData.customer_id}`,
-        {
-          headers: {
-            apikey: serviceRoleKey,
-            Authorization: `Bearer ${serviceRoleKey}`,
-          },
-        },
-      )
-
-      const existingCustomers = await customerCheckResponse.json()
-
-      // If customer doesn't exist, create one
-      if (!existingCustomers || existingCustomers.length === 0) {
-        console.log("[v0] Server: Creating customer record for user:", orderData.customer_id)
-
-        await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/customers`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: serviceRoleKey,
-            Authorization: `Bearer ${serviceRoleKey}`,
-            Prefer: "return=representation",
-          },
-          body: JSON.stringify({
-            id: orderData.customer_id,
-            email: orderData.email,
-            first_name: orderData.first_name,
-            last_name: orderData.last_name,
-            phone: orderData.phone,
-          }),
-        })
-
-        console.log("[v0] Server: Customer record created successfully")
-      }
-    }
-
     const orderPayload = {
       email: orderData.email,
       first_name: orderData.first_name,
@@ -124,9 +255,10 @@ export async function POST(request: Request) {
       city: orderData.city,
       postal_code: orderData.postal_code,
       country: orderData.country,
-      customer_id: orderData.customer_id || null,
+      customer_id: finalCustomerId, // Always link to customer
       items: orderData.items,
-      total_amount: orderData.total_amount,
+      total_amount: correctedTotalAmount,
+      shipping_cost: shippingCost,
       status: "pending",
     }
 
@@ -205,7 +337,15 @@ export async function POST(request: Request) {
     }
 
     try {
-      await fetch(`${request.headers.get("origin")}/api/send-order-email`, {
+      console.log("[v0] Server: Attempting to send order emails...")
+      const baseUrl =
+        process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : request.headers.get("origin") || "http://localhost:3000"
+
+      console.log("[v0] Server: Email API URL:", `${baseUrl}/api/send-order-email`)
+
+      const emailResponse = await fetch(`${baseUrl}/api/send-order-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -214,9 +354,21 @@ export async function POST(request: Request) {
           domain: orderData.domain || "be",
         }),
       })
-      console.log("[v0] Server: Order confirmation email sent")
+
+      const emailResult = await emailResponse.json()
+      console.log("[v0] Server: Email API response:", emailResult)
+
+      if (!emailResult.emailsSent) {
+        console.error("[v0] Server: ⚠️ Emails NOT sent:", emailResult.emailError || emailResult.message)
+      } else {
+        console.log("[v0] Server: ✅ Order confirmation emails sent successfully")
+      }
     } catch (emailError) {
-      console.error("[v0] Email sending failed (non-critical):", emailError)
+      console.error("[v0] Server: ❌ Email sending FAILED:", emailError)
+      console.error("[v0] Server: Email error details:", {
+        message: emailError instanceof Error ? emailError.message : String(emailError),
+        stack: emailError instanceof Error ? emailError.stack : undefined,
+      })
     }
 
     return NextResponse.json({ success: true, order: createdOrder[0] || createdOrder })

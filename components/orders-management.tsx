@@ -1,9 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-
 import { Label } from "@/components/ui/label"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -369,7 +367,8 @@ export default function OrdersManagement() {
                   {order.order_items.map((item: any) => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <span>
-                        {item.quantity}x {item.product_name}
+                        {item.quantity}x {item.name}
+                        {item.color ? ` - ${item.color}` : ""}
                       </span>
                       <span>€{(item.price * item.quantity).toFixed(2)}</span>
                     </div>

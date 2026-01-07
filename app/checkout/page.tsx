@@ -7,23 +7,21 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowLeft } from "lucide-react"
-import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { useState } from "react"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { createClient } from "@/lib/supabase/client" // Import createClient here
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
-  const [defaultCountry, setDefaultCountry] = useState("België")
-  const [userId, setUserId] = useState<string | null>(null)
-  const [createAccount, setCreateAccount] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState("België")
+  const [createAccount, setCreateAccount] = useState(false)
+  const [password, setPassword] = useState("")
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -32,60 +30,13 @@ export default function CheckoutPage() {
     address: "",
     city: "",
     postalCode: "",
-    color: "", // Added color field to formData
   })
 
   const SHIPPING_COST = 7.5
   const FREE_SHIPPING_THRESHOLD = 75.0
   const shippingCost = totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
   const subtotal = totalPrice
-  const tax = (subtotal + shippingCost) * 0.21
-  const finalTotal = subtotal + shippingCost + tax
-
-  useEffect(() => {
-    setDefaultCountry("België")
-    setSelectedCountry("België")
-
-    const checkUser = async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-        setIsLoggedIn(true)
-
-        const { data: customer } = await supabase
-          .from("customers")
-          .select("first_name, last_name, email, phone, address_line1, city, postal_code, country")
-          .eq("id", user.id)
-          .maybeSingle()
-
-        if (customer) {
-          setFormData({
-            firstName: customer.first_name || "",
-            lastName: customer.last_name || "",
-            email: customer.email || user.email || "",
-            phone: customer.phone || "",
-            address: customer.address_line1 || "",
-            city: customer.city || "",
-            postalCode: customer.postal_code || "",
-            color: "", // Initialize color field
-          })
-          if (customer.country) {
-            setSelectedCountry(customer.country)
-          }
-        } else {
-          // If no customer record, at least set the email from auth
-          setFormData((prev) => ({
-            ...prev,
-            email: user.email || "",
-          }))
-        }
-      }
-    }
-    checkUser()
-  }, [])
+  const finalTotal = subtotal + shippingCost
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -97,36 +48,35 @@ export default function CheckoutPage() {
       const firstName = formDataFromForm.get("firstName") as string
       const lastName = formDataFromForm.get("lastName") as string
 
-      let accountUserId = userId
-      if (createAccount && !isLoggedIn) {
-        const password = formDataFromForm.get("password") as string
-        const supabase = createClient()
+      let accountCreated = false
+      let authData = null // Declare authData here
+      if (createAccount && password && password.length >= 6) {
+        try {
+          const supabase = createClient()
 
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
-            data: {
-              first_name: firstName,
-              last_name: lastName,
-            },
-          },
-        })
-
-        if (error) {
-          console.error("[v0] Error creating account:", error)
-          alert("Account aanmaken mislukt. We plaatsen uw bestelling als gast.")
-        } else if (data.user) {
-          accountUserId = data.user.id
-          console.log("[v0] Account created successfully:", data.user.id)
-
-          await supabase.from("customers").insert({
-            id: data.user.id,
+          const { data: authDataResponse, error: authError } = await supabase.auth.signUp({
             email,
-            first_name: firstName,
-            last_name: lastName,
+            password,
+            options: {
+              emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
+              data: {
+                first_name: firstName,
+                last_name: lastName,
+              },
+            },
           })
+
+          if (authError) {
+            console.log("[v0] Account creation failed, continuing as guest:", authError.message)
+            // Don't show error to user, just continue as guest
+          } else if (authDataResponse.user) {
+            console.log("[v0] Account created successfully:", authDataResponse.user.id)
+            accountCreated = true
+            authData = authDataResponse // Assign authData here
+          }
+        } catch (error) {
+          console.log("[v0] Error in account creation, continuing as guest:", error)
+          // Don't block order if account creation fails
         }
       }
 
@@ -141,20 +91,18 @@ export default function CheckoutPage() {
         city: formData.city,
         postal_code: formData.postalCode,
         country: selectedCountry,
-        customer_id: accountUserId,
+        auth_user_id: accountCreated && authData?.user ? authData.user.id : null, // Send auth user ID separately
         items: items.map((item) => ({
           id: item.id,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
           image: item.image,
-          color: item.color, // Include selected color in order data
+          color: item.color,
         })),
         total_amount: finalTotal,
         domain,
       }
-
-      console.log("[v0] Creating order:", orderData)
 
       const response = await fetch("/api/create-order", {
         method: "POST",
@@ -167,40 +115,6 @@ export default function CheckoutPage() {
       if (!result.success) {
         throw new Error(result.error || "Failed to create order")
       }
-
-      console.log("[v0] Order created successfully:", result.order)
-
-      /* 
-      try {
-        const emailResponse = await fetch("/api/send-order-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            order: result.order,
-            email: orderData.email,
-            domain,
-          }),
-        })
-
-        const emailResult = await emailResponse.json()
-        if (!emailResult.emailsSent) {
-          console.warn("[v0] Emails not sent, but order was placed:", emailResult.emailError)
-        }
-      } catch (emailError) {
-        console.warn("[v0] Email service error, but order was placed:", emailError)
-      }
-
-      for (const item of items) {
-        await fetch("/api/update-stock", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            productId: item.id,
-            quantity: item.quantity,
-          }),
-        })
-      }
-      */
 
       clearCart()
       router.push("/order-confirmation")
@@ -302,38 +216,39 @@ export default function CheckoutPage() {
                       required
                     />
                   </div>
-
-                  {!isLoggedIn && (
-                    <div className="pt-4 border-t border-border space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="createAccount"
-                          checked={createAccount}
-                          onCheckedChange={(checked) => setCreateAccount(checked === true)}
-                        />
-                        <Label htmlFor="createAccount" className="text-sm font-normal cursor-pointer">
-                          Account aanmaken om bestellingen te volgen
-                        </Label>
-                      </div>
-
-                      {createAccount && (
-                        <div className="space-y-2 pl-6">
-                          <Label htmlFor="password">Wachtwoord</Label>
-                          <Input
-                            id="password"
-                            name="password"
-                            type="password"
-                            minLength={6}
-                            required={createAccount}
-                            placeholder="Minimaal 6 karakters"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Met een account kunt u al uw bestellingen bekijken
-                          </p>
-                        </div>
-                      )}
+                  <div className="space-y-4 pt-4 border-t border-border">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="createAccount"
+                        checked={createAccount}
+                        onCheckedChange={(checked) => setCreateAccount(checked === true)}
+                      />
+                      <Label
+                        htmlFor="createAccount"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Account aanmaken om bestellingen te volgen
+                      </Label>
                     </div>
-                  )}
+                    {createAccount && (
+                      <div className="space-y-2 pl-6">
+                        <Label htmlFor="password">Wachtwoord</Label>
+                        <Input
+                          id="password"
+                          name="password"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Minimaal 6 karakters"
+                          minLength={6}
+                          required={createAccount}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          U ontvangt een bevestigingsmail om uw account te activeren.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -451,13 +366,9 @@ export default function CheckoutPage() {
                     Nog €{(FREE_SHIPPING_THRESHOLD - totalPrice).toFixed(2)} tot gratis verzending
                   </div>
                 )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">BTW (21%)</span>
-                  <span className="text-foreground font-semibold">€{tax.toFixed(2)}</span>
-                </div>
                 <div className="border-t border-border pt-3">
                   <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">Totaal</span>
+                    <span className="font-semibold text-foreground">Totaal (incl. BTW)</span>
                     <span className="text-xl font-semibold text-foreground">€{finalTotal.toFixed(2)}</span>
                   </div>
                 </div>

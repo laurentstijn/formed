@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useRouter } from "next/navigation"
 
 type Customer = {
   id: string
@@ -48,6 +49,7 @@ export default function CustomersManagement() {
   const [customerOrders, setCustomerOrders] = useState<Order[]>([])
   const [loadingOrders, setLoadingOrders] = useState(false)
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     loadCustomers()
@@ -103,6 +105,10 @@ export default function CustomersManagement() {
       console.error("Error deleting customer:", error)
       alert("Er is een fout opgetreden bij het verwijderen van de klant")
     }
+  }
+
+  const handleOrderClick = (orderId: number) => {
+    router.push(`/admin/orders?orderId=${orderId}`)
   }
 
   const filteredCustomers = customers.filter(
@@ -171,7 +177,10 @@ export default function CustomersManagement() {
           }
         }}
       >
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent
+          className="max-w-none w-[90vw] max-h-[80vh] overflow-y-auto"
+          style={{ maxWidth: "1600px", width: "90vw" }}
+        >
           <DialogHeader>
             <DialogTitle>Klantgegevens</DialogTitle>
           </DialogHeader>
@@ -224,7 +233,11 @@ export default function CustomersManagement() {
                 ) : customerOrders.length > 0 ? (
                   <div className="space-y-3">
                     {customerOrders.map((order) => (
-                      <Card key={order.id}>
+                      <Card
+                        key={order.id}
+                        className="cursor-pointer hover:bg-accent transition-colors"
+                        onClick={() => handleOrderClick(order.id)}
+                      >
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div>

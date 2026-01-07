@@ -94,7 +94,9 @@ export function ProfessionalOrderEmail({ order, customer, companyInfo }: Profess
                           .map(
                             (item, index) => `
                           <tr style="border-bottom: 1px solid #f7e8e8; ${index % 2 === 0 ? "background-color: #fef9f9;" : ""}">
-                            <td style="padding: 15px 12px; color: #1a1a1a; font-size: 14px; font-weight: 500;">${item.name}</td>
+                            <td style="padding: 15px 12px; color: #1a1a1a; font-size: 14px; font-weight: 500;">
+                              ${item.name}${item.color ? " - " + item.color : ""}
+                            </td>
                             <td style="padding: 15px 12px; color: #333333; font-size: 14px; text-align: center;">${item.quantity}</td>
                             <td style="padding: 15px 12px; color: #333333; font-size: 14px; text-align: right;">€${item.price.toFixed(2)}</td>
                             <td style="padding: 15px 12px; color: #1a1a1a; font-size: 14px; font-weight: 600; text-align: right;">€${(item.price * item.quantity).toFixed(2)}</td>

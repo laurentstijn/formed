@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site-header"
 import { ArrowLeft } from "lucide-react"
 import { ProductDetailClient } from "@/components/product-detail-client"
 import { createClient } from "@/lib/supabase/server"
+import type { Product } from "@/lib/supabase/products"
 
 export const dynamic = "force-dynamic"
 
@@ -16,9 +17,9 @@ export default async function ProductPage({
   try {
     const supabase = await createClient()
 
-    const { data: product, error } = await supabase.from("products").select("*").eq("id", Number(id)).single()
+    const { data: rawProduct, error } = await supabase.from("products").select("*").eq("id", id).single()
 
-    if (error || !product) {
+    if (error || !rawProduct) {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
@@ -30,6 +31,30 @@ export default async function ProductPage({
         </div>
       )
     }
+
+    const product: Product = {
+      id: rawProduct.id,
+      name: rawProduct.name,
+      description: rawProduct.description,
+      price: rawProduct.price,
+      image: rawProduct.image_url || rawProduct.image,
+      category: rawProduct.category,
+      stock: rawProduct.stock,
+      colors: rawProduct.colors || [],
+      features: rawProduct.features || [],
+      technical_drawing: rawProduct.technical_drawing_url || rawProduct.technical_drawing,
+      gallery_images: rawProduct.gallery_images || [],
+      dimensions: rawProduct.dimensions,
+      materials: rawProduct.materials,
+      created_at: rawProduct.created_at,
+    }
+
+    console.log("[v0] Server - Mapped product:", {
+      name: product.name,
+      image: product.image,
+      technical_drawing: product.technical_drawing,
+      gallery_images: product.gallery_images,
+    })
 
     const productUrl = `https://formd.be/product/${product.id}`
 

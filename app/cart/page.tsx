@@ -129,7 +129,7 @@ export default function CartPage() {
                 )}
                 <div className="border-t border-border pt-4">
                   <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">Totaal</span>
+                    <span className="font-semibold text-foreground">Totaal (incl. BTW)</span>
                     <span className="text-xl font-semibold text-foreground">€{finalTotal.toFixed(2)}</span>
                   </div>
                 </div>

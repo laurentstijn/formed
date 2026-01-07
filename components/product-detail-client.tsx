@@ -13,6 +13,11 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product, productUrl }: ProductDetailClientProps) {
+  console.log("[v0] Product name:", product.name)
+  console.log("[v0] Technical drawing URL:", product.technical_drawing)
+  console.log("[v0] Product image:", product.image)
+  console.log("[v0] Gallery images:", product.gallery_images)
+
   const sortedColors = useMemo(() => {
     if (!product.colors || product.colors.length === 0) return []
 
@@ -56,17 +61,23 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
     const mainImage = product.image ? [product.image] : []
     const technicalDrawing = product.technical_drawing ? [product.technical_drawing] : []
 
-    // Combine: color-specific images first, then gallery images, then technical drawing, fallback to main image
+    console.log("[v0] Color images:", colorImages)
+    console.log("[v0] Technical drawing array:", technicalDrawing)
+    console.log("[v0] Gallery images array:", galleryImages)
+
+    // Combine: color-specific images first, then technical drawing, then gallery images, fallback to main image
     if (colorImages.length > 0) {
-      return [...colorImages, ...galleryImages, ...technicalDrawing]
+      return [...colorImages, ...technicalDrawing, ...galleryImages]
     } else if (galleryImages.length > 0) {
-      return [...galleryImages, ...technicalDrawing]
+      return [...mainImage, ...technicalDrawing, ...galleryImages]
     } else if (technicalDrawing.length > 0) {
-      return technicalDrawing
+      return [...mainImage, ...technicalDrawing]
     } else {
       return mainImage
     }
   })()
+
+  console.log("[v0] Final display images:", displayImages)
 
   const availableStock =
     sortedColors && sortedColors.length > 0 ? sortedColors[selectedColorIndex]?.stock || 0 : product.stock

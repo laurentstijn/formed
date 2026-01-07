@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
           .map(
             (item: any) => `
           <tr>
-            <td>${item.name}</td>
+            <td>${item.name}${item.color ? ` <span style="color: #666;">- ${item.color}</span>` : ""}</td>
             <td style="text-align: center;">${item.quantity}</td>
             <td style="text-align: right;">€${item.price.toFixed(2)}</td>
             <td style="text-align: right;">€${(item.price * item.quantity).toFixed(2)}</td>

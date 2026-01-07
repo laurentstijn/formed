@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-export async function GET(request: NextRequest, { params }: { params: { customerId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ customerId: string }> }) {
   try {
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
       auth: {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest, { params }: { params: { customer
       },
     })
 
-    const customerId = params.customerId
+    const { customerId } = await params
 
     const { data: orders, error } = await supabase
       .from("orders")

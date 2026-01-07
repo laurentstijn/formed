@@ -14,6 +14,7 @@ interface OrderStats {
 interface ProductSales {
   product_id: number
   product_name: string
+  color?: string
   total_quantity: number
   total_revenue: number
   order_count: number
@@ -53,19 +54,23 @@ export function StatisticsDashboard() {
         avgOrderValue,
       })
 
-      const productSalesMap = new Map<number, ProductSales>()
+      const productSalesMap = new Map<string, ProductSales & { color?: string }>()
 
       orders?.forEach((order) => {
         order.items?.forEach((item: any) => {
-          const existing = productSalesMap.get(item.product_id)
+          const key = `${item.id || item.product_id}-${item.color || "no-color"}`
+          const displayName = `${item.name}${item.color ? ` - ${item.color}` : ""}`
+
+          const existing = productSalesMap.get(key)
           if (existing) {
             existing.total_quantity += item.quantity
             existing.total_revenue += item.price * item.quantity
             existing.order_count += 1
           } else {
-            productSalesMap.set(item.product_id, {
-              product_id: item.product_id,
-              product_name: item.name,
+            productSalesMap.set(key, {
+              product_id: item.id || item.product_id,
+              product_name: displayName,
+              color: item.color,
               total_quantity: item.quantity,
               total_revenue: item.price * item.quantity,
               order_count: 1,
@@ -154,7 +159,10 @@ export function StatisticsDashboard() {
                 </thead>
                 <tbody>
                   {productSales.map((product) => (
-                    <tr key={product.product_id} className="border-b hover:bg-muted/50">
+                    <tr
+                      key={`${product.product_id}-${product.color || "no-color"}`}
+                      className="border-b hover:bg-muted/50"
+                    >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Package className="h-4 w-4 text-muted-foreground" />

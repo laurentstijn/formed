@@ -10,15 +10,13 @@ export function useProducts() {
   useEffect(() => {
     loadProducts()
 
-    const interval = setInterval(() => {
-      loadProducts()
-    }, 30000)
-
-    return () => clearInterval(interval)
+    // Products only load on mount, manual refresh still available via refetch
   }, [])
 
   const loadProducts = async () => {
-    setIsLoading(true)
+    if (products.length === 0) {
+      setIsLoading(true)
+    }
     const data = await getProducts()
     setProducts(data)
     setIsLoading(false)
@@ -27,7 +25,7 @@ export function useProducts() {
   return { products, isLoading, refetch: loadProducts }
 }
 
-export async function getProductById(id: number): Promise<Product | null> {
+export async function getProductById(id: string): Promise<Product | null> {
   const { getProductById: fetchProduct } = await import("@/lib/supabase/products")
   return fetchProduct(id)
 }

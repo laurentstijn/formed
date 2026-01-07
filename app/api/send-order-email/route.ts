@@ -19,12 +19,20 @@ export async function POST(request: NextRequest) {
   try {
     const { order, domain } = await request.json()
 
+    console.log("[v0] === EMAIL SENDING START ===")
+    console.log("[v0] Order ID:", order.id)
+    console.log("[v0] Customer email:", order.email)
+    console.log("[v0] Domain:", domain)
+
     const supabase = await createClient()
 
-    const { data: settings } = await supabase.from("invoice_settings").select("*").single()
+    const { data: settings } = await supabase.from("settings").select("*").maybeSingle()
 
     const fromEmail = "info@formd.be"
     const adminEmail = "info@formd.be"
+
+    console.log("[v0] RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY)
+    console.log("[v0] RESEND_API_KEY length:", process.env.RESEND_API_KEY?.length || 0)
 
     const orderDate = new Date(order.created_at).toLocaleDateString("nl-NL", {
       day: "2-digit",
@@ -53,7 +61,7 @@ export async function POST(request: NextRequest) {
     let emailError = null
 
     if (!process.env.RESEND_API_KEY) {
-      console.error("[v0] RESEND_API_KEY not configured!")
+      console.error("[v0] ❌ RESEND_API_KEY not configured!")
       return NextResponse.json({
         success: true,
         emailsSent: false,
@@ -71,7 +79,12 @@ export async function POST(request: NextRequest) {
 
       const customerHtml = ProfessionalOrderEmail({ order, customer, companyInfo })
 
-      console.log("[v0] Attempting to send customer email from:", fromEmail, "to:", order.email)
+      console.log("[v0] === CUSTOMER EMAIL DETAILS ===")
+      console.log("[v0] From:", `FORMD <${fromEmail}>`)
+      console.log("[v0] To:", order.email)
+      console.log("[v0] Subject:", customerSubject)
+      console.log("[v0] HTML length:", customerHtml.length)
+      console.log("[v0] Sending customer email now...")
 
       customerEmailResult = await resend.emails.send({
         from: `FORMD <${fromEmail}>`,
@@ -80,15 +93,22 @@ export async function POST(request: NextRequest) {
         html: customerHtml,
       })
 
-      console.log("[v0] Customer email sent:", customerEmailResult)
+      console.log("[v0] ✅ Customer email Resend response:", JSON.stringify(customerEmailResult, null, 2))
+
+      if (customerEmailResult.error) {
+        console.error("[v0] ❌ Customer email error from Resend:", customerEmailResult.error)
+        emailsSent = false
+        emailError = customerEmailResult.error
+      }
     } catch (error: any) {
       emailsSent = false
       emailError = error?.message || "Email domain not verified"
-      console.error("[v0] Could not send customer email:", {
+      console.error("[v0] ❌ CUSTOMER EMAIL EXCEPTION:", {
         message: error?.message,
         statusCode: error?.statusCode,
         name: error?.name,
-        fullError: error,
+        response: error?.response?.data,
+        fullError: JSON.stringify(error, null, 2),
       })
     }
 
@@ -102,7 +122,7 @@ export async function POST(request: NextRequest) {
         .map(
           (item: any, index: number) => `
         <tr style="${index % 2 === 0 ? "background-color: #f8f9fa;" : ""}">
-          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.name}${item.color ? " - " + item.color : ""}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">€${item.price.toFixed(2)}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">€${(item.price * item.quantity).toFixed(2)}</td>
@@ -191,7 +211,11 @@ export async function POST(request: NextRequest) {
         </html>
       `
 
-      console.log("[v0] Attempting to send admin email from:", fromEmail, "to:", adminEmail)
+      console.log("[v0] === ADMIN EMAIL DETAILS ===")
+      console.log("[v0] From:", `FORMD <${fromEmail}>`)
+      console.log("[v0] To:", adminEmail)
+      console.log("[v0] Subject:", adminSubject)
+      console.log("[v0] Sending admin email now...")
 
       adminEmailResult = await resend.emails.send({
         from: `FORMD <${fromEmail}>`,
@@ -200,17 +224,28 @@ export async function POST(request: NextRequest) {
         html: adminHtml,
       })
 
-      console.log("[v0] Admin email sent:", adminEmailResult)
+      console.log("[v0] ✅ Admin email Resend response:", JSON.stringify(adminEmailResult, null, 2))
+
+      if (adminEmailResult.error) {
+        console.error("[v0] ❌ Admin email error from Resend:", adminEmailResult.error)
+        emailsSent = false
+        emailError = adminEmailResult.error
+      }
     } catch (error: any) {
       emailsSent = false
       emailError = error?.message || "Email domain not verified"
-      console.error("[v0] Could not send admin email:", {
+      console.error("[v0] ❌ ADMIN EMAIL EXCEPTION:", {
         message: error?.message,
         statusCode: error?.statusCode,
         name: error?.name,
-        fullError: error,
+        response: error?.response?.data,
+        fullError: JSON.stringify(error, null, 2),
       })
     }
+
+    console.log("[v0] === EMAIL SENDING COMPLETE ===")
+    console.log("[v0] Emails sent successfully:", emailsSent)
+    console.log("[v0] Email error:", emailError)
 
     return NextResponse.json({
       success: true,
@@ -223,9 +258,10 @@ export async function POST(request: NextRequest) {
       emailError,
     })
   } catch (error) {
-    console.error("[v0] Error in email route:", {
+    console.error("[v0] ❌ FATAL ERROR in email route:", {
       message: error instanceof Error ? error.message : String(error),
-      fullError: error,
+      stack: error instanceof Error ? error.stack : undefined,
+      fullError: JSON.stringify(error, null, 2),
     })
     return NextResponse.json({
       success: true,

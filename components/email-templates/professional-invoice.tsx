@@ -114,7 +114,7 @@ export function ProfessionalInvoice({ order, invoiceNumber, customer, companyInf
               .map(
                 (item, index) => `
               <tr style="background-color: #ffffff;">
-                <td style="padding: 12px 15px; color: #1a1a1a; font-size: 14px; border: 1px solid #d0d0d0;">${item.name}</td>
+                <td style="padding: 12px 15px; color: #1a1a1a; font-size: 14px; border: 1px solid #d0d0d0;">${item.name}${item.color ? " - " + item.color : ""}</td>
                 <td style="padding: 12px 15px; color: #333333; font-size: 14px; text-align: center; border: 1px solid #d0d0d0;">${item.quantity}</td>
                 <td style="padding: 12px 15px; color: #333333; font-size: 14px; text-align: right; border: 1px solid #d0d0d0;">€${item.price.toFixed(2)}</td>
                 <td style="padding: 12px 15px; color: #1a1a1a; font-size: 14px; font-weight: 600; text-align: right; border: 1px solid #d0d0d0;">€${(item.price * item.quantity).toFixed(2)}</td>

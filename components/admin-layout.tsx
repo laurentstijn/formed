@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Package, Users, ShoppingCart, Menu, X, Settings, BarChart3 } from "lucide-react"
+import { Package, Users, ShoppingCart, Menu, X, Settings, BarChart3, LogOut } from "lucide-react"
 import SiteHeader from "@/components/site-header"
 
 interface AdminLayoutProps {
@@ -19,24 +19,28 @@ export function AdminLayout({ children, userEmail }: AdminLayoutProps) {
   const [orderCount, setOrderCount] = useState<number>(0)
 
   useEffect(() => {
-    console.log("[v0] Fetching order count...")
     fetch("/api/admin/orders")
-      .then((res) => {
-        console.log("[v0] Order count response status:", res.status)
-        return res.json()
-      })
+      .then((res) => res.json())
       .then((data) => {
-        console.log("[v0] Order count data:", data)
         const activeOrders = data.orders.filter(
           (order: any) => order.status === "pending" || order.status === "processing",
         )
         setOrderCount(activeOrders.length)
       })
       .catch((err) => {
-        console.error("[v0] Failed to fetch order count:", err)
+        console.error("Failed to fetch order count:", err)
         setOrderCount(0)
       })
   }, [])
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/logout", { method: "POST" })
+      window.location.replace("/admin/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
+  }
 
   const navigation = [
     { name: "Producten", href: "/admin", icon: Package },
@@ -101,6 +105,13 @@ export function AdminLayout({ children, userEmail }: AdminLayoutProps) {
                 )
               })}
             </nav>
+
+            <div className="p-4 border-t">
+              <Button variant="outline" className="w-full justify-start gap-3 bg-transparent" onClick={handleLogout}>
+                <LogOut className="h-5 w-5" />
+                <span>Uitloggen</span>
+              </Button>
+            </div>
           </div>
         </aside>
 

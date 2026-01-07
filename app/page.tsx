@@ -9,11 +9,33 @@ export default function HomePage() {
   const { products, isLoading } = useProducts()
   const router = useRouter()
 
+  const getDisplayImage = (product: any) => {
+    if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
+      const inStockColor = product.colors.find((color: any) => color?.stock > 0)
+      if (inStockColor && inStockColor.images && inStockColor.images.length > 0) {
+        return inStockColor.images[0]
+      }
+      // If no colors in stock, use first color's image
+      const firstColor = product.colors[0]
+      if (firstColor && firstColor.images && firstColor.images.length > 0) {
+        return firstColor.images[0]
+      }
+    }
+    return product.image
+  }
+
+  const isProductOutOfStock = (product: any) => {
+    if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
+      return product.colors.every((color: any) => !color?.stock || color.stock === 0)
+    }
+    return product.stock === 0
+  }
+
   const getProductStock = (product: any) => {
     if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
       return product.colors.reduce((total: number, color: any) => {
-        if (!color) return total
-        return total + (color.stock || 0)
+        if (!color || !color.stock) return total
+        return total + color.stock
       }, 0)
     }
     return product.stock || 0
@@ -63,7 +85,7 @@ export default function HomePage() {
                   <div className="bg-card rounded-lg overflow-hidden border border-border transition-all hover:shadow-lg hover:border-foreground/20">
                     <div className="aspect-square overflow-hidden bg-muted relative">
                       <img
-                        src={product.image || "/placeholder.svg"}
+                        src={getDisplayImage(product) || "/placeholder.svg"}
                         alt={product.name}
                         loading="lazy"
                         onError={(e) => {
@@ -74,14 +96,11 @@ export default function HomePage() {
                         }}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
-                      {(() => {
-                        const totalStock = getProductStock(product)
-                        return totalStock === 0 ? (
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                            <span className="text-white font-semibold text-lg">Uitverkocht</span>
-                          </div>
-                        ) : null
-                      })()}
+                      {isProductOutOfStock(product) && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <span className="text-white font-semibold text-lg">Uitverkocht</span>
+                        </div>
+                      )}
                     </div>
                     <div className="p-6">
                       <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">{product.category}</p>

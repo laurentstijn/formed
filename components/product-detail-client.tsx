@@ -120,7 +120,7 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
         )}
 
         <div className="md:hidden mb-8">
-          <ProductGallery images={displayImages} productName={product.name} />
+          <ProductGallery images={displayImages} productName={product.name} isOutOfStock={availableStock === 0} />
         </div>
 
         <AddToCartButton
@@ -172,7 +172,7 @@ export function ProductDetailClient({ product, productUrl }: ProductDetailClient
       </div>
 
       <div className="hidden md:block md:order-1">
-        <ProductGallery images={displayImages} productName={product.name} />
+        <ProductGallery images={displayImages} productName={product.name} isOutOfStock={availableStock === 0} />
       </div>
     </div>
   )

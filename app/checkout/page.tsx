@@ -200,12 +200,9 @@ export default function CheckoutPage() {
       const stripeResult = await stripeResponse.json()
       console.log("[v0] Stripe checkout session response:", stripeResult)
 
-      if (stripeResult.error) {
-        throw new Error(stripeResult.error)
-      }
-
       if (stripeResult.url) {
         console.log("[v0] Redirecting to Stripe checkout:", stripeResult.url)
+        clearCart()
         setStripeCheckoutUrl(stripeResult.url)
 
         try {

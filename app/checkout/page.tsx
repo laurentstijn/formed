@@ -85,6 +85,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    console.log("[v0] Checkout form submitted")
     setIsProcessing(true)
 
     try {
@@ -93,10 +94,13 @@ export default function CheckoutPage() {
       const firstName = formDataFromForm.get("firstName") as string
       const lastName = formDataFromForm.get("lastName") as string
 
+      console.log("[v0] Form data collected:", { email, firstName, lastName })
+
       let accountCreated = false
       let authData = null
 
       if (createAccount && password && password.length >= 6) {
+        console.log("[v0] Creating account...")
         try {
           const supabase = createClient()
 
@@ -113,6 +117,7 @@ export default function CheckoutPage() {
           })
 
           if (authError) {
+            console.log("[v0] Auth error:", authError)
             if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
               alert(
                 "Dit e-mailadres is al in gebruik. Log eerst in om je bestelling te koppelen aan je account, of ga door als gast.",
@@ -123,8 +128,11 @@ export default function CheckoutPage() {
           } else if (authDataResponse.user) {
             accountCreated = true
             authData = authDataResponse
+            console.log("[v0] Account created successfully")
           }
-        } catch (error) {}
+        } catch (error) {
+          console.log("[v0] Account creation error:", error)
+        }
       }
 
       const domain = typeof window !== "undefined" && window.location.hostname.includes("formd.be") ? "be" : "nl"
@@ -152,6 +160,7 @@ export default function CheckoutPage() {
         domain,
       }
 
+      console.log("[v0] Creating order in database...")
       const orderResponse = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -159,13 +168,16 @@ export default function CheckoutPage() {
       })
 
       const orderResult = await orderResponse.json()
+      console.log("[v0] Order creation response:", orderResult)
 
       if (!orderResult.success) {
         throw new Error(orderResult.error || "Failed to create order")
       }
 
       const orderId = orderResult.order.id
+      console.log("[v0] Order created with ID:", orderId)
 
+      console.log("[v0] Creating Stripe checkout session...")
       const stripeResponse = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -186,22 +198,26 @@ export default function CheckoutPage() {
       })
 
       const stripeResult = await stripeResponse.json()
+      console.log("[v0] Stripe checkout session response:", stripeResult)
 
       if (stripeResult.error) {
         throw new Error(stripeResult.error)
       }
 
       if (stripeResult.url) {
+        console.log("[v0] Redirecting to Stripe checkout:", stripeResult.url)
         setStripeCheckoutUrl(stripeResult.url)
 
         try {
           window.location.href = stripeResult.url
-        } catch (e) {}
+        } catch (e) {
+          console.log("[v0] Redirect error:", e)
+        }
       } else {
         throw new Error("No checkout URL received from Stripe")
       }
     } catch (error) {
-      console.error("Error creating order:", error)
+      console.error("[v0] Error in checkout process:", error)
       alert("Er is iets misgegaan bij het plaatsen van je bestelling. Probeer het opnieuw.")
       setIsProcessing(false)
       setStripeCheckoutUrl(null)

@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "FORMD",
     images: [
       {
-        url: "https://formd.be/og-image.png",
+        url: "/og-image.png?v=2",
         width: 1200,
         height: 630,
         alt: "FORMD - formd in steel",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "FORMD - Gevouwen Staal",
     description: "Gevouwen staal. Tijdloos design voor uw interieur",
-    images: ["https://formd.be/og-image.png"],
+    images: ["/og-image.png?v=2"],
   },
     generator: 'v0.app'
 }

@@ -203,12 +203,15 @@ export default function CheckoutPage() {
       if (stripeResult.url) {
         console.log("[v0] Redirecting to Stripe checkout:", stripeResult.url)
         clearCart()
-        setStripeCheckoutUrl(stripeResult.url)
 
-        try {
-          window.location.href = stripeResult.url
-        } catch (e) {
-          console.log("[v0] Redirect error:", e)
+        const stripeWindow = window.open(stripeResult.url, "_blank")
+
+        if (!stripeWindow || stripeWindow.closed || typeof stripeWindow.closed === "undefined") {
+          // Popup blocked, show manual link
+          setStripeCheckoutUrl(stripeResult.url)
+        } else {
+          // Redirect current page to success message
+          router.push(`/order-pending?orderId=${orderId}`)
         }
       } else {
         throw new Error("No checkout URL received from Stripe")

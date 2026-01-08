@@ -1,6 +1,39 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ customerId: string }> }) {
+  try {
+    const { customerId } = await params
+    const body = await request.json()
+    const { first_name, last_name } = body
+
+    // Create Supabase client with service role key to bypass RLS
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+
+    const { data, error } = await supabase
+      .from("customers")
+      .update({
+        first_name,
+        last_name,
+      })
+      .eq("id", customerId)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error("Error updating customer:", error)
+    return NextResponse.json({ error: "Failed to update customer" }, { status: 500 })
+  }
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ customerId: string }> }) {
   try {
     const { customerId } = await params

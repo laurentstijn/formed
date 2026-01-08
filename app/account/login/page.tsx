@@ -14,6 +14,8 @@ import { SiteHeader } from "@/components/site-header"
 export default function CustomerLogin() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
@@ -45,6 +47,16 @@ export default function CustomerLogin() {
       }
 
       if (isSignUp) {
+        console.log("[v0] === REGISTRATIE GESTART ===")
+        console.log("[v0] Email:", email)
+        console.log("[v0] Voornaam:", firstName)
+        console.log("[v0] Achternaam:", lastName)
+        console.log("[v0] Metadata die naar Supabase gaat:", {
+          is_customer: true,
+          first_name: firstName,
+          last_name: lastName,
+        })
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -52,15 +64,43 @@ export default function CustomerLogin() {
             emailRedirectTo: `${window.location.origin}`,
             data: {
               is_customer: true,
+              first_name: firstName,
+              last_name: lastName,
             },
           },
         })
 
-        if (error) throw error
+        if (error) {
+          console.log("[v0] FOUT bij registratie:", error)
+          throw error
+        }
 
-        setSuccessMessage("Account aangemaakt! Check je email om je account te bevestigen.")
+        console.log("[v0] Supabase auth.signUp geslaagd!")
+        console.log("[v0] Nieuwe user data:", data.user)
+        console.log("[v0] User metadata:", data.user?.user_metadata)
+        console.log("[v0] User ID:", data.user?.id)
+        console.log("[v0] === Nu zou de database trigger moeten draaien om customer record aan te maken ===")
+
+        setTimeout(async () => {
+          const { data: customerData, error: customerError } = await supabase
+            .from("customers")
+            .select("*")
+            .eq("email", email)
+            .single()
+
+          console.log("[v0] Customer record check:")
+          if (customerError) {
+            console.log("[v0] FOUT bij ophalen customer:", customerError)
+          } else {
+            console.log("[v0] Customer record gevonden:", customerData)
+          }
+        }, 2000)
+
+        setSuccessMessage("Account aangemaakt! Je kunt nu inloggen.")
         setIsSignUp(false)
         setPassword("")
+        setFirstName("")
+        setLastName("")
         setIsLoading(false)
         return
       }
@@ -112,6 +152,32 @@ export default function CustomerLogin() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">Voornaam</Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="Voornaam"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Achternaam</Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Achternaam"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input

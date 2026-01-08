@@ -92,7 +92,7 @@ export function SiteHeader() {
     <header className="border-b border-border">
       <div className="container mx-auto px-4 py-6 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          <img src="/formd-primary.png" alt="FORMD" className="h-8 w-auto" />
+          <img src="/formd-primary.png" alt="FORMD" className="h-10 w-auto" />
         </Link>
 
         {/* Desktop Navigation */}

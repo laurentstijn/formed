@@ -96,34 +96,34 @@ export default function CustomerDashboard() {
           return
         }
 
+        const { data: adminData } = await supabase.from("admins").select("email").eq("email", user.email).maybeSingle()
+
+        const isAdmin = !!adminData
+
         const { data: customerData, error: customerError } = await supabase
           .from("customers")
           .select("*")
           .eq("user_id", user.id)
-          .single()
+          .maybeSingle()
+
+        console.log("[v0] Customer query result:", { customerData, customerError, isAdmin })
 
         if (customerError) {
           console.error("[v0] Error fetching customer:", customerError)
-          if (customerError.code === "PGRST116") {
-            const { data: newCustomer, error: insertError } = await supabase
-              .from("customers")
-              .insert({
-                user_id: user.id,
-                email: user.email,
-                first_name: "",
-                last_name: "",
-              })
-              .select()
-              .single()
-
-            if (insertError) {
-              console.error("[v0] Error creating customer:", insertError)
-            } else {
-              setCustomer(newCustomer as Customer)
-              setEditForm(newCustomer as Customer)
-            }
+        } else if (!customerData) {
+          if (!isAdmin) {
+            console.log("[v0] No customer record found, will be created on first order")
+          } else {
+            console.log("[v0] User is admin, skipping customer record creation")
           }
+          setCustomer(null)
+          setEditForm({
+            email: user.email,
+            first_name: user.user_metadata?.first_name || "",
+            last_name: user.user_metadata?.last_name || "",
+          })
         } else {
+          console.log("[v0] Customer loaded:", customerData)
           setCustomer(customerData as Customer)
           setEditForm(customerData as Customer)
         }
@@ -183,6 +183,11 @@ export default function CustomerDashboard() {
 
       console.log("[v0] Saving profile:", editForm)
 
+      if (!customer?.id) {
+        alert("Je hebt nog geen klantprofiel. Dit wordt automatisch aangemaakt bij je eerste bestelling.")
+        return
+      }
+
       const { data, error, status, statusText } = await supabase
         .from("customers")
         .update({
@@ -240,13 +245,11 @@ export default function CustomerDashboard() {
     try {
       const supabase = createBrowserClient()
 
-      // First verify current password by trying to sign in
       const {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user?.email) throw new Error("Geen gebruiker gevonden")
 
-      // Update password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       })
@@ -304,17 +307,14 @@ export default function CustomerDashboard() {
 
     const VAT_RATE = 0.21
 
-    // Calculate product subtotal (items are stored with incl. BTW prices)
     const productSubtotalInclVAT = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
     const productSubtotalExclVAT = productSubtotalInclVAT / (1 + VAT_RATE)
     const productVAT = productSubtotalInclVAT - productSubtotalExclVAT
 
-    // Shipping is also incl. VAT
     const shippingInclVAT = order.shipping_cost || 0
     const shippingExclVAT = shippingInclVAT / (1 + VAT_RATE)
     const shippingVAT = shippingInclVAT - shippingExclVAT
 
-    // Totals
     const totalExclVAT = productSubtotalExclVAT + shippingExclVAT
     const totalVAT = productVAT + shippingVAT
     const totalInclVAT = order.total_amount
@@ -757,20 +757,30 @@ export default function CustomerDashboard() {
 
         {activeTab === "profile" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold">Mijn Gegevens</h2>
-              {!isEditing && (
-                <Button onClick={() => setIsEditing(true)} variant="outline">
-                  <Edit2 className="mr-2 h-4 w-4" />
-                  Bewerken
-                </Button>
-              )}
-            </div>
-
             <Card>
-              <CardContent className="pt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Mijn Gegevens</span>
+                  {customer && !isEditing && (
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Bewerken
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 {!customer ? (
-                  <p className="text-muted-foreground">Geen klantgegevens beschikbaar</p>
+                  <div className="text-center py-8">
+                    <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-lg font-medium mb-2">Nog geen klantgegevens</p>
+                    <p className="text-muted-foreground mb-6">
+                      Je klantprofiel wordt automatisch aangemaakt wanneer je je eerste bestelling plaatst.
+                    </p>
+                    <Link href="/">
+                      <Button>Naar Shop</Button>
+                    </Link>
+                  </div>
                 ) : isEditing ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -995,7 +1005,6 @@ export default function CustomerDashboard() {
 
       {!invoiceSettingsLoading && selectedInvoiceOrder && (
         <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
-          {/* Invoice Dialog */}
           <DialogContent className="!max-w-[96vw] w-full h-[90vh] flex flex-col p-3">
             <DialogHeader>
               <DialogTitle>Factuur {selectedInvoiceOrder && generateInvoiceNumber(selectedInvoiceOrder)}</DialogTitle>

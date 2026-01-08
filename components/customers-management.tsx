@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, ChevronRight, Package, Trash2 } from "lucide-react"
+import { Search, ChevronRight, Package, Trash2, Edit2, Save, X } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -49,6 +49,10 @@ export default function CustomersManagement() {
   const [customerOrders, setCustomerOrders] = useState<Order[]>([])
   const [loadingOrders, setLoadingOrders] = useState(false)
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedFirstName, setEditedFirstName] = useState("")
+  const [editedLastName, setEditedLastName] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -87,6 +91,9 @@ export default function CustomersManagement() {
 
   const handleCustomerClick = (customer: Customer) => {
     setSelectedCustomer(customer)
+    setEditedFirstName(customer.first_name)
+    setEditedLastName(customer.last_name)
+    setIsEditing(false)
     loadCustomerOrders(customer.id)
   }
 
@@ -105,6 +112,44 @@ export default function CustomersManagement() {
       console.error("Error deleting customer:", error)
       alert("Er is een fout opgetreden bij het verwijderen van de klant")
     }
+  }
+
+  const saveCustomer = async () => {
+    if (!selectedCustomer) return
+
+    setIsSaving(true)
+    try {
+      const response = await fetch(`/api/admin/customers/${selectedCustomer.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          first_name: editedFirstName,
+          last_name: editedLastName,
+        }),
+      })
+
+      if (!response.ok) throw new Error("Failed to update customer")
+
+      const updatedCustomer = { ...selectedCustomer, first_name: editedFirstName, last_name: editedLastName }
+      setSelectedCustomer(updatedCustomer)
+      setCustomers(customers.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c)))
+      setIsEditing(false)
+    } catch (error) {
+      console.error("Error updating customer:", error)
+      alert("Er is een fout opgetreden bij het opslaan")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const cancelEdit = () => {
+    if (selectedCustomer) {
+      setEditedFirstName(selectedCustomer.first_name)
+      setEditedLastName(selectedCustomer.last_name)
+    }
+    setIsEditing(false)
   }
 
   const handleOrderClick = (orderId: number) => {
@@ -174,6 +219,7 @@ export default function CustomersManagement() {
           if (!open) {
             setSelectedCustomer(null)
             setCustomerOrders([])
+            setIsEditing(false)
           }
         }}
       >
@@ -186,21 +232,58 @@ export default function CustomersManagement() {
           </DialogHeader>
           {selectedCustomer && (
             <div className="space-y-6">
-              <div className="flex justify-end -mt-2">
-                <Button variant="destructive" size="sm" onClick={() => setCustomerToDelete(selectedCustomer)}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Verwijder klant
-                </Button>
+              <div className="flex justify-end gap-2 -mt-2">
+                {isEditing ? (
+                  <>
+                    <Button variant="outline" size="sm" onClick={cancelEdit} disabled={isSaving}>
+                      <X className="mr-2 h-4 w-4" />
+                      Annuleren
+                    </Button>
+                    <Button size="sm" onClick={saveCustomer} disabled={isSaving}>
+                      <Save className="mr-2 h-4 w-4" />
+                      {isSaving ? "Opslaan..." : "Opslaan"}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Bewerken
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => setCustomerToDelete(selectedCustomer)}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Verwijder klant
+                    </Button>
+                  </>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Voornaam</label>
-                  <p className="text-lg">{selectedCustomer.first_name}</p>
+                  {isEditing ? (
+                    <Input
+                      value={editedFirstName}
+                      onChange={(e) => setEditedFirstName(e.target.value)}
+                      className="mt-1"
+                      placeholder="Voornaam"
+                    />
+                  ) : (
+                    <p className="text-lg">{selectedCustomer.first_name}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Achternaam</label>
-                  <p className="text-lg">{selectedCustomer.last_name}</p>
+                  {isEditing ? (
+                    <Input
+                      value={editedLastName}
+                      onChange={(e) => setEditedLastName(e.target.value)}
+                      className="mt-1"
+                      placeholder="Achternaam"
+                    />
+                  ) : (
+                    <p className="text-lg">{selectedCustomer.last_name}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Email</label>

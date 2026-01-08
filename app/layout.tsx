@@ -9,8 +9,7 @@ import { Toaster } from "@/components/ui/toaster"
 const openSans = Open_Sans({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "FORMD - formd in steel",
-  description: "Gevouwen staal. Tijdloos design voor uw interieur",
+  title: "FORMD - Formd in steel",
   icons: {
     icon: "/favicon.png",
     apple: "/favicon.png",
@@ -19,8 +18,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "nl_BE",
     url: "https://formd.be",
-    title: "FORMD - Gevouwen Staal",
-    description: "Gevouwen staal. Tijdloos design voor uw interieur",
+    title: "FORMD - Formd in steel",
     siteName: "FORMD",
     images: [
       {
@@ -33,8 +31,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FORMD - Gevouwen Staal",
-    description: "Gevouwen staal. Tijdloos design voor uw interieur",
+    title: "FORMD - Formd in steel",
     images: ["/og-image.png?v=2"],
   },
     generator: 'v0.app'

@@ -63,17 +63,27 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (customerError) throw customerError
 
     if (customer?.user_id) {
+      console.log("[v0] Attempting to delete auth user:", customer.user_id)
       const { error: authError } = await supabase.auth.admin.deleteUser(customer.user_id)
 
       if (authError) {
-        console.error("Error deleting auth user:", authError)
-        // Don't throw - customer and orders are already deleted
+        console.error("[v0] Error deleting auth user:", authError)
+        // Return error so admin knows auth deletion failed
+        return NextResponse.json(
+          {
+            success: true,
+            warning:
+              "Customer verwijderd maar auth user kon niet worden verwijderd. Dit moet handmatig worden gedaan in Supabase Auth.",
+          },
+          { status: 200 },
+        )
       }
+      console.log("[v0] Successfully deleted auth user:", customer.user_id)
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error deleting customer:", error)
+    console.error("[v0] Error deleting customer:", error)
     return NextResponse.json({ error: "Failed to delete customer" }, { status: 500 })
   }
 }

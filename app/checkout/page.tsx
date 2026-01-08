@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, ExternalLink } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { useState, useEffect } from "react"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
@@ -204,15 +204,7 @@ export default function CheckoutPage() {
         console.log("[v0] Redirecting to Stripe checkout:", stripeResult.url)
         clearCart()
 
-        const stripeWindow = window.open(stripeResult.url, "_blank")
-
-        if (!stripeWindow || stripeWindow.closed || typeof stripeWindow.closed === "undefined") {
-          // Popup blocked, show manual link
-          setStripeCheckoutUrl(stripeResult.url)
-        } else {
-          // Redirect current page to success message
-          router.push(`/order-pending?orderId=${orderId}`)
-        }
+        window.location.href = stripeResult.url
       } else {
         throw new Error("No checkout URL received from Stripe")
       }
@@ -225,40 +217,7 @@ export default function CheckoutPage() {
   }
 
   if (stripeCheckoutUrl) {
-    return (
-      <div className="min-h-screen bg-background">
-        <SiteHeader />
-
-        <div className="container mx-auto px-4 py-20">
-          <div className="max-w-md mx-auto text-center space-y-6">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-              <ExternalLink className="w-8 h-8 text-primary" />
-            </div>
-            <h1 className="text-3xl font-sans font-semibold text-foreground">Bestelling klaar voor betaling</h1>
-            <p className="text-muted-foreground">
-              Uw bestelling is succesvol aangemaakt. Klik op de knop hieronder om door te gaan naar de beveiligde Stripe
-              betaalpagina.
-            </p>
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={() => {
-                window.open(stripeCheckoutUrl, "_blank")
-              }}
-            >
-              <ExternalLink className="mr-2 h-5 w-5" />
-              Ga naar betaling
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              U wordt doorgestuurd naar een beveiligde Stripe betaalpagina. Na het voltooien van de betaling ontvangt u
-              een bevestigingsmail.
-            </p>
-          </div>
-        </div>
-
-        <SiteFooter />
-      </div>
-    )
+    return null
   }
 
   if (items.length === 0) {

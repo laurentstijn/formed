@@ -28,6 +28,7 @@ export default function CheckoutPage() {
   const [emailExists, setEmailExists] = useState(false)
   const [isCheckingEmail, setIsCheckingEmail] = useState(false)
   const [stripeCheckoutUrl, setStripeCheckoutUrl] = useState<string | null>(null)
+  const [isLoadingUserData, setIsLoadingUserData] = useState(true)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -37,6 +38,62 @@ export default function CheckoutPage() {
     city: "",
     postalCode: "",
   })
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
+        console.log("[v0] Checking for logged-in user:", user?.email)
+
+        if (user) {
+          // Try to get customer data from database
+          const { data: customer, error } = await supabase.from("customers").select("*").eq("user_id", user.id).single()
+
+          console.log("[v0] Customer data from database:", customer)
+
+          if (customer && !error) {
+            // Fill form with customer data
+            setFormData({
+              firstName: customer.first_name || "",
+              lastName: customer.last_name || "",
+              email: customer.email || user.email || "",
+              phone: customer.phone || "",
+              address: customer.address_line1 || "",
+              city: customer.city || "",
+              postalCode: customer.postal_code || "",
+            })
+            console.log("[v0] Form pre-filled with customer data")
+          } else {
+            // No customer record yet, use auth metadata
+            const metadata = user.user_metadata
+            setFormData({
+              firstName: metadata?.first_name || "",
+              lastName: metadata?.last_name || "",
+              email: user.email || "",
+              phone: "",
+              address: "",
+              city: "",
+              postalCode: "",
+            })
+            console.log("[v0] Form pre-filled with auth metadata")
+          }
+
+          setEmailExists(true)
+          setCreateAccount(false)
+        }
+      } catch (error) {
+        console.error("[v0] Error loading user data:", error)
+      } finally {
+        setIsLoadingUserData(false)
+      }
+    }
+
+    loadUserData()
+  }, [])
 
   const checkEmailAvailability = async (email: string) => {
     if (!email || !email.includes("@")) {

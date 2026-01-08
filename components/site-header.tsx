@@ -6,6 +6,7 @@ import { User, Settings, Menu, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { useCart } from "@/components/cart-provider"
 
 export function SiteHeader() {
   const [isAdmin, setIsAdmin] = useState(false)
@@ -13,6 +14,7 @@ export function SiteHeader() {
   const [userName, setUserName] = useState("")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
+  const { clearCart } = useCart()
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -78,6 +80,8 @@ export function SiteHeader() {
 
     const supabase = createClient()
     await supabase.auth.signOut()
+
+    clearCart()
 
     localStorage.removeItem("isAdmin")
     setIsLoggedIn(false)

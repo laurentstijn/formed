@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Printer, Package, Check, Trash2, Truck } from "lucide-react"
+import { Printer, Package, Check, Trash2, Truck, ChevronDown, ChevronUp } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,12 +48,13 @@ type Order = {
 export default function OrdersManagement() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>("pending")
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null)
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [trackingNumber, setTrackingNumber] = useState("")
   const [trackingUrl, setTrackingUrl] = useState("")
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadOrders()
@@ -265,6 +266,18 @@ export default function OrdersManagement() {
     shipped: orders.filter((o) => o.status === "shipped").length,
   }
 
+  const toggleOrderExpanded = (orderId: string) => {
+    setExpandedOrders((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId)
+      } else {
+        newSet.add(orderId)
+      }
+      return newSet
+    })
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -281,16 +294,6 @@ export default function OrdersManagement() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant={statusFilter === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setStatusFilter("all")}
-        >
-          Alle bestellingen
-          <Badge variant="secondary" className="ml-2">
-            {statusCounts.all}
-          </Badge>
-        </Button>
         <Button
           variant={statusFilter === "pending" ? "default" : "outline"}
           size="sm"
@@ -321,107 +324,169 @@ export default function OrdersManagement() {
             {statusCounts.shipped}
           </Badge>
         </Button>
+        <Button
+          variant={statusFilter === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setStatusFilter("all")}
+        >
+          Alle bestellingen
+          <Badge variant="secondary" className="ml-2">
+            {statusCounts.all}
+          </Badge>
+        </Button>
       </div>
 
-      <div className="space-y-4">
-        {filteredOrders.map((order) => (
-          <Card key={order.id}>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {order.first_name} {order.last_name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">Bestelling #{order.id.substring(0, 8)}</p>
-                  <p className="text-sm text-muted-foreground">{new Date(order.created_at).toLocaleString("nl-NL")}</p>
-                  {order.tracking_number && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Track & Trace: {order.tracking_number}</span>
-                    </div>
-                  )}
-                </div>
-                <Badge
-                  variant={
-                    order.status === "pending"
-                      ? "secondary"
-                      : order.status === "processing"
-                        ? "default"
-                        : order.status === "shipped"
-                          ? "outline"
-                          : "secondary"
-                  }
+      <div className="space-y-2">
+        {filteredOrders.map((order) => {
+          const isExpanded = expandedOrders.has(order.id)
+
+          return (
+            <Card key={order.id} className="overflow-hidden">
+              <CardContent className="p-0">
+                <div
+                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => toggleOrderExpanded(order.id)}
                 >
-                  {order.status === "pending"
-                    ? "Te verwerken"
-                    : order.status === "processing"
-                      ? "Verwerken"
-                      : order.status === "shipped"
-                        ? "Verzonden"
-                        : order.status}
-                </Badge>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-sm font-medium">Contact</p>
-                  <p className="text-sm text-muted-foreground">{order.email}</p>
-                  {order.phone && <p className="text-sm text-muted-foreground">{order.phone}</p>}
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Verzendadres</p>
-                  <p className="text-sm text-muted-foreground">{order.address_line1}</p>
-                  {order.address_line2 && <p className="text-sm text-muted-foreground">{order.address_line2}</p>}
-                  <p className="text-sm text-muted-foreground">
-                    {order.postal_code} {order.city}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{order.country}</p>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-sm font-medium mb-2">Producten ({order.order_items.length})</p>
-                <div className="space-y-1">
-                  {order.order_items.map((item: any) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span>
-                        {item.quantity}x {item.name}
-                        {item.color ? ` - ${item.color}` : ""}
-                      </span>
-                      <span>€{(item.price * item.quantity).toFixed(2)}</span>
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-semibold">
+                          {order.first_name} {order.last_name}
+                        </h3>
+                        <span className="text-sm text-muted-foreground">#{order.id.substring(0, 8)}</span>
+                        <Badge
+                          variant={
+                            order.status === "pending"
+                              ? "secondary"
+                              : order.status === "processing"
+                                ? "default"
+                                : order.status === "shipped"
+                                  ? "outline"
+                                  : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {order.status === "pending"
+                            ? "Te verwerken"
+                            : order.status === "processing"
+                              ? "Verwerken"
+                              : order.status === "shipped"
+                                ? "Verzonden"
+                                : order.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                        <span>{new Date(order.created_at).toLocaleDateString("nl-NL")}</span>
+                        <span>
+                          {order.order_items.length} {order.order_items.length === 1 ? "product" : "producten"}
+                        </span>
+                        <span className="font-medium text-foreground">€{order.total_amount.toFixed(2)}</span>
+                      </div>
                     </div>
-                  ))}
+                    {isExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="text-lg font-semibold">Totaal: €{order.total_amount.toFixed(2)}</div>
-                <div className="flex gap-2">
-                  {order.status === "pending" && (
-                    <Button size="sm" variant="outline" onClick={() => updateOrderStatus(order.id, "processing")}>
-                      <Package className="mr-2 h-4 w-4" />
-                      Start verwerken
-                    </Button>
-                  )}
-                  {order.status === "processing" && (
-                    <Button size="sm" variant="outline" onClick={() => openTrackingDialog(order)}>
-                      <Check className="mr-2 h-4 w-4" />
-                      Markeer als verzonden
-                    </Button>
-                  )}
-                  <Button size="sm" onClick={() => printShippingLabel(order)}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print Label
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={() => setOrderToDelete(order.id)}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Verwijder
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                {isExpanded && (
+                  <div className="px-4 pb-4 border-t">
+                    {order.tracking_number && (
+                      <div className="mt-4 flex items-center gap-2 text-sm">
+                        <Truck className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">Track & Trace: {order.tracking_number}</span>
+                      </div>
+                    )}
+
+                    <div className="grid md:grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <p className="text-sm font-medium mb-1">Contact</p>
+                        <p className="text-sm text-muted-foreground">{order.email}</p>
+                        {order.phone && <p className="text-sm text-muted-foreground">{order.phone}</p>}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium mb-1">Verzendadres</p>
+                        <p className="text-sm text-muted-foreground">{order.address_line1}</p>
+                        {order.address_line2 && <p className="text-sm text-muted-foreground">{order.address_line2}</p>}
+                        <p className="text-sm text-muted-foreground">
+                          {order.postal_code} {order.city}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{order.country}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2">Producten ({order.order_items.length})</p>
+                      <div className="space-y-1">
+                        {order.order_items.map((item: any) => (
+                          <div key={item.id} className="flex justify-between text-sm">
+                            <span>
+                              {item.quantity}x {item.name}
+                              {item.color ? ` - ${item.color}` : ""}
+                            </span>
+                            <span>€{(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t">
+                      {order.status === "pending" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            updateOrderStatus(order.id, "processing")
+                          }}
+                        >
+                          <Package className="mr-2 h-4 w-4" />
+                          Start verwerken
+                        </Button>
+                      )}
+                      {order.status === "processing" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openTrackingDialog(order)
+                          }}
+                        >
+                          <Check className="mr-2 h-4 w-4" />
+                          Markeer als verzonden
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          printShippingLabel(order)
+                        }}
+                      >
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print Label
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOrderToDelete(order.id)
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Verwijder
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       {filteredOrders.length === 0 && (

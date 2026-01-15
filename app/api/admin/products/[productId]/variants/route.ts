@@ -6,7 +6,8 @@ export async function GET(request: NextRequest, { params }: { params: { productI
   try {
     const supabase = await createServerClient()
 
-    console.log("[v0] Fetching variants for product:", params.productId)
+    console.log("[v0 SERVER] GET variants request - productId param:", params.productId)
+    console.log("[v0 SERVER] productId type:", typeof params.productId)
 
     const { data: product, error: productError } = await supabase
       .from("products")
@@ -15,11 +16,14 @@ export async function GET(request: NextRequest, { params }: { params: { productI
       .single()
 
     if (productError || !product) {
-      console.error("[v0] Error finding product:", productError)
+      console.error("[v0 SERVER] Error finding product:", productError?.message)
+      console.error("[v0 SERVER] Product error details:", productError)
       return NextResponse.json({ variants: [] })
     }
 
-    console.log("[v0] Found product with ID:", product.id)
+    console.log("[v0 SERVER] Found product with ID:", product.id, "type:", typeof product.id)
+
+    console.log("[v0 SERVER] Querying product_variants with product_id:", product.id)
 
     const { data: variants, error } = await supabase
       .from("product_variants")
@@ -28,8 +32,8 @@ export async function GET(request: NextRequest, { params }: { params: { productI
       .order("created_at", { ascending: true })
 
     if (error) {
-      console.error("[v0] Error fetching variants:", error)
-      console.error("[v0] Error details:", JSON.stringify(error))
+      console.error("[v0 SERVER] Error fetching variants:", error.message)
+      console.error("[v0 SERVER] Variants error full details:", JSON.stringify(error, null, 2))
       return NextResponse.json(
         {
           error: error.message,
@@ -41,11 +45,15 @@ export async function GET(request: NextRequest, { params }: { params: { productI
       )
     }
 
-    console.log("[v0] Found variants:", variants?.length || 0)
+    console.log("[v0 SERVER] Successfully found variants:", variants?.length || 0)
+    if (variants && variants.length > 0) {
+      console.log("[v0 SERVER] First variant:", JSON.stringify(variants[0], null, 2))
+    }
     return NextResponse.json({ variants: variants || [] })
   } catch (error) {
-    console.error("[v0] Unexpected error fetching variants:", error)
-    console.error("[v0] Error stack:", error instanceof Error ? error.stack : "No stack")
+    console.error("[v0 SERVER] Unexpected error fetching variants:", error)
+    console.error("[v0 SERVER] Error type:", error instanceof Error ? error.constructor.name : typeof error)
+    console.error("[v0 SERVER] Error stack:", error instanceof Error ? error.stack : "No stack")
     return NextResponse.json(
       {
         error: "Failed to fetch variants",

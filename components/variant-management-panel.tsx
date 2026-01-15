@@ -13,7 +13,7 @@ interface Variant {
 }
 
 interface VariantManagementPanelProps {
-  productId: number
+  productId: string
   onVariantSelect?: (variant: Variant | null) => void
 }
 

@@ -690,9 +690,26 @@ export default function ProductsManagement() {
           </DialogHeader>
 
           <div className="flex flex-1 min-h-0">
-            {editingProduct?.id && (
-              <div className="w-[400px] border-r flex flex-col overflow-y-auto">
-                <VariantManagementPanel productId={editingProduct.id} onVariantSelect={handleVariantSelect} />
+            {editingProduct && (
+              <div className="w-80 border-r overflow-y-auto shrink-0">
+                <VariantManagementPanel
+                  productId={String(editingProduct.id)}
+                  onVariantSelect={(variant) => {
+                    console.log("[v0] Variant selected:", variant)
+                    setSelectedVariant(variant)
+                    if (variant) {
+                      setVariantFormData({
+                        name: variant.name,
+                        price: variant.price.toString(),
+                        stock: variant.stock,
+                        sku: variant.sku || "",
+                        colors: variant.colors || [],
+                        gallery_images: variant.gallery_images || [],
+                        technical_drawing: variant.technical_drawing || "",
+                      })
+                    }
+                  }}
+                />
               </div>
             )}
 

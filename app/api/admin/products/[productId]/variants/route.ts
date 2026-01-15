@@ -6,12 +6,25 @@ export async function GET(request: NextRequest, { params }: { params: { productI
   try {
     const supabase = await createServerClient()
 
-    console.log("[v0 PROD] GET variants - productId:", params.productId)
+    console.log("[v0 PROD] GET variants - productId:", params.productId, "type:", typeof params.productId)
+
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("id")
+      .eq("id", params.productId)
+      .single()
+
+    if (productError || !product) {
+      console.error("[v0 PROD] Error finding product:", productError)
+      return NextResponse.json({ variants: [] })
+    }
+
+    console.log("[v0 PROD] Found product, numeric ID:", product.id, "type:", typeof product.id)
 
     const { data: variants, error } = await supabase
       .from("product_variants")
       .select("*")
-      .eq("product_id", params.productId)
+      .eq("product_id", product.id)
       .order("created_at", { ascending: true })
 
     if (error) {

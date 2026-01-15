@@ -32,6 +32,13 @@ export async function GET(request: NextRequest, { params }: { params: { productI
 
     console.log("[v0] Fetching variants for product:", params.productId)
 
+    // Check if we have a valid Supabase client
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+    console.log("[v0] Auth status - User:", user?.email || "none", "Error:", authError?.message || "none")
+
     const { data: variants, error } = await supabase
       .from("product_variants")
       .select("*")
@@ -40,14 +47,30 @@ export async function GET(request: NextRequest, { params }: { params: { productI
 
     if (error) {
       console.error("[v0] Error fetching variants:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error("[v0] Error details:", JSON.stringify(error))
+      return NextResponse.json(
+        {
+          error: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        },
+        { status: 500 },
+      )
     }
 
     console.log("[v0] Found variants:", variants?.length || 0)
     return NextResponse.json({ variants: variants || [] })
   } catch (error) {
     console.error("[v0] Unexpected error fetching variants:", error)
-    return NextResponse.json({ error: "Failed to fetch variants" }, { status: 500 })
+    console.error("[v0] Error stack:", error instanceof Error ? error.stack : "No stack")
+    return NextResponse.json(
+      {
+        error: "Failed to fetch variants",
+        message: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
 

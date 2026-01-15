@@ -21,42 +21,32 @@ export function VariantManagementPanel({ productId, onVariantSelect }: VariantMa
   const [variants, setVariants] = useState<Variant[]>([])
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isClient, setIsClient] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setIsClient(true)
+    setMounted(true)
   }, [])
 
   useEffect(() => {
-    if (isClient) {
+    if (mounted && productId) {
       loadVariants()
     }
-    const handleVariantUpdate = () => loadVariants()
+    const handleVariantUpdate = () => mounted && loadVariants()
     window.addEventListener("variantUpdated", handleVariantUpdate)
     return () => window.removeEventListener("variantUpdated", handleVariantUpdate)
-  }, [productId, isClient])
+  }, [productId, mounted])
 
   const loadVariants = async () => {
-    console.log("[v0] loadVariants called for productId:", productId)
     try {
-      const url = `/api/admin/products/${productId}/variants`
-      console.log("[v0] Fetching from:", url)
-      const response = await fetch(url)
-      console.log("[v0] Response status:", response.status, response.ok)
+      const response = await fetch(`/api/admin/products/${productId}/variants`)
       if (response.ok) {
         const data = await response.json()
-        console.log("[v0] Received data:", data)
-        console.log("[v0] Setting variants:", data.variants)
         setVariants(data.variants || [])
-        console.log("[v0] Variants state updated, count:", data.variants?.length || 0)
-      } else {
-        console.error("[v0] Response not OK:", response.status, await response.text())
       }
     } catch (error) {
-      console.error("[v0] Error loading variants:", error)
+      console.error("Error loading variants:", error)
     } finally {
       setLoading(false)
-      console.log("[v0] Loading finished")
     }
   }
 
@@ -97,35 +87,33 @@ export function VariantManagementPanel({ productId, onVariantSelect }: VariantMa
   }
 
   console.log(
-    "[v0] VariantManagementPanel render - isClient:",
-    isClient,
+    "[v0] VariantManagementPanel render - mounted:",
+    mounted,
     "loading:",
     loading,
     "variants count:",
     variants.length,
   )
 
-  if (!isClient) {
-    return null
-  }
-
   return (
     <div className="flex flex-col h-full" suppressHydrationWarning>
       <div className="p-4 border-b">
         <h3 className="font-semibold mb-2">Product Varianten ({variants.length})</h3>
         <p className="text-sm text-muted-foreground mb-4">Klik op een variant om te bewerken</p>
-        <Button onClick={handleAddVariant} className="w-full bg-transparent" variant="outline" size="sm">
-          <Plus className="w-4 h-4 mr-2" />
-          Nieuwe Variant
-        </Button>
+        {mounted && (
+          <Button onClick={handleAddVariant} className="w-full bg-transparent" variant="outline" size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Nieuwe Variant
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
-        {loading ? (
+        {!mounted || loading ? (
           <p className="text-sm text-muted-foreground p-4">Laden...</p>
         ) : variants.length === 0 ? (
           <p className="text-sm text-muted-foreground p-4">
-            Nog geen varianten. Klik op "Nieuwe Variant" om te beginnen.
+            Nog geen varianten. Klik op &quot;Nieuwe Variant&quot; om te beginnen.
           </p>
         ) : (
           <div className="space-y-2">

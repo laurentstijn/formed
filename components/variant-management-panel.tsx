@@ -32,16 +32,26 @@ export function VariantManagementPanel({ productId, onVariantSelect }: VariantMa
   }, [productId])
 
   const loadVariants = async () => {
+    console.log("[v0] loadVariants called for productId:", productId)
     try {
-      const response = await fetch(`/api/admin/products/${productId}/variants`)
+      const url = `/api/admin/products/${productId}/variants`
+      console.log("[v0] Fetching from:", url)
+      const response = await fetch(url)
+      console.log("[v0] Response status:", response.status, response.ok)
       if (response.ok) {
         const data = await response.json()
+        console.log("[v0] Received data:", data)
+        console.log("[v0] Setting variants:", data.variants)
         setVariants(data.variants || [])
+        console.log("[v0] Variants state updated, count:", data.variants?.length || 0)
+      } else {
+        console.error("[v0] Response not OK:", response.status, await response.text())
       }
     } catch (error) {
       console.error("[v0] Error loading variants:", error)
     } finally {
       setLoading(false)
+      console.log("[v0] Loading finished")
     }
   }
 
@@ -80,6 +90,15 @@ export function VariantManagementPanel({ productId, onVariantSelect }: VariantMa
       console.error("[v0] Error deleting variant:", error)
     }
   }
+
+  console.log(
+    "[v0] VariantManagementPanel render - mounted:",
+    mounted,
+    "loading:",
+    loading,
+    "variants count:",
+    variants.length,
+  )
 
   if (!mounted) {
     return (

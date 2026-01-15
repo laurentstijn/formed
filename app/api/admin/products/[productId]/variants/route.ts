@@ -1,30 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
-// Helper function to get numeric product ID from UUID or numeric string
-async function getNumericProductId(supabase: any, productIdParam: string): Promise<number | null> {
-  console.log("[v0] getNumericProductId input:", productIdParam)
-
-  // If it's already a valid number, use it directly
-  const numericId = Number(productIdParam)
-  if (!isNaN(numericId) && numericId > 0) {
-    console.log("[v0] Using numeric ID directly:", numericId)
-    return numericId
-  }
-
-  // Otherwise, it's a UUID - look up the numeric id
-  const { data: product, error } = await supabase.from("products").select("id").eq("id", productIdParam).single()
-
-  if (error || !product) {
-    console.error("[v0] Error finding product:", error)
-    return null
-  }
-
-  const productId = Number(product.id)
-  console.log("[v0] Looked up numeric product id:", productId)
-  return productId
-}
-
 // GET - Fetch all variants for a product
 export async function GET(request: NextRequest, { params }: { params: { productId: string } }) {
   try {
@@ -32,17 +8,23 @@ export async function GET(request: NextRequest, { params }: { params: { productI
 
     console.log("[v0] Fetching variants for product:", params.productId)
 
-    // Check if we have a valid Supabase client
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    console.log("[v0] Auth status - User:", user?.email || "none", "Error:", authError?.message || "none")
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("id")
+      .eq("id", params.productId)
+      .single()
+
+    if (productError || !product) {
+      console.error("[v0] Error finding product:", productError)
+      return NextResponse.json({ variants: [] })
+    }
+
+    console.log("[v0] Found product with ID:", product.id)
 
     const { data: variants, error } = await supabase
       .from("product_variants")
       .select("*")
-      .eq("product_id", params.productId)
+      .eq("product_id", product.id)
       .order("created_at", { ascending: true })
 
     if (error) {
@@ -80,8 +62,19 @@ export async function POST(request: NextRequest, { params }: { params: { product
     const supabase = await createServerClient()
     const body = await request.json()
 
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("id")
+      .eq("id", params.productId)
+      .single()
+
+    if (productError || !product) {
+      console.error("[v0] Error finding product:", productError)
+      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    }
+
     const variantData = {
-      product_id: params.productId,
+      product_id: product.id,
       name: body.name,
       price: body.price,
       stock: body.stock || 0,

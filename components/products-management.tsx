@@ -14,7 +14,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { VariantManagementPanel } from "@/components/variant-management-panel"
+import dynamic from "next/dynamic"
+const VariantManagementPanel = dynamic(
+  () => import("@/components/variant-management-panel").then((mod) => mod.VariantManagementPanel),
+  {
+    ssr: false,
+    loading: () => <div className="p-4 text-sm text-muted-foreground">Varianten laden...</div>,
+  },
+)
 import { STANDARD_COLORS } from "@/lib/constants/colors"
 
 export default function ProductsManagement() {
@@ -684,14 +691,14 @@ export default function ProductsManagement() {
 
       {/* Product Edit/Create Dialog */}
       <Dialog open={!!editingProduct || isDialogOpen} onOpenChange={(open) => !open && handleCancelEdit()}>
-        <DialogContent className="w-[1400px] max-w-none p-0 max-h-[90vh] flex flex-col">
+        <DialogContent className="w-[1400px] max-w-none p-0 max-h-[90vh] flex flex-col" suppressHydrationWarning>
           <DialogHeader className="px-6 py-4 border-b shrink-0">
             <DialogTitle>{editingProduct?.id ? "Product Bewerken" : "Nieuw Product"}</DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-1 min-h-0">
+          <div className="flex flex-1 min-h-0" suppressHydrationWarning>
             {editingProduct && (
-              <div className="w-80 border-r overflow-y-auto shrink-0">
+              <div className="w-80 border-r overflow-y-auto shrink-0" suppressHydrationWarning>
                 <VariantManagementPanel
                   productId={String(editingProduct.id)}
                   onVariantSelect={(variant) => {

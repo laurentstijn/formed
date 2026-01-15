@@ -21,15 +21,20 @@ export function VariantManagementPanel({ productId, onVariantSelect }: VariantMa
   const [variants, setVariants] = useState<Variant[]>([])
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
   const [loading, setLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    loadVariants()
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (isClient) {
+      loadVariants()
+    }
     const handleVariantUpdate = () => loadVariants()
     window.addEventListener("variantUpdated", handleVariantUpdate)
     return () => window.removeEventListener("variantUpdated", handleVariantUpdate)
-  }, [productId])
+  }, [productId, isClient])
 
   const loadVariants = async () => {
     console.log("[v0] loadVariants called for productId:", productId)
@@ -92,23 +97,16 @@ export function VariantManagementPanel({ productId, onVariantSelect }: VariantMa
   }
 
   console.log(
-    "[v0] VariantManagementPanel render - mounted:",
-    mounted,
+    "[v0] VariantManagementPanel render - isClient:",
+    isClient,
     "loading:",
     loading,
     "variants count:",
     variants.length,
   )
 
-  if (!mounted) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="p-4 border-b">
-          <h3 className="font-semibold mb-2">Product Varianten (0)</h3>
-          <p className="text-sm text-muted-foreground mb-4">Laden...</p>
-        </div>
-      </div>
-    )
+  if (!isClient) {
+    return null
   }
 
   return (

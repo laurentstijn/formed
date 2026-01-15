@@ -10,6 +10,7 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Info } from "lucide-react"
+import { StandardColorsManagement } from "@/components/standard-colors-management"
 
 interface InvoiceSettings {
   id: string
@@ -229,6 +230,8 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold mb-8">Instellingen</h1>
 
         <div className="space-y-6">
+          <StandardColorsManagement />
+
           <Card>
             <CardHeader>
               <CardTitle>Verzendkosten instellingen</CardTitle>

@@ -424,7 +424,8 @@ export default function OrdersManagement() {
                           <div key={item.id} className="flex justify-between text-sm">
                             <span>
                               {item.quantity}x {item.name}
-                              {item.color ? ` - ${item.color}` : ""}
+                              {item.variant_name ? ` - ${item.variant_name}` : ""}
+                              {item.color ? ` (${item.color})` : ""}
                             </span>
                             <span>€{(item.price * item.quantity).toFixed(2)}</span>
                           </div>

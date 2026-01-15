@@ -18,11 +18,19 @@ export type Product = {
     stock: number
     images: string[]
   }[]
+  variants?: {
+    name: string
+    price: number
+    stock: number
+    sku?: string
+    image_url?: string
+  }[]
   stock?: number
   display_order?: number
   is_active?: boolean
   created_at?: string
   updated_at?: string
+  main_image_source?: string
 }
 
 export async function getProducts(): Promise<Product[]> {
@@ -53,11 +61,13 @@ export async function getProducts(): Promise<Product[]> {
       materials: product.materials,
       dimensions: product.dimensions,
       colors: product.colors,
+      variants: product.variants || [],
       stock: product.stock,
       display_order: product.display_order,
       is_active: product.is_active,
       created_at: product.created_at,
       updated_at: product.updated_at,
+      main_image_source: product.main_image_source,
     }))
   } catch (error) {
     console.error("[v0] Error fetching products:", error)
@@ -94,11 +104,13 @@ export async function getAllProducts(): Promise<Product[]> {
       materials: product.materials,
       dimensions: product.dimensions,
       colors: product.colors,
+      variants: product.variants || [],
       stock: product.stock,
       display_order: product.display_order,
       is_active: product.is_active,
       created_at: product.created_at,
       updated_at: product.updated_at,
+      main_image_source: product.main_image_source,
     }))
   } catch (error) {
     console.error("[v0] Error fetching all products:", error)
@@ -123,6 +135,7 @@ export async function getProductById(id: string): Promise<Product | null> {
       image_url: product.image_url,
       technical_drawing_url: product.technical_drawing_url,
       gallery_images: product.gallery_images,
+      variants: product.variants,
     })
 
     return {
@@ -138,11 +151,13 @@ export async function getProductById(id: string): Promise<Product | null> {
       materials: product.materials,
       dimensions: product.dimensions,
       colors: product.colors,
+      variants: product.variants || [],
       stock: product.stock,
       display_order: product.display_order,
       is_active: product.is_active,
       created_at: product.created_at,
       updated_at: product.updated_at,
+      main_image_source: product.main_image_source,
     }
   } catch (error) {
     console.error("[v0] Error fetching product:", error)
@@ -155,7 +170,6 @@ export async function getProductByIdServer(id: string): Promise<Product | null> 
   return getProductById(id)
 }
 
-// Create a new product (admin only)
 export async function createProduct(product: Omit<Product, "id" | "created_at" | "updated_at">) {
   const supabase = createClient()
 
@@ -164,18 +178,17 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
     .insert({
       name: product.name,
       price: product.price,
-      image_url: product.image,
-      gallery_images: product.gallery_images || [],
-      technical_drawing_url: product.technical_drawing,
-      category: product.category,
       description: product.description,
-      features: product.features,
-      materials: product.materials,
-      dimensions: product.dimensions,
-      colors: product.colors,
-      stock: product.stock,
-      display_order: product.display_order,
-      is_active: product.is_active ?? true,
+      image: product.image,
+      category: product.category,
+      is_active: product.is_active !== false,
+      stock: product.stock || 0,
+      features: product.features || [],
+      colors: product.colors || [],
+      gallery_images: product.gallery_images || [],
+      technical_drawing: product.technical_drawing || null,
+      main_image_source: product.main_image_source || null,
+      // Note: variants excluded due to schema cache issues
     })
     .select()
     .single()
@@ -188,27 +201,27 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
   return data
 }
 
-// Update a product (admin only)
 export async function updateProduct(id: string, updates: Partial<Product>) {
   const supabase = createClient()
 
-  // Build update object with proper field mappings
-  const updateData: any = {}
+  const updateData: Record<string, any> = {}
 
   if (updates.name !== undefined) updateData.name = updates.name
   if (updates.price !== undefined) updateData.price = updates.price
+  if (updates.description !== undefined) updateData.description = updates.description
   if (updates.image !== undefined) updateData.image_url = updates.image
+  if (updates.category !== undefined) updateData.category = updates.category
+  if (updates.is_active !== undefined) updateData.is_active = updates.is_active
+  if (updates.stock !== undefined) updateData.stock = updates.stock
+  if (updates.features !== undefined) updateData.features = updates.features
+  if (updates.colors !== undefined) updateData.colors = updates.colors
   if (updates.gallery_images !== undefined) updateData.gallery_images = updates.gallery_images
   if (updates.technical_drawing !== undefined) updateData.technical_drawing_url = updates.technical_drawing
-  if (updates.category !== undefined) updateData.category = updates.category
-  if (updates.description !== undefined) updateData.description = updates.description
-  if (updates.features !== undefined) updateData.features = updates.features
   if (updates.materials !== undefined) updateData.materials = updates.materials
   if (updates.dimensions !== undefined) updateData.dimensions = updates.dimensions
-  if (updates.colors !== undefined) updateData.colors = updates.colors
-  if (updates.stock !== undefined) updateData.stock = updates.stock
   if (updates.display_order !== undefined) updateData.display_order = updates.display_order
-  if (updates.is_active !== undefined) updateData.is_active = updates.is_active
+
+  console.log("[v0] Updating product with data:", updateData)
 
   const { data, error } = await supabase.from("products").update(updateData).eq("id", id).select().single()
 

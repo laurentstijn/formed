@@ -231,6 +231,12 @@ export async function POST(request: Request) {
       }
     }
 
+    const orderItems = orderData.items.map((item: any) => ({
+      ...item,
+      variant_id: item.variant_id || null,
+      variant_name: item.variant_name || null,
+    }))
+
     const orderPayload = {
       email: orderData.email,
       first_name: orderData.first_name,
@@ -241,7 +247,7 @@ export async function POST(request: Request) {
       postal_code: orderData.postal_code,
       country: orderData.country,
       customer_id: finalCustomerId,
-      items: orderData.items,
+      items: orderItems, // Use orderItems with variant info instead of orderData.items
       total_amount: correctedTotalAmount,
       shipping_cost: shippingCost,
       status: "pending",

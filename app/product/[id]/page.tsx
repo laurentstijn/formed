@@ -32,6 +32,12 @@ export default async function ProductPage({
       )
     }
 
+    const { data: variantsData } = await supabase
+      .from("product_variants")
+      .select("*")
+      .eq("product_id", id)
+      .eq("is_active", true)
+
     const product: Product = {
       id: rawProduct.id,
       name: rawProduct.name,
@@ -47,13 +53,14 @@ export default async function ProductPage({
       dimensions: rawProduct.dimensions,
       materials: rawProduct.materials,
       created_at: rawProduct.created_at,
+      variants: variantsData || [], // Use variants from database
     }
 
     console.log("[v0] Server - Mapped product:", {
       name: product.name,
       image: product.image,
-      technical_drawing: product.technical_drawing,
       gallery_images: product.gallery_images,
+      variantsCount: product.variants?.length || 0,
     })
 
     const productUrl = `https://formd.be/product/${product.id}`
@@ -73,7 +80,7 @@ export default async function ProductPage({
             </Link>
           </div>
 
-          <ProductDetailClient product={product} productUrl={productUrl} />
+          <ProductDetailClient product={product} productUrl={productUrl} variants={product.variants || []} />
         </div>
       </div>
     )

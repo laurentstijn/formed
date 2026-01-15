@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/components/cart-provider"
 import type { Product } from "@/lib/products"
+import type { ProductVariant } from "@/lib/supabase/variants"
 import { ShoppingCart, Check, AlertCircle, ArrowRight, Package } from "lucide-react"
 import { useState } from "react"
 import {
@@ -19,10 +20,12 @@ export function AddToCartButton({
   product,
   availableStock,
   selectedColor,
+  selectedVariant,
 }: {
   product: Product
   availableStock?: number
   selectedColor?: string
+  selectedVariant?: ProductVariant | null
 }) {
   const { addItem } = useCart()
   const [added, setAdded] = useState(false)
@@ -38,9 +41,11 @@ export function AddToCartButton({
     addItem({
       id: product.id,
       name: product.name,
-      price: product.price,
-      image: product.image || "/placeholder.svg",
+      price: selectedVariant ? selectedVariant.price : product.price,
+      image: selectedVariant?.image_url || product.image || "/placeholder.svg",
       color: selectedColor,
+      variant_id: selectedVariant?.id,
+      variant_name: selectedVariant?.name,
     })
     setAdded(true)
     setShowDialog(true)
@@ -88,7 +93,10 @@ export function AddToCartButton({
               <Check className="h-5 w-5 text-primary" />
               Product toegevoegd
             </DialogTitle>
-            <DialogDescription>{product.name} is toegevoegd aan je winkelwagen</DialogDescription>
+            <DialogDescription>
+              {product.name}
+              {selectedVariant && ` (${selectedVariant.name})`} is toegevoegd aan je winkelwagen
+            </DialogDescription>
           </DialogHeader>
 
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">

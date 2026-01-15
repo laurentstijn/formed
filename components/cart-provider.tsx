@@ -10,14 +10,16 @@ export type CartItem = {
   price: number
   quantity: number
   image: string
-  color?: string // Added optional color field to track selected color variant
+  color?: string
+  variant_id?: string
+  variant_name?: string
 }
 
 type CartContextType = {
   items: CartItem[]
   addItem: (item: Omit<CartItem, "quantity">) => void
-  removeItem: (id: number) => void
-  updateQuantity: (id: number, quantity: number) => void
+  removeItem: (id: number, variantId?: string) => void
+  updateQuantity: (id: number, quantity: number, variantId?: string) => void
   clearCart: () => void
   totalItems: number
   totalPrice: number
@@ -28,7 +30,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
 
-  // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem("cart")
     if (savedCart) {
@@ -36,33 +37,42 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(items))
   }, [items])
 
   const addItem = (item: Omit<CartItem, "quantity">) => {
     setItems((currentItems) => {
-      const existingItem = currentItems.find((i) => i.id === item.id && i.color === item.color)
+      const existingItem = currentItems.find(
+        (i) => i.id === item.id && i.color === item.color && i.variant_id === item.variant_id,
+      )
       if (existingItem) {
         return currentItems.map((i) =>
-          i.id === item.id && i.color === item.color ? { ...i, quantity: i.quantity + 1 } : i,
+          i.id === item.id && i.color === item.color && i.variant_id === item.variant_id
+            ? { ...i, quantity: i.quantity + 1 }
+            : i,
         )
       }
       return [...currentItems, { ...item, quantity: 1 }]
     })
   }
 
-  const removeItem = (id: number) => {
-    setItems((currentItems) => currentItems.filter((item) => item.id !== id))
+  const removeItem = (id: number, variantId?: string) => {
+    setItems((currentItems) =>
+      currentItems.filter((item) => !(item.id === id && (variantId ? item.variant_id === variantId : true))),
+    )
   }
 
-  const updateQuantity = (id: number, quantity: number) => {
+  const updateQuantity = (id: number, quantity: number, variantId?: string) => {
     if (quantity <= 0) {
-      removeItem(id)
+      removeItem(id, variantId)
       return
     }
-    setItems((currentItems) => currentItems.map((item) => (item.id === id ? { ...item, quantity } : item)))
+    setItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === id && (variantId ? item.variant_id === variantId : true) ? { ...item, quantity } : item,
+      ),
+    )
   }
 
   const clearCart = () => {

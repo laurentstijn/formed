@@ -7,6 +7,8 @@ interface OrderConfirmationEmailProps {
     name: string
     quantity: number
     price: number
+    variant_name?: string
+    color?: string
   }>
   totalAmount: number
   shippingAddress: {
@@ -63,6 +65,8 @@ export const OrderConfirmationEmail: React.FC<OrderConfirmationEmailProps> = ({
               {items.map((item, index) => (
                 <div key={index} style={{ padding: "10px 0", borderBottom: "1px solid #eee" }}>
                   <strong>{item.name}</strong>
+                  {item.variant_name && <span> - {item.variant_name}</span>}
+                  {item.color && <span> ({item.color})</span>}
                   <div>
                     Aantal: {item.quantity} × €{item.price.toFixed(2)}
                   </div>

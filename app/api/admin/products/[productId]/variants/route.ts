@@ -1,15 +1,45 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
+function parseProductId(productId: string): number | null {
+  // Try to parse as number directly
+  const numId = Number(productId)
+  if (!isNaN(numId) && isFinite(numId)) {
+    return numId
+  }
+
+  // If it's a UUID, we need to fetch the actual numeric ID from products table
+  // For now, return null to indicate invalid format
+  return null
+}
+
 // GET - Fetch all variants for a product
 export async function GET(request: NextRequest, { params }: { params: { productId: string } }) {
   try {
+    console.log("[v0] Fetching variants for product:", params.productId)
+
     const supabase = await createServerClient()
+
+    let numericProductId: number | null = parseProductId(params.productId)
+
+    if (numericProductId === null) {
+      // It might be a UUID, so fetch the numeric ID from products table
+      const { data: product } = await supabase.from("products").select("id").eq("id", params.productId).single()
+
+      if (product) {
+        numericProductId = Number(product.id)
+      }
+    }
+
+    if (numericProductId === null) {
+      console.error("[v0] Invalid product ID format:", params.productId)
+      return NextResponse.json({ variants: [] })
+    }
 
     const { data: variants, error } = await supabase
       .from("product_variants")
       .select("*")
-      .eq("product_id", params.productId)
+      .eq("product_id", numericProductId)
       .order("created_at", { ascending: true })
 
     if (error) {
@@ -17,6 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: { productI
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log("[v0] Fetched variants:", variants)
     return NextResponse.json({ variants: variants || [] })
   } catch (error) {
     console.error("[v0] Unexpected error fetching variants:", error)

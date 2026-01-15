@@ -21,8 +21,10 @@ export function VariantManagementPanel({ productId, onVariantSelect }: VariantMa
   const [variants, setVariants] = useState<Variant[]>([])
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     loadVariants()
     const handleVariantUpdate = () => loadVariants()
     window.addEventListener("variantUpdated", handleVariantUpdate)
@@ -79,8 +81,19 @@ export function VariantManagementPanel({ productId, onVariantSelect }: VariantMa
     }
   }
 
+  if (!mounted) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="p-4 border-b">
+          <h3 className="font-semibold mb-2">Product Varianten (0)</h3>
+          <p className="text-sm text-muted-foreground mb-4">Laden...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" suppressHydrationWarning>
       <div className="p-4 border-b">
         <h3 className="font-semibold mb-2">Product Varianten ({variants.length})</h3>
         <p className="text-sm text-muted-foreground mb-4">Klik op een variant om te bewerken</p>

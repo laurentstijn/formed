@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Info } from "lucide-react"
 import { StandardColorsManagement } from "@/components/standard-colors-management"
+import { Switch } from "@/components/ui/switch"
 
 interface InvoiceSettings {
   id: string
@@ -73,36 +74,86 @@ export default function SettingsPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [testEmail, setTestEmail] = useState("")
   const [sendingTest, setSendingTest] = useState<string | null>(null)
+  const [demoMode, setDemoMode] = useState(false)
+  const [loadingDemoMode, setLoadingDemoMode] = useState(true)
   const { toast } = useToast()
-  const supabase = createBrowserClient()
 
   useEffect(() => {
     loadSettings()
+    loadDemoMode()
   }, [retryCount])
 
   async function loadSettings() {
     try {
-      const { data, error } = await supabase.from("invoice_settings").select("*").single()
+      // Create a fresh Supabase client for this request
+      const client = createBrowserClient()
+      const { data, error} = await client
+        .from("settings")
+        .select("value")
+        .eq("key", "invoice_settings")
+        .maybeSingle()
 
       if (error) {
-        if (error.code === "PGRST205" && retryCount < 3) {
-          setTimeout(() => setRetryCount(retryCount + 1), 2000)
-          return
-        }
         throw error
       }
-      setSettings(data)
+      
+      // If settings exist, parse the JSON value
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value)
+          setSettings({ ...settings, ...parsed })
+        } catch {
+          // If parsing fails, keep default settings
+          console.log("Using default invoice settings")
+        }
+      }
     } catch (error) {
       console.error("Error loading settings:", error)
-      if (retryCount >= 3) {
-        toast({
-          title: "Fout",
-          description: "Kon instellingen niet laden. Probeer de pagina te verversen.",
-          variant: "destructive",
-        })
-      }
+      // Keep default settings if loading fails
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadDemoMode() {
+    try {
+      const response = await fetch("/api/demo-mode")
+      const data = await response.json()
+      setDemoMode(data.enabled)
+    } catch (error) {
+      console.error("Error loading demo mode:", error)
+    } finally {
+      setLoadingDemoMode(false)
+    }
+  }
+
+  async function toggleDemoMode(enabled: boolean) {
+    try {
+      const response = await fetch("/api/admin/settings/demo-mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        setDemoMode(enabled)
+        toast({
+          title: enabled ? "Demo Mode geactiveerd" : "Demo Mode gedeactiveerd",
+          description: enabled
+            ? "Bestellingen zijn nu geblokkeerd"
+            : "Klanten kunnen nu weer bestellingen plaatsen",
+        })
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      console.error("Error toggling demo mode:", error)
+      toast({
+        title: "Fout",
+        description: "Kon demo mode niet wijzigen",
+        variant: "destructive",
+      })
     }
   }
 
@@ -111,36 +162,18 @@ export default function SettingsPage() {
 
     setSaving(true)
     try {
-      const { error } = await supabase
-        .from("invoice_settings")
-        .update({
-          company_name: settings.company_name,
-          company_subtitle: settings.company_subtitle,
-          company_address: settings.company_address,
-          company_vat: settings.company_vat,
-          company_phone: settings.company_phone,
-          company_email: settings.company_email,
-          invoice_footer: settings.invoice_footer,
-          email_from_name: settings.email_from_name,
-          email_from_address: settings.email_from_address,
-          email_subject_customer: settings.email_subject_customer,
-          email_subject_admin: settings.email_subject_admin,
-          email_footer_text: settings.email_footer_text,
-          order_email_template: settings.order_email_template,
-          shipping_email_template: settings.shipping_email_template,
-          admin_email_template: settings.admin_email_template,
-          invoice_header_template: settings.invoice_header_template,
-          invoice_footer_template: settings.invoice_footer_template,
-          order_email_subject: settings.order_email_subject,
-          shipping_email_subject: settings.shipping_email_subject,
-          admin_email_subject: settings.admin_email_subject,
-          shipping_cost: settings.shipping_cost,
-          free_shipping_threshold: settings.free_shipping_threshold,
-          shipping_description: settings.shipping_description,
-          use_professional_template: settings.use_professional_template,
+      // Create a fresh Supabase client for this request
+      const supabase = createBrowserClient()
+      
+      // Save invoice settings as JSON in the settings table
+      const { error } = await supabase.from("settings").upsert(
+        {
+          key: "invoice_settings",
+          value: JSON.stringify(settings),
           updated_at: new Date().toISOString(),
-        })
-        .eq("id", settings.id)
+        },
+        { onConflict: "key" }
+      )
 
       if (error) throw error
 
@@ -230,6 +263,36 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold mb-8">Instellingen</h1>
 
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Demo Mode</CardTitle>
+              <CardDescription>Schakel demo mode in om te voorkomen dat klanten echte bestellingen plaatsen</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="demo-mode">Demo Mode</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Wanneer actief worden bestellingen geblokkeerd en wordt er een banner getoond op de website
+                  </p>
+                </div>
+                <Switch
+                  id="demo-mode"
+                  checked={demoMode}
+                  onCheckedChange={toggleDemoMode}
+                  disabled={loadingDemoMode}
+                />
+              </div>
+              {demoMode && (
+                <Alert className="mt-4 border-orange-500 bg-orange-50 dark:bg-orange-950">
+                  <AlertDescription className="text-orange-900 dark:text-orange-100">
+                    Demo mode is actief. Klanten kunnen geen bestellingen plaatsen.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+
           <StandardColorsManagement />
 
           <Card>

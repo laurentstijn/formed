@@ -9,8 +9,9 @@ export async function getStandardColors(): Promise<StandardColor[]> {
   const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
 
-  const { data, error } = await supabase.from("settings").select("value").eq("key", "standard_colors").single()
+  const { data, error } = await supabase.from("settings").select("value").eq("key", "standard_colors").maybeSingle()
 
+  // If no setting exists yet or there's an error, return default colors
   if (error || !data) {
     return [
       { name: "Mint green", hex: "#a3cdad", ral: "6019", rgb: "163, 205, 175" },
@@ -28,11 +29,14 @@ export async function saveStandardColors(colors: StandardColor[]): Promise<{ suc
   const { createClient } = await import("@/lib/supabase/server")
   const supabase = await createClient()
 
-  const { error } = await supabase.from("settings").upsert({
-    key: "standard_colors",
-    value: JSON.stringify(colors),
-    updated_at: new Date().toISOString(),
-  })
+  const { error } = await supabase.from("settings").upsert(
+    {
+      key: "standard_colors",
+      value: JSON.stringify(colors),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "key" }
+  )
 
   if (error) {
     return { success: false, error: error.message }

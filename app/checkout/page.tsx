@@ -13,6 +13,7 @@ import { ArrowLeft } from "lucide-react"
 import { useState, useEffect } from "react"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { DemoModeBanner } from "@/components/demo-mode-banner"
 import { createClient } from "@/lib/supabase/client"
 import { loadStripe } from "@stripe/stripe-js"
 
@@ -29,6 +30,7 @@ export default function CheckoutPage() {
   const [isCheckingEmail, setIsCheckingEmail] = useState(false)
   const [stripeCheckoutUrl, setStripeCheckoutUrl] = useState<string | null>(null)
   const [isLoadingUserData, setIsLoadingUserData] = useState(true)
+  const [isDemoMode, setIsDemoMode] = useState(false)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -38,6 +40,19 @@ export default function CheckoutPage() {
     city: "",
     postalCode: "",
   })
+
+  useEffect(() => {
+    async function checkDemoMode() {
+      try {
+        const response = await fetch("/api/demo-mode")
+        const data = await response.json()
+        setIsDemoMode(data.enabled)
+      } catch (error) {
+        console.error("Failed to check demo mode:", error)
+      }
+    }
+    checkDemoMode()
+  }, [])
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -143,6 +158,12 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     console.log("[v0] Checkout form submitted")
+
+    if (isDemoMode) {
+      alert("Demo Mode: Bestellingen zijn momenteel uitgeschakeld. Deze website is in demo modus.")
+      return
+    }
+
     setIsProcessing(true)
 
     try {
@@ -305,6 +326,8 @@ export default function CheckoutPage() {
       <SiteHeader />
 
       <div className="container mx-auto px-4 py-12">
+        <DemoModeBanner />
+        
         <div className="mb-8">
           <Link
             href="/cart"

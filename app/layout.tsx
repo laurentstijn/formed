@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { CartProvider } from "@/components/cart-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { DemoModeBanner } from "@/components/demo-mode-banner"
 
 const openSans = Open_Sans({ subsets: ["latin"] })
 
@@ -45,7 +46,10 @@ export default function RootLayout({
   return (
     <html lang="nl">
       <body className={`${openSans.className} antialiased`}>
-        <CartProvider>{children}</CartProvider>
+        <CartProvider>
+          <DemoModeBanner />
+          {children}
+        </CartProvider>
         <Toaster />
         <Analytics />
       </body>

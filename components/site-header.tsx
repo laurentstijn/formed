@@ -93,7 +93,7 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="border-b border-border">
+    <header className="sticky top-0 z-50 bg-background border-b border-border">
       <div className="container mx-auto px-4 py-6 flex items-center justify-between">
         <Link href="/" className="flex items-center">
           <img src="/formd-primary.png" alt="FORMD" className="h-10 w-auto" />

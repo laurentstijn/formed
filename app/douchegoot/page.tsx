@@ -51,8 +51,8 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
 
   const steelMaterial = materials[materialType as keyof typeof materials] || materials.inox;
 
-  // Realistische plooiradius
-  const R = Math.max(thickness + 0.5, 3); // Zorg voor een minimale radius die groter is dan de dikte
+  // Realistische plooiradius (standaard plaatwerk: binnenradius = dikte, buitenradius R = dikte * 2)
+  const R = thickness * 2;
 
   // Wiskunde voor de Top Plaat (met ECHTE 3D gaten via ExtrudeGeometry)
   const topPlateGeometry = React.useMemo(() => {
@@ -172,25 +172,25 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
   }, [length, width, thickness, text, patternType, fontData, R]);
 
   // Wiskunde voor de Plooien (Bend Radius) links en rechts
-  const bendExtrudeSettings = { depth: length, bevelEnabled: false, curveSegments: 16 };
+  const bendExtrudeSettings = { depth: length, bevelEnabled: false, curveSegments: 32 };
   
   const bendGeometryLeft = React.useMemo(() => {
     const shape = new THREE.Shape();
-    shape.absarc(0, 0, R, Math.PI/2, Math.PI, false);
-    shape.lineTo(-R + thickness, 0); 
-    shape.absarc(0, 0, R - thickness, Math.PI, Math.PI/2, true);
-    shape.lineTo(0, R); 
+    shape.moveTo(0, 0);
+    shape.lineTo(0, R); // Omhoog
+    shape.absarc(0, 0, R, Math.PI/2, Math.PI, false); // Kwart boog naar links
+    shape.lineTo(0, 0); // Terug naar center
     return new THREE.ExtrudeGeometry(shape, bendExtrudeSettings);
-  }, [R, thickness, length]);
+  }, [R, length]);
 
   const bendGeometryRight = React.useMemo(() => {
     const shape = new THREE.Shape();
-    shape.absarc(0, 0, R, 0, Math.PI/2, false);
-    shape.lineTo(0, R - thickness); 
-    shape.absarc(0, 0, R - thickness, Math.PI/2, 0, true);
-    shape.lineTo(R, 0); 
+    shape.moveTo(0, 0);
+    shape.lineTo(R, 0); // Naar rechts
+    shape.absarc(0, 0, R, 0, Math.PI/2, false); // Kwart boog naar boven
+    shape.lineTo(0, 0); // Terug naar center
     return new THREE.ExtrudeGeometry(shape, bendExtrudeSettings);
-  }, [R, thickness, length]);
+  }, [R, length]);
 
   return (
     <group>

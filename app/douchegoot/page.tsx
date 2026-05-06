@@ -56,23 +56,48 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
   // Realistische plooiradius (standaard plaatwerk: binnenradius = dikte, buitenradius R = dikte * 2)
   const R = thickness * 2;
 
-  // Bereken de 'clearance' ruimte in het midden voor de tekst
-  const clearance = React.useMemo(() => {
-    if (!text || !fontData) return 0;
+  // 1. Tekst Bounding Box & Paden berekenen
+  const { clearance, textPaths } = React.useMemo(() => {
+    let realClearance = 15;
+    const paths: THREE.Path[] = [];
+
+    if (!text || !fontData) return { clearance: 0, textPaths: paths };
     try {
       const font = new FontLoader().parse(fontData);
       const shapes = font.generateShapes(text.toUpperCase(), width * 0.4);
-      let xMin = Infinity, xMax = -Infinity;
+      let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
       shapes.forEach(s => {
         s.getPoints().forEach(p => {
           if (p.x < xMin) xMin = p.x;
           if (p.x > xMax) xMax = p.x;
+          if (p.y < yMin) yMin = p.y;
+          if (p.y > yMax) yMax = p.y;
         });
       });
-      return (xMax - xMin) / 2 + 15;
+      realClearance = (xMax - xMin) / 2 + 15;
+
+      const offsetX = -(xMax + xMin) / 2;
+      const offsetY = -(yMax + yMin) / 2;
+
+      shapes.forEach(letterShape => {
+        const points = letterShape.getPoints(4); // 4 is laag genoeg voor performance
+        const letterPath = new THREE.Path();
+        points.forEach((p, i) => {
+          const px = p.x + offsetX;
+          const py = p.y + offsetY;
+          // 90 graden rotatie
+          const rotX = -py; 
+          const rotY = px;
+          if (i === 0) letterPath.moveTo(rotX, rotY);
+          else letterPath.lineTo(rotX, rotY);
+        });
+        paths.push(letterPath);
+      });
+      
+      return { clearance: realClearance, textPaths: paths };
     } catch (e) {
       console.error("Font error", e);
-      return 0;
+      return { clearance: 0, textPaths: paths };
     }
   }, [text, fontData, width]);
 
@@ -151,34 +176,15 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
           shapeFull.holes.push(holePath);
         }
       }
+    // Voeg de 3D tekstgaten toe aan de plaat
+    textPaths.forEach(path => shapeFull.holes.push(path));
+
     return new THREE.ExtrudeGeometry(shapeFull, { 
       depth: thickness, 
       bevelEnabled: false,
       curveSegments: 3 // Extreem belangrijk voor performance: voorkomt dat duizenden punten per hole de browser laten crashen
     });
-  }, [length, width, thickness, text, patternType, fontData, R, clearance]);
-
-  // Razendsnelle "Fake Hole" Text Geometry
-  // We maken de tekst fysiek en leggen hem nét in/op de plaat met een donkere kleur.
-  const textFakeHoleGeometry = React.useMemo(() => {
-    if (!text || !fontData) return null;
-    try {
-      const font = new FontLoader().parse(fontData);
-      const textGeo = new TextGeometry(text.toUpperCase(), {
-        font: font,
-        size: width * 0.4,
-        depth: 0.5, // Heel dun laagje
-        curveSegments: 3, // Laag aantal segmenten voor ultra performance
-        bevelEnabled: false
-      });
-      textGeo.center();
-      textGeo.rotateZ(-Math.PI / 2);
-      return textGeo;
-    } catch(e) {
-      console.error(e);
-      return null;
-    }
-  }, [text, fontData, width]);
+  }, [length, width, thickness, text, patternType, fontData, R, clearance, textPaths]);
 
   // Wiskunde voor de Plooien (Bend Radius) links en rechts
   const bendExtrudeSettings = { depth: length, bevelEnabled: false, curveSegments: 16 };
@@ -216,18 +222,9 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
     return mat;
   }, [steelMaterial]);
 
-  // Materiaal voor de "Fake" tekst gaten (Heel donker grijs/zwart, geen reflectie)
-  const fakeHoleMaterial = React.useMemo(() => {
-    return new THREE.MeshStandardMaterial({ 
-      color: "#1a1a1a",
-      roughness: 1.0,
-      metalness: 0.0
-    });
-  }, []);
-
   return (
     <group rotation={[0, Math.PI, 0]}>
-      {/* Top plaat (1 geheel met patroongaten) */}
+      {/* Top plaat (1 geheel met patroongaten EN tekstgaten) */}
       <mesh 
         material={doubleSidedSteel} 
         geometry={topPlateGeometry} 
@@ -236,17 +233,6 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
         castShadow 
         receiveShadow 
       />
-
-      {/* Visuele Fake Hole Text (Strak op de plaat) */}
-      {textFakeHoleGeometry && (
-        <mesh 
-          geometry={textFakeHoleGeometry}
-          material={fakeHoleMaterial}
-          // Z-positie is net bóven de bodem van de plaat, en hij is dun.
-          position={[0, height - thickness + 0.51, 0]} 
-          rotation={[-Math.PI / 2, 0, 0]} 
-        />
-      )}
 
       {/* Linker Plooi (Radius) */}
       <mesh 

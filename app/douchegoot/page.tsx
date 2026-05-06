@@ -7,7 +7,6 @@ import * as THREE from "three";
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TTFLoader } from "three/examples/jsm/loaders/TTFLoader.js";
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
-import { Geometry, Base, Subtraction } from '@react-three/csg';
 import { ErrorBoundary } from 'react-error-boundary';
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -77,38 +76,15 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
     }
   }, [text, fontData, width]);
 
-  // Wiskunde voor de Top Plaat (Boven en Onder de tekst)
+  // Wiskunde voor de Top Plaat (Solid, patroongaten, géén CSG)
   const topPlateGeometry = React.useMemo(() => {
     const visualWidth = width - 2 * R;
-    const shapes: THREE.Shape[] = [];
-
-    if (clearance > 0) {
-      // Onderste helft
-      const shapeBottom = new THREE.Shape();
-      shapeBottom.moveTo(-visualWidth / 2, -length / 2);
-      shapeBottom.lineTo(visualWidth / 2, -length / 2);
-      shapeBottom.lineTo(visualWidth / 2, -clearance);
-      shapeBottom.lineTo(-visualWidth / 2, -clearance);
-      shapeBottom.lineTo(-visualWidth / 2, -length / 2);
-      shapes.push(shapeBottom);
-
-      // Bovenste helft
-      const shapeTop = new THREE.Shape();
-      shapeTop.moveTo(-visualWidth / 2, clearance);
-      shapeTop.lineTo(visualWidth / 2, clearance);
-      shapeTop.lineTo(visualWidth / 2, length / 2);
-      shapeTop.lineTo(-visualWidth / 2, length / 2);
-      shapeTop.lineTo(-visualWidth / 2, clearance);
-      shapes.push(shapeTop);
-    } else {
-      const shapeFull = new THREE.Shape();
-      shapeFull.moveTo(-visualWidth / 2, -length / 2);
-      shapeFull.lineTo(visualWidth / 2, -length / 2);
-      shapeFull.lineTo(visualWidth / 2, length / 2);
-      shapeFull.lineTo(-visualWidth / 2, length / 2);
-      shapeFull.lineTo(-visualWidth / 2, -length / 2);
-      shapes.push(shapeFull);
-    }
+    const shapeFull = new THREE.Shape();
+    shapeFull.moveTo(-visualWidth / 2, -length / 2);
+    shapeFull.lineTo(visualWidth / 2, -length / 2);
+    shapeFull.lineTo(visualWidth / 2, length / 2);
+    shapeFull.lineTo(-visualWidth / 2, length / 2);
+    shapeFull.lineTo(-visualWidth / 2, -length / 2);
 
     // 2. Patroon Gaten met Ronde Hoeken (Radius)
     const edgeMargin = 20;
@@ -143,9 +119,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
               holePath.lineTo(x - w/2, y + h/2 - rRadius);
               holePath.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
               
-              if (y < -clearance && shapes.length > 1) shapes[0].holes.push(holePath);
-              else if (y > clearance && shapes.length > 1) shapes[1].holes.push(holePath);
-              else shapes[0].holes.push(holePath);
+              shapeFull.holes.push(holePath);
             }
           }
         }
@@ -174,54 +148,40 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
           holePath.lineTo(x - w/2, y + h/2 - rRadius);
           holePath.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
           
-          if (y < -clearance && shapes.length > 1) shapes[0].holes.push(holePath);
-          else if (y > clearance && shapes.length > 1) shapes[1].holes.push(holePath);
-          else shapes[0].holes.push(holePath);
+          shapeFull.holes.push(holePath);
         }
       }
-    }
+    return new THREE.ExtrudeGeometry(shapeFull, { 
+      depth: thickness, 
+      bevelEnabled: false,
+      curveSegments: 3 // Extreem belangrijk voor performance: voorkomt dat duizenden punten per hole de browser laten crashen
+    });
+  }, [length, width, thickness, text, patternType, fontData, R, clearance]);
 
-    return new THREE.ExtrudeGeometry(shapes, { depth: thickness, bevelEnabled: false });
-  }, [length, width, thickness, text, patternType, R, clearance]);
-
-  // Aparte kleine plaat in het midden waar de CSG op toegepast wordt (voor performance)
-  const textPlateGeometry = React.useMemo(() => {
-    if (clearance <= 0) return null;
-    const visualWidth = width - 2 * R;
-    const shape = new THREE.Shape();
-    shape.moveTo(-visualWidth / 2, -clearance);
-    shape.lineTo(visualWidth / 2, -clearance);
-    shape.lineTo(visualWidth / 2, clearance);
-    shape.lineTo(-visualWidth / 2, clearance);
-    shape.lineTo(-visualWidth / 2, -clearance);
-    return new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
-  }, [width, thickness, R, clearance]);
-
-  // Robuuste CSG 3D Tekst Geometry genereren
-  const textGeometryCSG = React.useMemo(() => {
+  // Razendsnelle "Fake Hole" Text Geometry
+  // We maken de tekst fysiek en leggen hem nét in/op de plaat met een donkere kleur.
+  const textFakeHoleGeometry = React.useMemo(() => {
     if (!text || !fontData) return null;
     try {
       const font = new FontLoader().parse(fontData);
       const textGeo = new TextGeometry(text.toUpperCase(), {
         font: font,
         size: width * 0.4,
-        depth: thickness + 4, // Zorg dat het ruim door de plaat heen snijdt
-        curveSegments: 8,
+        depth: 0.5, // Heel dun laagje
+        curveSegments: 3, // Laag aantal segmenten voor ultra performance
         bevelEnabled: false
       });
-      // CSG: we centreren de tekst zodat we hem makkelijk kunnen positioneren
       textGeo.center();
-      // Omdat de plaat Y=lengte is, draaien we de tekst 90 graden rond de Z-as
       textGeo.rotateZ(-Math.PI / 2);
       return textGeo;
     } catch(e) {
       console.error(e);
       return null;
     }
-  }, [text, fontData, width, thickness]);
+  }, [text, fontData, width]);
 
   // Wiskunde voor de Plooien (Bend Radius) links en rechts
-  const bendExtrudeSettings = { depth: length, bevelEnabled: false, curveSegments: 32 };
+  const bendExtrudeSettings = { depth: length, bevelEnabled: false, curveSegments: 16 };
   
   const bendGeometryLeft = React.useMemo(() => {
     const shape = new THREE.Shape();
@@ -256,9 +216,18 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
     return mat;
   }, [steelMaterial]);
 
+  // Materiaal voor de "Fake" tekst gaten (Heel donker grijs/zwart, geen reflectie)
+  const fakeHoleMaterial = React.useMemo(() => {
+    return new THREE.MeshStandardMaterial({ 
+      color: "#1a1a1a",
+      roughness: 1.0,
+      metalness: 0.0
+    });
+  }, []);
+
   return (
     <group rotation={[0, Math.PI, 0]}>
-      {/* Top plaat (delen links en rechts van de tekst) */}
+      {/* Top plaat (1 geheel met patroongaten) */}
       <mesh 
         material={doubleSidedSteel} 
         geometry={topPlateGeometry} 
@@ -268,20 +237,15 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
         receiveShadow 
       />
 
-      {/* Midden plaat met CSG subtractie voor tekst (geoptimaliseerd) */}
-      {textPlateGeometry && textGeometryCSG && (
+      {/* Visuele Fake Hole Text (Strak op de plaat) */}
+      {textFakeHoleGeometry && (
         <mesh 
-          position={[0, height - thickness, 0]} 
+          geometry={textFakeHoleGeometry}
+          material={fakeHoleMaterial}
+          // Z-positie is net bóven de bodem van de plaat, en hij is dun.
+          position={[0, height - thickness + 0.51, 0]} 
           rotation={[-Math.PI / 2, 0, 0]} 
-          castShadow 
-          receiveShadow 
-        >
-          <Geometry>
-            <Base geometry={textPlateGeometry} material={doubleSidedSteel} />
-            <Subtraction geometry={textGeometryCSG} position={[0, 0, thickness / 2]} />
-          </Geometry>
-          <primitive object={doubleSidedSteel} attach="material" />
-        </mesh>
+        />
       )}
 
       {/* Linker Plooi (Radius) */}

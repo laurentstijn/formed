@@ -176,21 +176,29 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
   
   const bendGeometryLeft = React.useMemo(() => {
     const shape = new THREE.Shape();
-    shape.moveTo(0, 0);
-    shape.lineTo(0, R); // Omhoog
-    shape.absarc(0, 0, R, Math.PI/2, Math.PI, false); // Kwart boog naar links
-    shape.lineTo(0, 0); // Terug naar center
+    // Buitenboog (van 90 graden boven naar 180 graden links)
+    shape.absarc(0, 0, R, Math.PI/2, Math.PI, false);
+    // Lijn naar binnenste curve
+    shape.lineTo(-R + thickness, 0); 
+    // Binnenboog (van 180 graden links naar 90 graden boven, kloksgewijs)
+    shape.absarc(0, 0, R - thickness, Math.PI, Math.PI/2, true);
+    // Lijn naar startpunt
+    shape.lineTo(0, R); 
     return new THREE.ExtrudeGeometry(shape, bendExtrudeSettings);
-  }, [R, length]);
+  }, [R, thickness, length]);
 
   const bendGeometryRight = React.useMemo(() => {
     const shape = new THREE.Shape();
-    shape.moveTo(0, 0);
-    shape.lineTo(R, 0); // Naar rechts
-    shape.absarc(0, 0, R, 0, Math.PI/2, false); // Kwart boog naar boven
-    shape.lineTo(0, 0); // Terug naar center
+    // Buitenboog (van 0 graden rechts naar 90 graden boven)
+    shape.absarc(0, 0, R, 0, Math.PI/2, false);
+    // Lijn naar binnenste curve
+    shape.lineTo(0, R - thickness); 
+    // Binnenboog (van 90 graden boven naar 0 graden rechts, kloksgewijs)
+    shape.absarc(0, 0, R - thickness, Math.PI/2, 0, true);
+    // Lijn naar startpunt
+    shape.lineTo(R, 0); 
     return new THREE.ExtrudeGeometry(shape, bendExtrudeSettings);
-  }, [R, length]);
+  }, [R, thickness, length]);
 
   return (
     <group>

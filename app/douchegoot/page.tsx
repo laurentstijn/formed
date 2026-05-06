@@ -224,7 +224,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
   }, [steelMaterial]);
 
   return (
-    <group rotation={[0, Math.PI, 0]}>
+    <group rotation={[0, 0, 0]}>
       {/* Top plaat (1 geheel met patroongaten EN tekstgaten) */}
       <mesh 
         material={doubleSidedSteel} 

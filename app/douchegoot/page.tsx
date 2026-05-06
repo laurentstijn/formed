@@ -281,6 +281,16 @@ export default function DouchegootConfigurator() {
   const [materialType, setMaterialType] = useState("inox"); // 'inox', 'chrome', 'messing'
   const [fontData, setFontData] = useState<any>(null);
 
+  // Bereken dynamisch maximaal aantal karakters op basis van beschikbare lengte
+  const maxTextLength = React.useMemo(() => {
+    const l = typeof length === "number" ? length : 800;
+    const w = typeof width === "number" ? width : 50;
+    const usableLength = l - 40; // 2 * 20mm van de zijkanten
+    const fontSize = w * 0.4;
+    const approxCharWidth = fontSize * 0.75; // Stencil letters zijn best breed
+    return Math.max(1, Math.floor(usableLength / approxCharWidth));
+  }, [length, width]);
+
   // Laad de Stencil font bij het opstarten
   React.useEffect(() => {
     const loader = new TTFLoader();
@@ -486,7 +496,7 @@ export default function DouchegootConfigurator() {
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                maxLength={15}
+                maxLength={maxTextLength}
                 placeholder="Bijv. UW TEKST"
                 className="w-full border border-input rounded-md p-3 bg-background text-foreground uppercase outline-none focus:ring-2 focus:ring-primary font-mono tracking-widest transition-all"
               />

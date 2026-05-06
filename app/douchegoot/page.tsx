@@ -158,8 +158,6 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
       }
     }
 
-    }
-
     return new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
   }, [length, width, thickness, text, patternType, fontData, R]);
 

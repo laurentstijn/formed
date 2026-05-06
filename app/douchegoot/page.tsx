@@ -323,6 +323,8 @@ export default function DouchegootConfigurator() {
     d.drawLine(bendX1, -safeLength / 2, bendX1, safeLength / 2);
     d.drawLine(bendX2, -safeLength / 2, bendX2, safeLength / 2);
 
+    let clearance = 0;
+
     // 3. Tekst
     if (text && fontData) {
       d.setActiveLayer("TEXT");
@@ -340,6 +342,9 @@ export default function DouchegootConfigurator() {
       });
       const offsetX = -(xMax + xMin) / 2;
       const offsetY = -(yMax + yMin) / 2;
+      
+      const realClearance = (xMax - xMin) / 2 + 15;
+      clearance = text === "" ? 0 : realClearance;
 
       shapes.forEach(shape => {
         const points = shape.getPoints();

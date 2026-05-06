@@ -417,13 +417,14 @@ export default function DouchegootConfigurator() {
       <SiteHeader />
       
       <div className="flex-1 flex flex-col md:flex-row max-h-[calc(100vh-80px)] overflow-hidden">
-        {/* Linker paneel: Bediening */}
-        <div className="w-full md:w-[400px] bg-card border-r p-6 z-10 flex flex-col gap-6 overflow-y-auto">
+        
+        {/* Linker paneel: Configuratie */}
+        <div className="w-full md:w-[400px] lg:w-[450px] bg-card md:border-r border-t md:border-t-0 p-6 z-10 flex flex-col gap-6 overflow-y-auto order-2 md:order-1 flex-1 md:flex-none">
           <div>
             <h1 className="text-2xl font-bold text-foreground uppercase tracking-wider">Douchegoot</h1>
             <p className="text-sm text-muted-foreground mt-1">Live 3D & DXF Configurator</p>
           </div>
-
+          
           <div className="space-y-6">
             {/* Tekst Invoer */}
             <div>
@@ -583,7 +584,7 @@ export default function DouchegootConfigurator() {
         </div>
 
         {/* Rechter paneel: 3D Weergave */}
-        <div className="flex-1 relative bg-zinc-100 min-h-[500px]">
+        <div className="flex-1 relative bg-zinc-100 min-h-[350px] md:min-h-[500px] h-[45vh] md:h-auto shrink-0 md:shrink md:flex-1 order-1 md:order-2">
           <Canvas camera={{ position: [600, 400, -600], fov: 40, near: 0.1, far: 10000 }}>
             <color attach="background" args={["#f4f4f5"]} />
             

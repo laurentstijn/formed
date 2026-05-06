@@ -93,20 +93,53 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
         realClearance = (xMax - xMin) / 2 + 15;
 
         shapes.forEach(letterShape => {
-          const points = letterShape.getPoints(4); 
-          const letterPath = new THREE.Path();
-          points.forEach((p, i) => {
-            const px = p.x + offsetX;
-            const py = p.y + offsetY;
+          // Voeg de outline van de letter toe als hole
+          const processPath = (path: THREE.Path | THREE.Shape) => {
+            const points = path.getPoints(); 
+            const newPath = new THREE.Path();
             
-            // 90 graden rotatie
-            const rotX = -py; 
-            const rotY = px;
+            // We roteren de punten 90 graden (-y, x)
+            const rotatedPoints = points.map(p => {
+              const px = p.x + offsetX;
+              const py = p.y + offsetY;
+              return new THREE.Vector2(-py, px);
+            });
             
-            if (i === 0) letterPath.moveTo(rotX, rotY);
-            else letterPath.lineTo(rotX, rotY);
+            // Controleer winding order. We willen dat de outer shape van de letter
+            // tegengesteld is aan de hoofd shape (hoofd shape is CCW, dus letters moeten CW zijn)
+            // Maar voor HOLES BINNEN de letters, moeten ze weer CCW zijn!
+            // Om het makkelijk te maken: we roepen auto-correct niet aan, maar voegen de paden
+            // toe als gaten. Three.js (ShapeUtils) verwacht dat holes Clockwise (CW) zijn als de outer shape CCW is.
+            if (THREE.ShapeUtils.isClockWise(rotatedPoints) === false) {
+              rotatedPoints.reverse(); // Forceer Clockwise voor outer letter shapes
+            }
+            
+            rotatedPoints.forEach((p, i) => {
+              if (i === 0) newPath.moveTo(p.x, p.y);
+              else newPath.lineTo(p.x, p.y);
+            });
+            return newPath;
+          };
+
+          textPaths.push(processPath(letterShape));
+
+          // Voeg ook de binnenkanten van de letters (gaten in letters) toe,
+          // maar deze moeten juist massief worden in de goot, dus ze moeten 
+          // CCW zijn zodat ze de CW holes 'opheffen' (Earcut winding regels).
+          letterShape.holes.forEach(hole => {
+            const holePath = processPath(hole);
+            // Reverse het pad zodat het tegengesteld is aan de letter outline
+            const pts = holePath.getPoints();
+            if (THREE.ShapeUtils.isClockWise(pts) === true) {
+               pts.reverse();
+            }
+            const finalHolePath = new THREE.Path();
+            pts.forEach((p, i) => {
+              if (i === 0) finalHolePath.moveTo(p.x, p.y);
+              else finalHolePath.lineTo(p.x, p.y);
+            });
+            textPaths.push(finalHolePath);
           });
-          textPaths.push(letterPath);
         });
       } catch (e) {
         console.error("Font error", e);

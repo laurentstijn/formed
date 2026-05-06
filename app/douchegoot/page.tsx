@@ -51,16 +51,20 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
 
   const steelMaterial = materials[materialType as keyof typeof materials] || materials.inox;
 
+  // Realistische plooiradius
+  const R = Math.max(thickness + 0.5, 3); // Zorg voor een minimale radius die groter is dan de dikte
+
   // Wiskunde voor de Top Plaat (met ECHTE 3D gaten via ExtrudeGeometry)
   const topPlateGeometry = React.useMemo(() => {
     const shape = new THREE.Shape();
     
-    // Buitenste rechthoek (X = breedte, Y = lengte in 2D)
-    shape.moveTo(-width / 2, -length / 2);
-    shape.lineTo(width / 2, -length / 2);
-    shape.lineTo(width / 2, length / 2);
-    shape.lineTo(-width / 2, length / 2);
-    shape.lineTo(-width / 2, -length / 2);
+    // Buitenste rechthoek is nu smaller vanwege de plooiradius aan de zijkanten
+    const visualWidth = width - 2 * R;
+    shape.moveTo(-visualWidth / 2, -length / 2);
+    shape.lineTo(visualWidth / 2, -length / 2);
+    shape.lineTo(visualWidth / 2, length / 2);
+    shape.lineTo(-visualWidth / 2, length / 2);
+    shape.lineTo(-visualWidth / 2, -length / 2);
 
     // 1. Tekst Gaten & Bounding Box berekenen
     let realClearance = 15;
@@ -165,28 +169,67 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
     textPaths.forEach(path => shape.holes.push(path));
 
     return new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
-  }, [length, width, thickness, text, patternType, fontData]);
+  }, [length, width, thickness, text, patternType, fontData, R]);
+
+  // Wiskunde voor de Plooien (Bend Radius) links en rechts
+  const bendExtrudeSettings = { depth: length, bevelEnabled: false, curveSegments: 16 };
+  
+  const bendGeometryLeft = React.useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.absarc(0, 0, R, Math.PI/2, Math.PI, false);
+    shape.lineTo(-R + thickness, 0); 
+    shape.absarc(0, 0, R - thickness, Math.PI, Math.PI/2, true);
+    shape.lineTo(0, R); 
+    return new THREE.ExtrudeGeometry(shape, bendExtrudeSettings);
+  }, [R, thickness, length]);
+
+  const bendGeometryRight = React.useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.absarc(0, 0, R, 0, Math.PI/2, false);
+    shape.lineTo(0, R - thickness); 
+    shape.absarc(0, 0, R - thickness, Math.PI/2, 0, true);
+    shape.lineTo(R, 0); 
+    return new THREE.ExtrudeGeometry(shape, bendExtrudeSettings);
+  }, [R, thickness, length]);
 
   return (
     <group>
-      {/* Top plaat (NU MET ECHTE GATEN GEËXTRUDEERD!) */}
+      {/* Top plaat */}
       <mesh 
         material={steelMaterial} 
         geometry={topPlateGeometry} 
-        position={[0, height - thickness, 0]} 
+        position={[0, height, 0]} 
         rotation={[-Math.PI / 2, 0, 0]} 
         castShadow 
         receiveShadow 
       />
 
-      {/* Linker rand */}
-      <mesh material={steelMaterial} position={[-width / 2 + thickness / 2, (height - thickness) / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[thickness, height - thickness, length]} />
+      {/* Linker Plooi (Radius) */}
+      <mesh 
+        material={steelMaterial} 
+        geometry={bendGeometryLeft} 
+        position={[-width / 2 + R, height - R, -length / 2]} 
+        castShadow 
+        receiveShadow 
+      />
+
+      {/* Rechter Plooi (Radius) */}
+      <mesh 
+        material={steelMaterial} 
+        geometry={bendGeometryRight} 
+        position={[width / 2 - R, height - R, -length / 2]} 
+        castShadow 
+        receiveShadow 
+      />
+
+      {/* Linker rand (Rechte stuk naar beneden) */}
+      <mesh material={steelMaterial} position={[-width / 2 + thickness / 2, (height - R) / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[thickness, height - R, length]} />
       </mesh>
 
-      {/* Rechter rand */}
-      <mesh material={steelMaterial} position={[width / 2 - thickness / 2, (height - thickness) / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[thickness, height - thickness, length]} />
+      {/* Rechter rand (Rechte stuk naar beneden) */}
+      <mesh material={steelMaterial} position={[width / 2 - thickness / 2, (height - R) / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[thickness, height - R, length]} />
       </mesh>
     </group>
   );

@@ -200,13 +200,20 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
     return new THREE.ExtrudeGeometry(shape, bendExtrudeSettings);
   }, [R, thickness, length]);
 
+  // Zorg voor DoubleSide materiaal zodat de binnenkant niet onzichtbaar is
+  const doubleSidedSteel = React.useMemo(() => {
+    const mat = steelMaterial.clone();
+    mat.side = THREE.DoubleSide;
+    return mat;
+  }, [steelMaterial]);
+
   return (
     <group>
       {/* Top plaat */}
       <mesh 
-        material={steelMaterial} 
+        material={doubleSidedSteel} 
         geometry={topPlateGeometry} 
-        position={[0, height, 0]} 
+        position={[0, height - thickness, 0]} 
         rotation={[-Math.PI / 2, 0, 0]} 
         castShadow 
         receiveShadow 
@@ -214,7 +221,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
 
       {/* Linker Plooi (Radius) */}
       <mesh 
-        material={steelMaterial} 
+        material={doubleSidedSteel} 
         geometry={bendGeometryLeft} 
         position={[-width / 2 + R, height - R, -length / 2]} 
         castShadow 
@@ -223,7 +230,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
 
       {/* Rechter Plooi (Radius) */}
       <mesh 
-        material={steelMaterial} 
+        material={doubleSidedSteel} 
         geometry={bendGeometryRight} 
         position={[width / 2 - R, height - R, -length / 2]} 
         castShadow 
@@ -231,12 +238,12 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
       />
 
       {/* Linker rand (Rechte stuk naar beneden) */}
-      <mesh material={steelMaterial} position={[-width / 2 + thickness / 2, (height - R) / 2, 0]} castShadow receiveShadow>
+      <mesh material={doubleSidedSteel} position={[-width / 2 + thickness / 2, (height - R) / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[thickness, height - R, length]} />
       </mesh>
 
       {/* Rechter rand (Rechte stuk naar beneden) */}
-      <mesh material={steelMaterial} position={[width / 2 - thickness / 2, (height - R) / 2, 0]} castShadow receiveShadow>
+      <mesh material={doubleSidedSteel} position={[width / 2 - thickness / 2, (height - R) / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[thickness, height - R, length]} />
       </mesh>
     </group>

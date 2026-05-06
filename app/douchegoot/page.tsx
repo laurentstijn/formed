@@ -352,7 +352,7 @@ export default function DouchegootConfigurator() {
       clearance = text === "" ? 0 : realClearance;
 
       shapes.forEach(shape => {
-        const points = shape.getPoints();
+        const points = shape.getPoints(4);
         const pts: [number, number][] = points.map(p => {
           let px = p.x + offsetX;
           let py = p.y + offsetY;
@@ -364,7 +364,7 @@ export default function DouchegootConfigurator() {
         d.drawPolyline(pts, true);
         
         shape.holes.forEach(hole => {
-          const hPoints = hole.getPoints();
+          const hPoints = hole.getPoints(4);
           const hPts: [number, number][] = hPoints.map(p => {
             let px = p.x + offsetX;
             let py = p.y + offsetY;
@@ -412,7 +412,7 @@ export default function DouchegootConfigurator() {
               path.lineTo(x - w/2, y + h/2 - rRadius);
               path.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
               
-              const pts: [number, number][] = path.getPoints().map(p => [p.x, p.y]);
+              const pts: [number, number][] = path.getPoints(2).map(p => [p.x, p.y]);
               d.drawPolyline(pts, true);
             }
           }
@@ -443,7 +443,7 @@ export default function DouchegootConfigurator() {
           path.lineTo(x - w/2, y + h/2 - rRadius);
           path.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
           
-          const pts: [number, number][] = path.getPoints().map(p => [p.x, p.y]);
+          const pts: [number, number][] = path.getPoints(2).map(p => [p.x, p.y]);
           d.drawPolyline(pts, true);
         }
       }

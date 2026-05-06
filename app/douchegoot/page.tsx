@@ -57,40 +57,58 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
   // Realistische plooiradius (standaard plaatwerk: binnenradius = dikte, buitenradius R = dikte * 2)
   const R = thickness * 2;
 
-  // Wiskunde voor de Top Plaat (met ECHTE 3D gaten via ExtrudeGeometry)
-  const topPlateGeometry = React.useMemo(() => {
-    const shape = new THREE.Shape();
-    
-    // Buitenste rechthoek is nu smaller vanwege de plooiradius aan de zijkanten
-    const visualWidth = width - 2 * R;
-    shape.moveTo(-visualWidth / 2, -length / 2);
-    shape.lineTo(visualWidth / 2, -length / 2);
-    shape.lineTo(visualWidth / 2, length / 2);
-    shape.lineTo(-visualWidth / 2, length / 2);
-    shape.lineTo(-visualWidth / 2, -length / 2);
-
-    // 1. Tekst Bounding Box berekenen voor de 'clearance'
-    let realClearance = 15;
-    if (text && fontData) {
-      try {
-        const font = new FontLoader().parse(fontData);
-        const shapes = font.generateShapes(text.toUpperCase(), width * 0.4);
-        let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
-        shapes.forEach(s => {
-          s.getPoints().forEach(p => {
-            if (p.x < xMin) xMin = p.x;
-            if (p.x > xMax) xMax = p.x;
-            if (p.y < yMin) yMin = p.y;
-            if (p.y > yMax) yMax = p.y;
-          });
+  // Bereken de 'clearance' ruimte in het midden voor de tekst
+  const clearance = React.useMemo(() => {
+    if (!text || !fontData) return 0;
+    try {
+      const font = new FontLoader().parse(fontData);
+      const shapes = font.generateShapes(text.toUpperCase(), width * 0.4);
+      let xMin = Infinity, xMax = -Infinity;
+      shapes.forEach(s => {
+        s.getPoints().forEach(p => {
+          if (p.x < xMin) xMin = p.x;
+          if (p.x > xMax) xMax = p.x;
         });
-        realClearance = (xMax - xMin) / 2 + 15;
-      } catch (e) {
-        console.error("Font error", e);
-      }
+      });
+      return (xMax - xMin) / 2 + 15;
+    } catch (e) {
+      console.error("Font error", e);
+      return 0;
     }
+  }, [text, fontData, width]);
 
-    const clearance = text === "" ? 0 : realClearance;
+  // Wiskunde voor de Top Plaat (Boven en Onder de tekst)
+  const topPlateGeometry = React.useMemo(() => {
+    const visualWidth = width - 2 * R;
+    const shapes: THREE.Shape[] = [];
+
+    if (clearance > 0) {
+      // Onderste helft
+      const shapeBottom = new THREE.Shape();
+      shapeBottom.moveTo(-visualWidth / 2, -length / 2);
+      shapeBottom.lineTo(visualWidth / 2, -length / 2);
+      shapeBottom.lineTo(visualWidth / 2, -clearance);
+      shapeBottom.lineTo(-visualWidth / 2, -clearance);
+      shapeBottom.lineTo(-visualWidth / 2, -length / 2);
+      shapes.push(shapeBottom);
+
+      // Bovenste helft
+      const shapeTop = new THREE.Shape();
+      shapeTop.moveTo(-visualWidth / 2, clearance);
+      shapeTop.lineTo(visualWidth / 2, clearance);
+      shapeTop.lineTo(visualWidth / 2, length / 2);
+      shapeTop.lineTo(-visualWidth / 2, length / 2);
+      shapeTop.lineTo(-visualWidth / 2, clearance);
+      shapes.push(shapeTop);
+    } else {
+      const shapeFull = new THREE.Shape();
+      shapeFull.moveTo(-visualWidth / 2, -length / 2);
+      shapeFull.lineTo(visualWidth / 2, -length / 2);
+      shapeFull.lineTo(visualWidth / 2, length / 2);
+      shapeFull.lineTo(-visualWidth / 2, length / 2);
+      shapeFull.lineTo(-visualWidth / 2, -length / 2);
+      shapes.push(shapeFull);
+    }
 
     // 2. Patroon Gaten met Ronde Hoeken (Radius)
     const edgeMargin = 20;
@@ -112,10 +130,9 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
             for (let r = 0; r < numRows; r++) {
               const x = startX + r * rowStep;
               const holePath = new THREE.Path();
-              const rRadius = 1; // 1mm afronding voor vierkantjes
+              const rRadius = 1;
               const w = holeSize;
               const h = holeSize;
-              // Clockwise (CW) drawing for holes
               holePath.moveTo(x - w/2 + rRadius, y + h/2);
               holePath.lineTo(x + w/2 - rRadius, y + h/2);
               holePath.absarc(x + w/2 - rRadius, y + h/2 - rRadius, rRadius, Math.PI/2, 0, true);
@@ -125,7 +142,10 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
               holePath.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
               holePath.lineTo(x - w/2, y + h/2 - rRadius);
               holePath.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
-              shape.holes.push(holePath);
+              
+              if (y < -clearance && shapes.length > 1) shapes[0].holes.push(holePath);
+              else if (y > clearance && shapes.length > 1) shapes[1].holes.push(holePath);
+              else shapes[0].holes.push(holePath);
             }
           }
         }
@@ -140,7 +160,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
         const y = startY + i * slotSpacing;
         if (Math.abs(y) > clearance || text === "") {
           const holePath = new THREE.Path();
-          const rRadius = 2; // 2mm afronding maakt de sleufuiteinden volledig rond (breedte is 4)
+          const rRadius = 2;
           const w = slotLength;
           const h = slotWidth;
           const x = 0;
@@ -153,13 +173,29 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
           holePath.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
           holePath.lineTo(x - w/2, y + h/2 - rRadius);
           holePath.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
-          shape.holes.push(holePath);
+          
+          if (y < -clearance && shapes.length > 1) shapes[0].holes.push(holePath);
+          else if (y > clearance && shapes.length > 1) shapes[1].holes.push(holePath);
+          else shapes[0].holes.push(holePath);
         }
       }
     }
 
+    return new THREE.ExtrudeGeometry(shapes, { depth: thickness, bevelEnabled: false });
+  }, [length, width, thickness, text, patternType, R, clearance]);
+
+  // Aparte kleine plaat in het midden waar de CSG op toegepast wordt (voor performance)
+  const textPlateGeometry = React.useMemo(() => {
+    if (clearance <= 0) return null;
+    const visualWidth = width - 2 * R;
+    const shape = new THREE.Shape();
+    shape.moveTo(-visualWidth / 2, -clearance);
+    shape.lineTo(visualWidth / 2, -clearance);
+    shape.lineTo(visualWidth / 2, clearance);
+    shape.lineTo(-visualWidth / 2, clearance);
+    shape.lineTo(-visualWidth / 2, -clearance);
     return new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
-  }, [length, width, thickness, text, patternType, fontData, R]);
+  }, [width, thickness, R, clearance]);
 
   // Robuuste CSG 3D Tekst Geometry genereren
   const textGeometryCSG = React.useMemo(() => {
@@ -222,22 +258,31 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
 
   return (
     <group rotation={[0, Math.PI, 0]}>
-      {/* Top plaat met CSG subtractie voor tekst */}
+      {/* Top plaat (delen links en rechts van de tekst) */}
       <mesh 
+        material={doubleSidedSteel} 
+        geometry={topPlateGeometry} 
         position={[0, height - thickness, 0]} 
         rotation={[-Math.PI / 2, 0, 0]} 
         castShadow 
         receiveShadow 
-      >
-        <Geometry>
-          <Base geometry={topPlateGeometry} material={doubleSidedSteel} />
-          {textGeometryCSG && (
-            // Subtract de tekstgeometry van de basis. Z=diepte, dus we shiften hem ietsjes omlaag
+      />
+
+      {/* Midden plaat met CSG subtractie voor tekst (geoptimaliseerd) */}
+      {textPlateGeometry && textGeometryCSG && (
+        <mesh 
+          position={[0, height - thickness, 0]} 
+          rotation={[-Math.PI / 2, 0, 0]} 
+          castShadow 
+          receiveShadow 
+        >
+          <Geometry>
+            <Base geometry={textPlateGeometry} material={doubleSidedSteel} />
             <Subtraction geometry={textGeometryCSG} position={[0, 0, thickness / 2]} />
-          )}
-        </Geometry>
-        <primitive object={doubleSidedSteel} attach="material" />
-      </mesh>
+          </Geometry>
+          <primitive object={doubleSidedSteel} attach="material" />
+        </mesh>
+      )}
 
       {/* Linker Plooi (Radius) */}
       <mesh 
@@ -328,7 +373,6 @@ export default function DouchegootConfigurator() {
     d.drawLine(bendX2, -safeLength / 2, bendX2, safeLength / 2);
 
     // 3. Tekst
-    let realClearance = 15;
     if (text && fontData) {
       d.setActiveLayer("TEXT");
       const font = new FontLoader().parse(fontData);
@@ -345,8 +389,6 @@ export default function DouchegootConfigurator() {
       });
       const offsetX = -(xMax + xMin) / 2;
       const offsetY = -(yMax + yMin) / 2;
-      
-      realClearance = (xMax - xMin) / 2 + 15;
 
       shapes.forEach(shape => {
         const points = shape.getPoints();
@@ -373,8 +415,6 @@ export default function DouchegootConfigurator() {
         });
       });
     }
-
-    const clearance = text === "" ? 0 : realClearance;
 
     // 4. Afvoer Gaten Patroon met Afronding
     d.setActiveLayer("CUT");

@@ -6,6 +6,9 @@ import { OrbitControls, Environment, Text3D, Center, ContactShadows } from "@rea
 import * as THREE from "three";
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TTFLoader } from "three/examples/jsm/loaders/TTFLoader.js";
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+import { Geometry, Base, Subtraction } from '@react-three/csg';
+import { ErrorBoundary } from 'react-error-boundary';
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import Drawing from "dxf-writer";
@@ -66,15 +69,12 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
     shape.lineTo(-visualWidth / 2, length / 2);
     shape.lineTo(-visualWidth / 2, -length / 2);
 
-    // 1. Tekst Gaten & Bounding Box berekenen
+    // 1. Tekst Bounding Box berekenen voor de 'clearance'
     let realClearance = 15;
-    const textPaths: THREE.Path[] = [];
-
     if (text && fontData) {
       try {
         const font = new FontLoader().parse(fontData);
         const shapes = font.generateShapes(text.toUpperCase(), width * 0.4);
-        
         let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
         shapes.forEach(s => {
           s.getPoints().forEach(p => {
@@ -84,63 +84,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
             if (p.y > yMax) yMax = p.y;
           });
         });
-
-        // Gebruik de échte bounding box voor het centreren
-        const offsetX = -(xMax + xMin) / 2;
-        const offsetY = -(yMax + yMin) / 2;
-
-        // Bereken de échte ruimte die de tekst inneemt om overlap te voorkomen
         realClearance = (xMax - xMin) / 2 + 15;
-
-        shapes.forEach(letterShape => {
-          // Voeg de outline van de letter toe als hole
-          const processPath = (path: THREE.Path | THREE.Shape) => {
-            const points = path.getPoints(); 
-            const newPath = new THREE.Path();
-            
-            // We roteren de punten 90 graden (-y, x)
-            const rotatedPoints = points.map(p => {
-              const px = p.x + offsetX;
-              const py = p.y + offsetY;
-              return new THREE.Vector2(-py, px);
-            });
-            
-            // Controleer winding order. We willen dat de outer shape van de letter
-            // tegengesteld is aan de hoofd shape (hoofd shape is CCW, dus letters moeten CW zijn)
-            // Maar voor HOLES BINNEN de letters, moeten ze weer CCW zijn!
-            // Om het makkelijk te maken: we roepen auto-correct niet aan, maar voegen de paden
-            // toe als gaten. Three.js (ShapeUtils) verwacht dat holes Clockwise (CW) zijn als de outer shape CCW is.
-            if (THREE.ShapeUtils.isClockWise(rotatedPoints) === false) {
-              rotatedPoints.reverse(); // Forceer Clockwise voor outer letter shapes
-            }
-            
-            rotatedPoints.forEach((p, i) => {
-              if (i === 0) newPath.moveTo(p.x, p.y);
-              else newPath.lineTo(p.x, p.y);
-            });
-            return newPath;
-          };
-
-          textPaths.push(processPath(letterShape));
-
-          // Voeg ook de binnenkanten van de letters (gaten in letters) toe,
-          // maar deze moeten juist massief worden in de goot, dus ze moeten 
-          // CCW zijn zodat ze de CW holes 'opheffen' (Earcut winding regels).
-          letterShape.holes.forEach(hole => {
-            const holePath = processPath(hole);
-            // Reverse het pad zodat het tegengesteld is aan de letter outline
-            const pts = holePath.getPoints();
-            if (THREE.ShapeUtils.isClockWise(pts) === true) {
-               pts.reverse();
-            }
-            const finalHolePath = new THREE.Path();
-            pts.forEach((p, i) => {
-              if (i === 0) finalHolePath.moveTo(p.x, p.y);
-              else finalHolePath.lineTo(p.x, p.y);
-            });
-            textPaths.push(finalHolePath);
-          });
-        });
       } catch (e) {
         console.error("Font error", e);
       }
@@ -148,7 +92,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
 
     const clearance = text === "" ? 0 : realClearance;
 
-    // 2. Patroon Gaten
+    // 2. Patroon Gaten met Ronde Hoeken (Radius)
     const edgeMargin = 20;
     const usableLength = length - 2 * edgeMargin;
 
@@ -168,11 +112,19 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
             for (let r = 0; r < numRows; r++) {
               const x = startX + r * rowStep;
               const holePath = new THREE.Path();
-              holePath.moveTo(x - holeSize / 2, y - holeSize / 2);
-              holePath.lineTo(x + holeSize / 2, y - holeSize / 2);
-              holePath.lineTo(x + holeSize / 2, y + holeSize / 2);
-              holePath.lineTo(x - holeSize / 2, y + holeSize / 2);
-              holePath.lineTo(x - holeSize / 2, y - holeSize / 2);
+              const rRadius = 1; // 1mm afronding voor vierkantjes
+              const w = holeSize;
+              const h = holeSize;
+              // Clockwise (CW) drawing for holes
+              holePath.moveTo(x - w/2 + rRadius, y + h/2);
+              holePath.lineTo(x + w/2 - rRadius, y + h/2);
+              holePath.absarc(x + w/2 - rRadius, y + h/2 - rRadius, rRadius, Math.PI/2, 0, true);
+              holePath.lineTo(x + w/2, y - h/2 + rRadius);
+              holePath.absarc(x + w/2 - rRadius, y - h/2 + rRadius, rRadius, 0, -Math.PI/2, true);
+              holePath.lineTo(x - w/2 + rRadius, y - h/2);
+              holePath.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
+              holePath.lineTo(x - w/2, y + h/2 - rRadius);
+              holePath.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
               shape.holes.push(holePath);
             }
           }
@@ -188,21 +140,51 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
         const y = startY + i * slotSpacing;
         if (Math.abs(y) > clearance || text === "") {
           const holePath = new THREE.Path();
-          holePath.moveTo(-slotLength / 2, y - slotWidth / 2);
-          holePath.lineTo(slotLength / 2, y - slotWidth / 2);
-          holePath.lineTo(slotLength / 2, y + slotWidth / 2);
-          holePath.lineTo(-slotLength / 2, y + slotWidth / 2);
-          holePath.lineTo(-slotLength / 2, y - slotWidth / 2);
+          const rRadius = 2; // 2mm afronding maakt de sleufuiteinden volledig rond (breedte is 4)
+          const w = slotLength;
+          const h = slotWidth;
+          const x = 0;
+          holePath.moveTo(x - w/2 + rRadius, y + h/2);
+          holePath.lineTo(x + w/2 - rRadius, y + h/2);
+          holePath.absarc(x + w/2 - rRadius, y + h/2 - rRadius, rRadius, Math.PI/2, 0, true);
+          holePath.lineTo(x + w/2, y - h/2 + rRadius);
+          holePath.absarc(x + w/2 - rRadius, y - h/2 + rRadius, rRadius, 0, -Math.PI/2, true);
+          holePath.lineTo(x - w/2 + rRadius, y - h/2);
+          holePath.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
+          holePath.lineTo(x - w/2, y + h/2 - rRadius);
+          holePath.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
           shape.holes.push(holePath);
         }
       }
     }
 
-    // Voeg tekstpaden toe aan gaten
-    textPaths.forEach(path => shape.holes.push(path));
+    }
 
     return new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
   }, [length, width, thickness, text, patternType, fontData, R]);
+
+  // Robuuste CSG 3D Tekst Geometry genereren
+  const textGeometryCSG = React.useMemo(() => {
+    if (!text || !fontData) return null;
+    try {
+      const font = new FontLoader().parse(fontData);
+      const textGeo = new TextGeometry(text.toUpperCase(), {
+        font: font,
+        size: width * 0.4,
+        depth: thickness + 4, // Zorg dat het ruim door de plaat heen snijdt
+        curveSegments: 8,
+        bevelEnabled: false
+      });
+      // CSG: we centreren de tekst zodat we hem makkelijk kunnen positioneren
+      textGeo.center();
+      // Omdat de plaat Y=lengte is, draaien we de tekst 90 graden rond de Z-as
+      textGeo.rotateZ(-Math.PI / 2);
+      return textGeo;
+    } catch(e) {
+      console.error(e);
+      return null;
+    }
+  }, [text, fontData, width, thickness]);
 
   // Wiskunde voor de Plooien (Bend Radius) links en rechts
   const bendExtrudeSettings = { depth: length, bevelEnabled: false, curveSegments: 32 };
@@ -242,15 +224,22 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
 
   return (
     <group>
-      {/* Top plaat */}
+      {/* Top plaat met CSG subtractie voor tekst */}
       <mesh 
-        material={doubleSidedSteel} 
-        geometry={topPlateGeometry} 
         position={[0, height - thickness, 0]} 
         rotation={[-Math.PI / 2, 0, 0]} 
         castShadow 
         receiveShadow 
-      />
+      >
+        <Geometry>
+          <Base geometry={topPlateGeometry} material={doubleSidedSteel} />
+          {textGeometryCSG && (
+            // Subtract de tekstgeometry van de basis. Z=diepte, dus we shiften hem ietsjes omlaag
+            <Subtraction geometry={textGeometryCSG} position={[0, 0, thickness / 2]} />
+          )}
+        </Geometry>
+        <primitive object={doubleSidedSteel} attach="material" />
+      </mesh>
 
       {/* Linker Plooi (Radius) */}
       <mesh 
@@ -379,7 +368,7 @@ export default function DouchegootConfigurator() {
 
     const clearance = text === "" ? 0 : realClearance;
 
-    // 4. Afvoer Gaten Patroon
+    // 4. Afvoer Gaten Patroon met Afronding
     d.setActiveLayer("CUT");
     const edgeMargin = 20;
     const usableLength = safeLength - 2 * edgeMargin;
@@ -400,13 +389,29 @@ export default function DouchegootConfigurator() {
           if (Math.abs(y) > clearance || text === "") {
             for (let r = 0; r < numRows; r++) {
               const x = startX + r * rowStep;
-              d.drawRect(x - holeSize / 2, y - holeSize / 2, x + holeSize / 2, y + holeSize / 2);
+              const path = new THREE.Path();
+              const rRadius = 1;
+              const w = holeSize;
+              const h = holeSize;
+              path.moveTo(x - w/2 + rRadius, y + h/2);
+              path.lineTo(x + w/2 - rRadius, y + h/2);
+              path.absarc(x + w/2 - rRadius, y + h/2 - rRadius, rRadius, Math.PI/2, 0, true);
+              path.lineTo(x + w/2, y - h/2 + rRadius);
+              path.absarc(x + w/2 - rRadius, y - h/2 + rRadius, rRadius, 0, -Math.PI/2, true);
+              path.lineTo(x - w/2 + rRadius, y - h/2);
+              path.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
+              path.lineTo(x - w/2, y + h/2 - rRadius);
+              path.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
+              
+              const pts: [number, number][] = path.getPoints().map(p => [p.x, p.y]);
+              d.drawPolyline(pts, true);
             }
           }
         }
       }
     } else if (patternType === "sleuven") {
       const slotSpacing = 20;
+      const slotWidth = 4;
       const slotLength = safeWidth * 0.4;
       const numSlots = Math.floor(usableLength / slotSpacing);
       const startY = -((numSlots * slotSpacing) / 2) + slotSpacing / 2;
@@ -414,11 +419,26 @@ export default function DouchegootConfigurator() {
       for (let i = 0; i < numSlots; i++) {
         const y = startY + i * slotSpacing;
         if (Math.abs(y) > clearance || text === "") {
-          d.drawRect(-slotLength / 2, y - 2, slotLength / 2, y + 2);
+          const path = new THREE.Path();
+          const rRadius = 2;
+          const w = slotLength;
+          const h = slotWidth;
+          const x = 0;
+          path.moveTo(x - w/2 + rRadius, y + h/2);
+          path.lineTo(x + w/2 - rRadius, y + h/2);
+          path.absarc(x + w/2 - rRadius, y + h/2 - rRadius, rRadius, Math.PI/2, 0, true);
+          path.lineTo(x + w/2, y - h/2 + rRadius);
+          path.absarc(x + w/2 - rRadius, y - h/2 + rRadius, rRadius, 0, -Math.PI/2, true);
+          path.lineTo(x - w/2 + rRadius, y - h/2);
+          path.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
+          path.lineTo(x - w/2, y + h/2 - rRadius);
+          path.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
+          
+          const pts: [number, number][] = path.getPoints().map(p => [p.x, p.y]);
+          d.drawPolyline(pts, true);
         }
       }
     }
-
 
 
     // Genereer de file

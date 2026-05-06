@@ -1,0 +1,562 @@
+"use client";
+
+import React, { useState, Suspense } from "react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Environment, Text3D, Center, ContactShadows } from "@react-three/drei";
+import * as THREE from "three";
+import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
+import { TTFLoader } from "three/examples/jsm/loaders/TTFLoader.js";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import Drawing from "dxf-writer";
+
+interface ShowerDrainProps {
+  length: number;
+  width: number;
+  height: number;
+  thickness: number;
+  text: string;
+  edgeMargin: number;
+  patternType: string;
+  materialType: string;
+  fontData: any;
+}
+
+function ShowerDrainModel({ length, width, height, thickness, text, patternType, materialType, fontData }: ShowerDrainProps) {
+  // Luxe materialen opzetten met useMemo zodat ze niet elke frame opnieuw opbouwen
+  const materials = React.useMemo(() => ({
+    inox: new THREE.MeshStandardMaterial({
+      color: "#a8adb0",
+      metalness: 0.85,
+      roughness: 0.35,
+      envMapIntensity: 1.2,
+    }),
+    chrome: new THREE.MeshPhysicalMaterial({
+      color: "#ffffff",
+      metalness: 1.0,
+      roughness: 0.05,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1,
+      envMapIntensity: 2.0,
+    }),
+    messing: new THREE.MeshPhysicalMaterial({
+      color: "#c6a87c", // Zachtere, meer realistische messing tint (minder knalgeel)
+      metalness: 1.0, // Volledig metaal (voorkomt plastic look)
+      roughness: 0.25, // Iets meer geborsteld voor een luxe sanitair-look
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.2,
+      envMapIntensity: 1.5,
+    }),
+  }), []);
+
+  const steelMaterial = materials[materialType as keyof typeof materials] || materials.inox;
+
+  // Wiskunde voor de Top Plaat (met ECHTE 3D gaten via ExtrudeGeometry)
+  const topPlateGeometry = React.useMemo(() => {
+    const shape = new THREE.Shape();
+    
+    // Buitenste rechthoek (X = breedte, Y = lengte in 2D)
+    shape.moveTo(-width / 2, -length / 2);
+    shape.lineTo(width / 2, -length / 2);
+    shape.lineTo(width / 2, length / 2);
+    shape.lineTo(-width / 2, length / 2);
+    shape.lineTo(-width / 2, -length / 2);
+
+    // 1. Tekst Gaten & Bounding Box berekenen
+    let realClearance = 15;
+    const textPaths: THREE.Path[] = [];
+
+    if (text && fontData) {
+      try {
+        const font = new FontLoader().parse(fontData);
+        const shapes = font.generateShapes(text.toUpperCase(), width * 0.4);
+        
+        let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+        shapes.forEach(s => {
+          s.getPoints().forEach(p => {
+            if (p.x < xMin) xMin = p.x;
+            if (p.x > xMax) xMax = p.x;
+            if (p.y < yMin) yMin = p.y;
+            if (p.y > yMax) yMax = p.y;
+          });
+        });
+
+        // Gebruik de échte bounding box voor het centreren
+        const offsetX = -(xMax + xMin) / 2;
+        const offsetY = -(yMax + yMin) / 2;
+
+        // Bereken de échte ruimte die de tekst inneemt om overlap te voorkomen
+        realClearance = (xMax - xMin) / 2 + 15;
+
+        shapes.forEach(letterShape => {
+          const points = letterShape.getPoints(4); 
+          const letterPath = new THREE.Path();
+          points.forEach((p, i) => {
+            const px = p.x + offsetX;
+            const py = p.y + offsetY;
+            
+            // 90 graden rotatie
+            const rotX = -py; 
+            const rotY = px;
+            
+            if (i === 0) letterPath.moveTo(rotX, rotY);
+            else letterPath.lineTo(rotX, rotY);
+          });
+          textPaths.push(letterPath);
+        });
+      } catch (e) {
+        console.error("Font error", e);
+      }
+    }
+
+    const clearance = text === "" ? 0 : realClearance;
+
+    // 2. Patroon Gaten
+    const edgeMargin = 20;
+    const usableLength = length - 2 * edgeMargin;
+
+    if (patternType === "vierkant") {
+      const holeSize = 6, holeSpacing = 4, numRows = 3;
+      const step = holeSize + holeSpacing;
+      if (step > 2) {
+        const numCols = Math.floor(usableLength / step);
+        const startY = -((numCols * step) / 2) + step / 2;
+        const rowStep = holeSize + holeSpacing;
+        const totalPatternWidth = numRows * holeSize + (numRows - 1) * holeSpacing;
+        const startX = -totalPatternWidth / 2 + holeSize / 2;
+
+        for (let c = 0; c < numCols; c++) {
+          const y = startY + c * step;
+          if (Math.abs(y) > clearance || text === "") {
+            for (let r = 0; r < numRows; r++) {
+              const x = startX + r * rowStep;
+              const holePath = new THREE.Path();
+              holePath.moveTo(x - holeSize / 2, y - holeSize / 2);
+              holePath.lineTo(x + holeSize / 2, y - holeSize / 2);
+              holePath.lineTo(x + holeSize / 2, y + holeSize / 2);
+              holePath.lineTo(x - holeSize / 2, y + holeSize / 2);
+              holePath.lineTo(x - holeSize / 2, y - holeSize / 2);
+              shape.holes.push(holePath);
+            }
+          }
+        }
+      }
+    } else if (patternType === "sleuven") {
+      const slotSpacing = 20;
+      const slotWidth = 4;
+      const slotLength = width * 0.4;
+      const numSlots = Math.floor(usableLength / slotSpacing);
+      const startY = -((numSlots * slotSpacing) / 2) + slotSpacing / 2;
+      for (let i = 0; i < numSlots; i++) {
+        const y = startY + i * slotSpacing;
+        if (Math.abs(y) > clearance || text === "") {
+          const holePath = new THREE.Path();
+          holePath.moveTo(-slotLength / 2, y - slotWidth / 2);
+          holePath.lineTo(slotLength / 2, y - slotWidth / 2);
+          holePath.lineTo(slotLength / 2, y + slotWidth / 2);
+          holePath.lineTo(-slotLength / 2, y + slotWidth / 2);
+          holePath.lineTo(-slotLength / 2, y - slotWidth / 2);
+          shape.holes.push(holePath);
+        }
+      }
+    }
+
+    // Voeg tekstpaden toe aan gaten
+    textPaths.forEach(path => shape.holes.push(path));
+
+    return new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
+  }, [length, width, thickness, text, patternType, fontData]);
+
+  return (
+    <group>
+      {/* Top plaat (NU MET ECHTE GATEN GEËXTRUDEERD!) */}
+      <mesh 
+        material={steelMaterial} 
+        geometry={topPlateGeometry} 
+        position={[0, height - thickness, 0]} 
+        rotation={[-Math.PI / 2, 0, 0]} 
+        castShadow 
+        receiveShadow 
+      />
+
+      {/* Linker rand */}
+      <mesh material={steelMaterial} position={[-width / 2 + thickness / 2, (height - thickness) / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[thickness, height - thickness, length]} />
+      </mesh>
+
+      {/* Rechter rand */}
+      <mesh material={steelMaterial} position={[width / 2 - thickness / 2, (height - thickness) / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[thickness, height - thickness, length]} />
+      </mesh>
+    </group>
+  );
+}
+
+export default function DouchegootConfigurator() {
+  const [length, setLength] = useState<number | "">(800); 
+  const [width, setWidth] = useState<number | "">(50); 
+  const [height, setHeight] = useState<number | "">(15); 
+  const [thickness, setThickness] = useState(1); 
+  const [text, setText] = useState("UW TEKST");
+  
+  const [patternType, setPatternType] = useState("vierkant"); // 'vierkant' of 'sleuven'
+  const [materialType, setMaterialType] = useState("inox"); // 'inox', 'chrome', 'messing'
+  const [fontData, setFontData] = useState<any>(null);
+
+  // Laad de Stencil font bij het opstarten
+  React.useEffect(() => {
+    const loader = new TTFLoader();
+    loader.load('/AllertaStencil-Regular.ttf', (json) => {
+      setFontData(json);
+    });
+  }, []);
+
+  // Functie om de DXF (Uitslag) te genereren
+  const handleExportDXF = async () => {
+    const d = new Drawing();
+    d.setUnits("Millimeters");
+    
+    // Fallback voor lege inputs
+    const safeLength = typeof length === "number" ? length : 800;
+    const safeWidth = typeof width === "number" ? width : 50;
+    const safeHeight = typeof height === "number" ? height : 15;
+    
+    // Maak handige layers aan voor de productiemachines
+    d.addLayer("OUTLINE", Drawing.ACI.WHITE, "CONTINUOUS");
+    d.addLayer("BEND", Drawing.ACI.YELLOW, "DASHED");
+    d.addLayer("CUT", Drawing.ACI.RED, "CONTINUOUS");
+    d.addLayer("TEXT", Drawing.ACI.CYAN, "CONTINUOUS");
+
+    // 1. De Uitslag Buitenlijn
+    const flatWidth = safeWidth + safeHeight * 2; 
+    d.setActiveLayer("OUTLINE");
+    d.drawRect(-flatWidth / 2, -safeLength / 2, flatWidth / 2, safeLength / 2);
+
+    // 2. Plooilijnen
+    d.setActiveLayer("BEND");
+    const bendX1 = -flatWidth / 2 + safeHeight;
+    const bendX2 = flatWidth / 2 - safeHeight;
+    d.drawLine(bendX1, -safeLength / 2, bendX1, safeLength / 2);
+    d.drawLine(bendX2, -safeLength / 2, bendX2, safeLength / 2);
+
+    // 3. Tekst
+    let realClearance = 15;
+    if (text && fontData) {
+      d.setActiveLayer("TEXT");
+      const font = new FontLoader().parse(fontData);
+      const shapes = font.generateShapes(text.toUpperCase(), safeWidth * 0.4);
+      
+      let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+      shapes.forEach(s => {
+        s.getPoints().forEach(p => {
+          if (p.x < xMin) xMin = p.x;
+          if (p.x > xMax) xMax = p.x;
+          if (p.y < yMin) yMin = p.y;
+          if (p.y > yMax) yMax = p.y;
+        });
+      });
+      const offsetX = -(xMax + xMin) / 2;
+      const offsetY = -(yMax + yMin) / 2;
+      
+      realClearance = (xMax - xMin) / 2 + 15;
+
+      shapes.forEach(shape => {
+        const points = shape.getPoints();
+        const pts: [number, number][] = points.map(p => {
+          let px = p.x + offsetX;
+          let py = p.y + offsetY;
+          // Zelfde orientatie als 3D model
+          const rotX = -py;
+          const rotY = px;
+          return [rotX, rotY];
+        });
+        d.drawPolyline(pts, true);
+        
+        shape.holes.forEach(hole => {
+          const hPoints = hole.getPoints();
+          const hPts: [number, number][] = hPoints.map(p => {
+            let px = p.x + offsetX;
+            let py = p.y + offsetY;
+            const rotX = -py;
+            const rotY = px;
+            return [rotX, rotY];
+          });
+          d.drawPolyline(hPts, true);
+        });
+      });
+    }
+
+    const clearance = text === "" ? 0 : realClearance;
+
+    // 4. Afvoer Gaten Patroon
+    d.setActiveLayer("CUT");
+    const edgeMargin = 20;
+    const usableLength = safeLength - 2 * edgeMargin;
+    
+    if (patternType === "vierkant") {
+      const holeSize = 6, holeSpacing = 4, numRows = 3;
+      const step = holeSize + holeSpacing;
+      if (step > 2) {
+        const numCols = Math.floor(usableLength / step);
+        const startY = -((numCols * step) / 2) + step / 2; // Y is de lengte in DXF
+  
+        const rowStep = holeSize + holeSpacing;
+        const totalPatternWidth = numRows * holeSize + (numRows - 1) * holeSpacing;
+        const startX = -totalPatternWidth / 2 + holeSize / 2; // X is breedte in DXF
+  
+        for (let c = 0; c < numCols; c++) {
+          const y = startY + c * step;
+          if (Math.abs(y) > clearance || text === "") {
+            for (let r = 0; r < numRows; r++) {
+              const x = startX + r * rowStep;
+              d.drawRect(x - holeSize / 2, y - holeSize / 2, x + holeSize / 2, y + holeSize / 2);
+            }
+          }
+        }
+      }
+    } else if (patternType === "sleuven") {
+      const slotSpacing = 20;
+      const slotLength = safeWidth * 0.4;
+      const numSlots = Math.floor(usableLength / slotSpacing);
+      const startY = -((numSlots * slotSpacing) / 2) + slotSpacing / 2;
+      
+      for (let i = 0; i < numSlots; i++) {
+        const y = startY + i * slotSpacing;
+        if (Math.abs(y) > clearance || text === "") {
+          d.drawRect(-slotLength / 2, y - 2, slotLength / 2, y + 2);
+        }
+      }
+    }
+
+
+
+    // Genereer de file
+    const dxfString = d.toDxfString();
+    const safeText = text.replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `uitslag_douchegoot_${safeLength}x${safeWidth}_${safeText}.dxf`;
+    
+    // Naar Bureaublad schrijven via API
+    try {
+      const res = await fetch('/api/save-dxf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: fileName, dxfContent: dxfString })
+      });
+      
+      if (res.ok) {
+        alert(`SUCCES!\nDe productieklare DXF (${fileName}) is zojuist direct gemaild naar info@formd.be.`);
+      } else {
+        alert("Oeps, er ging iets mis bij het mailen van de DXF.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Kan e-mail niet verzenden.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <SiteHeader />
+      
+      <div className="flex-1 flex flex-col md:flex-row max-h-[calc(100vh-80px)] overflow-hidden">
+        {/* Linker paneel: Bediening */}
+        <div className="w-full md:w-[400px] bg-card border-r p-6 z-10 flex flex-col gap-6 overflow-y-auto">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground uppercase tracking-wider">Douchegoot</h1>
+            <p className="text-sm text-muted-foreground mt-1">Live 3D & DXF Configurator</p>
+          </div>
+
+          <div className="space-y-6">
+            {/* Tekst Invoer */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Gepersonaliseerde Tekst
+              </label>
+              <input
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                maxLength={15}
+                placeholder="Bijv. UW TEKST"
+                className="w-full border border-input rounded-md p-3 bg-background text-foreground uppercase outline-none focus:ring-2 focus:ring-primary font-mono tracking-widest transition-all"
+              />
+              <p className="text-xs text-green-600 mt-2 font-medium flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                Live Stencil lettertype geactiveerd
+              </p>
+            </div>
+
+            <hr className="border-border" />
+
+            {/* Afmetingen (Invoervelden i.p.v. Sliders) */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-sm">Afmetingen (mm)</h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Lengte</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="100"
+                      max="3000"
+                      value={length}
+                      onChange={(e) => setLength(e.target.value ? Number(e.target.value) : "")}
+                      className="w-full border border-input rounded-md p-2 pl-2 pr-6 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Breedte</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="30"
+                      max="300"
+                      value={width}
+                      onChange={(e) => setWidth(e.target.value ? Number(e.target.value) : "")}
+                      className="w-full border border-input rounded-md p-2 pl-2 pr-6 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Hoogte rand</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="5"
+                      max="100"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value ? Number(e.target.value) : "")}
+                      className="w-full border border-input rounded-md p-2 pl-2 pr-6 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr className="border-border" />
+
+            {/* Patroon Keuze (Knoppen i.p.v. Sliders) */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Design Opties</h3>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Materiaal / Finish</label>
+                <div className="flex gap-2 bg-muted p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setMaterialType("inox")}
+                    className={`flex-1 py-2 rounded-md font-medium text-xs transition-all ${
+                      materialType === 'inox' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Geborsteld INOX
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMaterialType("chrome")}
+                    className={`flex-1 py-2 rounded-md font-medium text-xs transition-all ${
+                      materialType === 'chrome' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Polijst Chroom
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMaterialType("messing")}
+                    className={`flex-1 py-2 rounded-md font-medium text-xs transition-all ${
+                      materialType === 'messing' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Goud / Messing
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-2">
+                <label className="text-xs text-muted-foreground">Waterafvoer Patroon</label>
+                <div className="flex gap-2 bg-muted p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setPatternType("vierkant")}
+                    className={`flex-1 py-2 rounded-md font-medium text-sm transition-all ${
+                    patternType === 'vierkant' 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Vierkantjes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPatternType("sleuven")}
+                  className={`flex-1 py-2.5 rounded-md font-medium text-sm transition-all ${
+                    patternType === 'sleuven' 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Sleuven
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Gaten blijven automatisch altijd 20mm van de buitenranden verwijderd.
+              </p>
+              </div>
+            </div>
+
+            {/* Productie Export Knop */}
+            <div className="pt-4">
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleExportDXF();
+                }}
+                className="w-full bg-foreground text-background font-semibold py-3.5 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5C2 7 4 5 6.5 5H18c2.2 0 4 1.8 4 4v8Z"/><polyline points="15,9 18,9 18,11"/><path d="M5.5 7.4L12 12l6.5-4.6"/></svg>
+                Verstuur DXF naar info@formd.be
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Rechter paneel: 3D Weergave */}
+        <div className="flex-1 relative bg-zinc-100 min-h-[500px]">
+          <Canvas camera={{ position: [600, 400, -600], fov: 40, near: 0.1, far: 10000 }}>
+            <color attach="background" args={["#f4f4f5"]} />
+            
+            <ambientLight intensity={0.8} />
+            <directionalLight position={[100, 300, 100]} intensity={1.0} castShadow />
+            <Environment preset="studio" /> 
+
+            <Suspense fallback={null}>
+              <Center position={[0, -20, 0]}>
+                <ShowerDrainModel
+                  length={typeof length === "number" ? length : 800}
+                  width={typeof width === "number" ? width : 50}
+                  height={typeof height === "number" ? height : 15}
+                  thickness={thickness}
+                  text={text}
+                  patternType={patternType}
+                  materialType={materialType}
+                  fontData={fontData}
+                />
+              </Center>
+              <ContactShadows position={[0, -20, 0]} opacity={0.4} scale={1500} blur={2.5} far={40} />
+            </Suspense>
+
+            <OrbitControls makeDefault minDistance={100} maxDistance={2000} maxPolarAngle={Math.PI / 2 + 0.1} />
+          </Canvas>
+          
+          <div className="absolute bottom-6 right-6 text-sm pointer-events-none px-3 py-1.5 rounded-full backdrop-blur-sm text-black/50 bg-white/50">
+            Sleep om te draaien • Scroll om te zoomen
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

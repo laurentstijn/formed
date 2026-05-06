@@ -176,6 +176,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
           shapeFull.holes.push(holePath);
         }
       }
+    }
     // Voeg de 3D tekstgaten toe aan de plaat
     textPaths.forEach(path => shapeFull.holes.push(path));
 

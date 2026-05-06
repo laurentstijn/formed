@@ -221,7 +221,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
   }, [steelMaterial]);
 
   return (
-    <group>
+    <group rotation={[0, Math.PI, 0]}>
       {/* Top plaat met CSG subtractie voor tekst */}
       <mesh 
         position={[0, height - thickness, 0]} 

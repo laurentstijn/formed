@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/components/cart-provider"
 import { Minus, Plus, Trash2, ArrowLeft } from "lucide-react"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 
@@ -56,9 +57,16 @@ export default function CartPage() {
           <div className="lg:col-span-2 space-y-6">
             {items.map((item) => (
               <div key={item.id} className="flex gap-6 pb-6 border-b border-border">
-                <div className="w-24 h-24 flex-shrink-0 bg-muted rounded-lg overflow-hidden">
-                  <img src={item.image || "/placeholder.svg"} alt={item.name} className="w-full h-full object-cover" />
-                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <div className="w-24 h-24 flex-shrink-0 bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+                      <img src={item.image || "/placeholder.svg"} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl border-none p-0 bg-transparent shadow-none">
+                    <img src={item.image || "/placeholder.svg"} alt={item.name} className="w-full h-auto rounded-lg" />
+                  </DialogContent>
+                </Dialog>
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">{item.name}</h3>

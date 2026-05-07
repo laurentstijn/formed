@@ -9,6 +9,7 @@ interface OrderConfirmationEmailProps {
     price: number
     variant_name?: string
     color?: string
+    image?: string
   }>
   totalAmount: number
   shippingAddress: {
@@ -63,14 +64,23 @@ export const OrderConfirmationEmail: React.FC<OrderConfirmationEmailProps> = ({
 
               <h3>Producten:</h3>
               {items.map((item, index) => (
-                <div key={index} style={{ padding: "10px 0", borderBottom: "1px solid #eee" }}>
-                  <strong>{item.name}</strong>
-                  {item.variant_name && <span> - {item.variant_name}</span>}
-                  {item.color && <span> ({item.color})</span>}
+                <div key={index} style={{ padding: "10px 0", borderBottom: "1px solid #eee", display: "flex", gap: "15px" }}>
+                  {item.image && (
+                    <img 
+                      src={item.image} 
+                      alt={item.name} 
+                      style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} 
+                    />
+                  )}
                   <div>
-                    Aantal: {item.quantity} × €{item.price.toFixed(2)}
+                    <strong>{item.name}</strong>
+                    {item.variant_name && <span> - {item.variant_name}</span>}
+                    {item.color && <span> ({item.color})</span>}
+                    <div>
+                      Aantal: {item.quantity} × €{item.price.toFixed(2)}
+                    </div>
+                    <div>Subtotaal: €{(item.quantity * item.price).toFixed(2)}</div>
                   </div>
-                  <div>Subtotaal: €{(item.quantity * item.price).toFixed(2)}</div>
                 </div>
               ))}
 

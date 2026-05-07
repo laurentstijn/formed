@@ -122,7 +122,10 @@ export async function POST(request: NextRequest) {
         .map(
           (item: any, index: number) => `
         <tr style="${index % 2 === 0 ? "background-color: #f8f9fa;" : ""}">
-          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.name}${item.color ? " - " + item.color : ""}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 12px; align-items: center;">
+            ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;" />` : ''}
+            <span>${item.name}${item.color ? " - " + item.color : ""}</span>
+          </td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">€${item.price.toFixed(2)}</td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">€${(item.price * item.quantity).toFixed(2)}</td>

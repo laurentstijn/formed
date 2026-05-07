@@ -20,9 +20,10 @@ interface NamePlateProps {
   naam: string;
   materialType: string;
   fontData: any;
+  vorm: string;
 }
 
-function NamePlateModel({ width, height, thickness, huisnummer, naam, materialType, fontData }: NamePlateProps) {
+function NamePlateModel({ width, height, thickness, huisnummer, naam, materialType, fontData, vorm }: NamePlateProps) {
   const materials = React.useMemo(() => ({
     inox: new THREE.MeshStandardMaterial({
       color: "#a8adb0",
@@ -38,10 +39,10 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
     }),
     messing: new THREE.MeshPhysicalMaterial({
       color: "#c6a87c",
-      metalness: 1.0,
-      roughness: 0.25,
-      clearcoat: 0.3,
-      clearcoatRoughness: 0.2,
+      metalness: 0.9,
+      roughness: 0.3,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1,
       envMapIntensity: 1.5,
     }),
   }), []);
@@ -50,33 +51,37 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
 
   const geometry = React.useMemo(() => {
     const shape = new THREE.Shape();
-    
-    // Buitenrand
-    const hw = width / 2;
-    const hh = height / 2;
-    shape.moveTo(-hw, hh);
-    shape.lineTo(hw, hh);
-    shape.lineTo(hw, -hh);
-    shape.lineTo(-hw, -hh);
-    shape.lineTo(-hw, hh);
+    const w = vorm === 'vierkant' ? width : width;
+    const h = vorm === 'vierkant' ? width : height;
 
-    // Schroefgaten in hoeken
-    const r = 2.5; // 5mm diameter
+    if (vorm === 'ovaal') {
+      shape.ellipse(0, 0, w / 2, h / 2, 0, Math.PI * 2, false, 0);
+    } else {
+      shape.moveTo(-w / 2, -h / 2);
+      shape.lineTo(w / 2, -h / 2);
+      shape.lineTo(w / 2, h / 2);
+      shape.lineTo(-w / 2, h / 2);
+      shape.lineTo(-w / 2, -h / 2);
+    }
+
+    const holeRadius = 2.5;
     const margin = 12;
-    const holePositions = [
-      {x: -hw + margin, y: hh - margin},
-      {x: hw - margin, y: hh - margin},
-      {x: hw - margin, y: -hh + margin},
-      {x: -hw + margin, y: -hh + margin},
-    ];
-
-    holePositions.forEach(pos => {
+    const addHole = (hx: number, hy: number) => {
       const holePath = new THREE.Path();
-      holePath.absarc(pos.x, pos.y, r, 0, Math.PI * 2, false);
+      holePath.absarc(hx, hy, holeRadius, 0, Math.PI * 2, false);
       shape.holes.push(holePath);
-    });
+    };
 
-    // Functie om tekst toe te voegen als gaten
+    if (vorm === 'ovaal') {
+      addHole(-w / 2 + margin * 1.5, 0);
+      addHole(w / 2 - margin * 1.5, 0);
+    } else {
+      addHole(-w / 2 + margin, h / 2 - margin);
+      addHole(w / 2 - margin, h / 2 - margin);
+      addHole(w / 2 - margin, -h / 2 + margin);
+      addHole(-w / 2 + margin, -h / 2 + margin);
+    }
+
     const addTextHoles = (text: string, size: number, yOffset: number) => {
       if (!text || !fontData) return;
       try {
@@ -94,7 +99,7 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
         });
         
         const textWidth = xMax - xMin;
-        const maxWidth = width - 50; // 25mm padding aan elke kant
+        const maxWidth = width - 50;
         const scale = textWidth > maxWidth ? maxWidth / textWidth : 1.0;
 
         const offsetX = -(xMax + xMin) / 2;
@@ -111,7 +116,6 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
           });
           shape.holes.push(letterPath);
           
-          // Als de letter binnenste gaten heeft
           letterShape.holes.forEach(hole => {
             const hPoints = hole.getPoints(4);
             const innerPath = new THREE.Path();
@@ -129,16 +133,15 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
       }
     };
 
-    // Voeg huisnummer en naam toe
-    addTextHoles(huisnummer, height * 0.4, height * 0.15); // Bovenste helft, groot
-    addTextHoles(naam, height * 0.12, -height * 0.25); // Onderste helft, kleiner
+    addTextHoles(huisnummer, h * 0.4, h * 0.15);
+    addTextHoles(naam, h * 0.12, -h * 0.25);
 
     return new THREE.ExtrudeGeometry(shape, {
       depth: thickness,
       bevelEnabled: false,
       curveSegments: 24
     });
-  }, [width, height, thickness, huisnummer, naam, fontData]);
+  }, [width, height, thickness, huisnummer, naam, fontData, vorm]);
 
   return (
     <mesh geometry={geometry} material={plateMaterial} castShadow receiveShadow />
@@ -154,6 +157,7 @@ export default function NaambordjeConfigurator() {
   const [huisnummer, setHuisnummer] = useState<string>("42");
   const [naam, setNaam] = useState<string>("FAM. JANSEN");
   const [materialType, setMaterialType] = useState<string>("zwart");
+  const [vorm, setVorm] = useState<string>("rechthoek");
   
   const [fontData, setFontData] = useState<any>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -177,23 +181,33 @@ export default function NaambordjeConfigurator() {
       d.addLayer("CUT", Drawing.ACI.RED, "CONTINUOUS");
       d.addLayer("TEXT", Drawing.ACI.CYAN, "CONTINUOUS");
 
-      const hw = width / 2;
-      const hh = height / 2;
+      const w = vorm === 'vierkant' ? width : width;
+      const h = vorm === 'vierkant' ? width : height;
 
-      // 1. Buitenlijn
       d.setActiveLayer("OUTLINE");
-      d.drawRect(-hw, -hh, hw, hh);
+      if (vorm === 'ovaal') {
+        const isHorizontal = w >= h;
+        const majorX = isHorizontal ? w / 2 : 0;
+        const majorY = isHorizontal ? 0 : h / 2;
+        const ratio = isHorizontal ? h / w : w / h;
+        d.drawEllipse(0, 0, majorX, majorY, ratio);
+      } else {
+        d.drawRect(-w / 2, -h / 2, w / 2, h / 2);
+      }
 
-      // 2. Schroefgaten
       d.setActiveLayer("CUT");
       const r = 2.5;
       const margin = 12;
-      d.drawCircle(-hw + margin, hh - margin, r);
-      d.drawCircle(hw - margin, hh - margin, r);
-      d.drawCircle(hw - margin, -hh + margin, r);
-      d.drawCircle(-hw + margin, -hh + margin, r);
+      if (vorm === 'ovaal') {
+        d.drawCircle(-w / 2 + margin * 1.5, 0, r);
+        d.drawCircle(w / 2 - margin * 1.5, 0, r);
+      } else {
+        d.drawCircle(-w / 2 + margin, h / 2 - margin, r);
+        d.drawCircle(w / 2 - margin, h / 2 - margin, r);
+        d.drawCircle(w / 2 - margin, -h / 2 + margin, r);
+        d.drawCircle(-w / 2 + margin, -h / 2 + margin, r);
+      }
 
-      // 3. Tekst
       if (fontData) {
         d.setActiveLayer("TEXT");
         const font = new FontLoader().parse(fontData);
@@ -213,7 +227,7 @@ export default function NaambordjeConfigurator() {
           });
           
           const textWidth = xMax - xMin;
-          const maxWidth = width - 50;
+          const maxWidth = w - 50;
           const scale = textWidth > maxWidth ? maxWidth / textWidth : 1.0;
 
           const offsetX = -(xMax + xMin) / 2;
@@ -232,19 +246,17 @@ export default function NaambordjeConfigurator() {
           });
         };
 
-        addTextToDXF(huisnummer, height * 0.4, height * 0.15);
-        addTextToDXF(naam, height * 0.12, -height * 0.25);
+        addTextToDXF(huisnummer, h * 0.4, h * 0.15);
+        addTextToDXF(naam, h * 0.12, -h * 0.25);
       }
 
-      // DXF Header & String
       d.header("LWDEFAULT", [[280, 0]]);
       let dxfString = d.toDxfString();
       dxfString = dxfString.replace(/370\n-1/g, '370\n0');
       
       const safeNaam = naam.replace(/[^a-zA-Z0-9]/g, '_');
-      const fileName = `naambordje_${width}x${height}_${huisnummer}_${safeNaam}.dxf`;
+      const fileName = `naambordje_${w}x${h}_${huisnummer}_${safeNaam}.dxf`;
       
-      // Neem een snapshot van de 3D canvas
       let snapshotDataUrl = "/images/naambordje.png";
       const canvas = document.querySelector('canvas');
       if (canvas) {
@@ -255,10 +267,9 @@ export default function NaambordjeConfigurator() {
         }
       }
 
-      // Voeg toe aan winkelwagen zonder eerst naar de server te posten
       addItem({
-        id: "d423aeb6-fd6f-4eea-9d47-407e44419923" as any, // ID van seed
-        name: `Naambordje op maat: ${huisnummer} - ${naam} (${width}x${height}mm)`,
+        id: "d423aeb6-fd6f-4eea-9d47-407e44419923" as any,
+        name: `Naambordje op maat: ${huisnummer} - ${naam} (${w}x${h}mm, ${vorm})`,
         price: 89.00,
         image: snapshotDataUrl,
         color: materialType,
@@ -280,7 +291,6 @@ export default function NaambordjeConfigurator() {
       <SiteHeader />
       
       <div className="flex flex-col md:flex-row flex-1">
-        {/* Linker paneel: Controls */}
         <div className="w-full md:w-[400px] bg-white border-r border-zinc-200 flex flex-col h-[55vh] md:h-auto overflow-y-auto order-2 md:order-1">
           <div className="p-6 md:p-8 flex-1 space-y-8">
             <div>
@@ -289,6 +299,25 @@ export default function NaambordjeConfigurator() {
             </div>
 
             <div className="space-y-6">
+              <div className="space-y-4">
+                <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Vorm</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {['rechthoek', 'vierkant', 'ovaal'].map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setVorm(v)}
+                      className={`py-2 px-4 rounded-md border text-sm font-medium transition-colors capitalize ${
+                        vorm === v 
+                          ? 'bg-black text-white border-black' 
+                          : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Afmetingen (mm)</label>
                 <div className="grid grid-cols-2 gap-4">
@@ -302,16 +331,18 @@ export default function NaambordjeConfigurator() {
                       className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm rounded-md focus:ring-black focus:border-black block p-2.5"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs text-zinc-500 mb-1 block">Hoogte</label>
-                    <input 
-                      type="number" 
-                      min="50" max="400" 
-                      value={height} 
-                      onChange={(e) => setHeight(Number(e.target.value))}
-                      className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm rounded-md focus:ring-black focus:border-black block p-2.5"
-                    />
-                  </div>
+                  {vorm !== 'vierkant' && (
+                    <div>
+                      <label className="text-xs text-zinc-500 mb-1 block">Hoogte</label>
+                      <input 
+                        type="number" 
+                        min="50" max="400" 
+                        value={height} 
+                        onChange={(e) => setHeight(Number(e.target.value))}
+                        className="w-full bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm rounded-md focus:ring-black focus:border-black block p-2.5"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -400,6 +431,7 @@ export default function NaambordjeConfigurator() {
                   naam={naam}
                   materialType={materialType}
                   fontData={fontData}
+                  vorm={vorm}
                 />
               </Center>
               <ContactShadows 

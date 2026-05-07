@@ -39,11 +39,11 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
     }),
     messing: new THREE.MeshPhysicalMaterial({
       color: "#c6a87c",
-      metalness: 0.9,
-      roughness: 0.3,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.1,
-      envMapIntensity: 1.5,
+      metalness: 0.8,
+      roughness: 0.4,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.2,
+      envMapIntensity: 0.8,
     }),
   }), []);
 
@@ -99,7 +99,8 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
         });
         
         const textWidth = xMax - xMin;
-        const maxWidth = width - 50;
+        const availableWidth = vorm === 'ovaal' ? w * 0.75 : w;
+        const maxWidth = availableWidth - 50;
         const scale = textWidth > maxWidth ? maxWidth / textWidth : 1.0;
 
         const offsetX = -(xMax + xMin) / 2;
@@ -227,7 +228,8 @@ export default function NaambordjeConfigurator() {
           });
           
           const textWidth = xMax - xMin;
-          const maxWidth = w - 50;
+          const availableWidth = vorm === 'ovaal' ? w * 0.75 : w;
+          const maxWidth = availableWidth - 50;
           const scale = textWidth > maxWidth ? maxWidth / textWidth : 1.0;
 
           const offsetX = -(xMax + xMin) / 2;

@@ -43,12 +43,12 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
       envMapIntensity: 2.0,
     }),
     messing: new THREE.MeshPhysicalMaterial({
-      color: "#c6a87c", // Zachtere, meer realistische messing tint (minder knalgeel)
-      metalness: 1.0, // Volledig metaal (voorkomt plastic look)
-      roughness: 0.25, // Iets meer geborsteld voor een luxe sanitair-look
+      color: "#c6a87c",
+      metalness: 0.8,
+      roughness: 0.4,
       clearcoat: 0.3,
       clearcoatRoughness: 0.2,
-      envMapIntensity: 1.5,
+      envMapIntensity: 0.8,
     }),
   }), []);
 
@@ -173,6 +173,39 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
           holePath.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
           holePath.lineTo(x - w/2, y + h/2 - rRadius);
           holePath.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
+          
+          shapeFull.holes.push(holePath);
+        }
+      }
+    } else if (patternType === "golven") {
+      const waveSpacing = 16;
+      const waveWidth = 4;
+      const waveLength = width * 0.45;
+      const numWaves = Math.floor(usableLength / waveSpacing);
+      const startY = -((numWaves * waveSpacing) / 2) + waveSpacing / 2;
+      for (let i = 0; i < numWaves; i++) {
+        const y = startY + i * waveSpacing;
+        if (Math.abs(y) > clearance || text === "") {
+          const holePath = new THREE.Path();
+          const rRadius = waveWidth / 2;
+          const xLeft = -waveLength / 2;
+          const xRight = waveLength / 2;
+          const w = waveWidth;
+          const A = 5; // amplitude
+          
+          holePath.moveTo(xLeft, y + w/2);
+          holePath.bezierCurveTo(
+            xLeft + waveLength * 0.33, y + w/2 + A,
+            xLeft + waveLength * 0.66, y + w/2 - A,
+            xRight, y + w/2
+          );
+          holePath.absarc(xRight, y, rRadius, Math.PI/2, -Math.PI/2, true);
+          holePath.bezierCurveTo(
+            xLeft + waveLength * 0.66, y - w/2 - A,
+            xLeft + waveLength * 0.33, y - w/2 + A,
+            xLeft, y - w/2
+          );
+          holePath.absarc(xLeft, y, rRadius, -Math.PI/2, Math.PI/2, true);
           
           shapeFull.holes.push(holePath);
         }
@@ -449,6 +482,65 @@ export default function ShowerDrainConfigurator() {
             d.drawPolyline(pts, true);
           }
         }
+      } else if (patternType === "golven") {
+        const waveSpacing = 16;
+        const waveWidth = 4;
+        const waveLength = safeWidth * 0.45;
+        const numWaves = Math.floor(usableLength / waveSpacing);
+        const startY = -((numWaves * waveSpacing) / 2) + waveSpacing / 2;
+        
+        for (let i = 0; i < numWaves; i++) {
+          const y = startY + i * waveSpacing;
+          if (Math.abs(y) > clearance || text === "") {
+            const steps = 16;
+            const pts: [number, number][] = [];
+            const xLeft = -waveLength / 2;
+            const w = waveWidth;
+            const A = 5;
+            
+            for (let s = 0; s <= steps; s++) {
+              const t = s / steps;
+              const ptX = xLeft + t * waveLength;
+              const p0 = y + w/2;
+              const p1 = y + w/2 + A;
+              const p2 = y + w/2 - A;
+              const p3 = y + w/2;
+              const ptY = p0*Math.pow(1-t, 3) + p1*3*t*Math.pow(1-t, 2) + p2*3*Math.pow(t, 2)*(1-t) + p3*Math.pow(t, 3);
+              pts.push([ptX, ptY]);
+            }
+            
+            const rRadius = waveWidth / 2;
+            const rightCapSteps = 4;
+            for (let s = 1; s <= rightCapSteps; s++) {
+              const angle = Math.PI/2 - (Math.PI * s / rightCapSteps);
+              pts.push([
+                (xLeft + waveLength) + Math.cos(angle) * rRadius,
+                y + Math.sin(angle) * rRadius
+              ]);
+            }
+            
+            for (let s = 0; s <= steps; s++) {
+              const t = s / steps;
+              const ptX = (xLeft + waveLength) - t * waveLength;
+              const p0 = y - w/2;
+              const p1 = y - w/2 - A;
+              const p2 = y - w/2 + A;
+              const p3 = y - w/2;
+              const ptY = p0*Math.pow(1-t, 3) + p1*3*t*Math.pow(1-t, 2) + p2*3*Math.pow(t, 2)*(1-t) + p3*Math.pow(t, 3);
+              pts.push([ptX, ptY]);
+            }
+            
+            for (let s = 1; s < rightCapSteps; s++) {
+              const angle = -Math.PI/2 - (Math.PI * s / rightCapSteps);
+              pts.push([
+                xLeft + Math.cos(angle) * rRadius,
+                y + Math.sin(angle) * rRadius
+              ]);
+            }
+            
+            d.drawPolyline(pts, true);
+          }
+        }
       }
 
       // Forceer dunne lijnen (Hairline) in de header
@@ -640,6 +732,17 @@ export default function ShowerDrainConfigurator() {
                   }`}
                 >
                   Sleuven
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPatternType("golven")}
+                  className={`flex-1 py-2.5 rounded-md font-medium text-sm transition-all ${
+                    patternType === 'golven' 
+                      ? 'bg-background text-foreground shadow-sm' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Golven
                 </button>
               </div>
               <p className="text-xs text-muted-foreground mt-1">

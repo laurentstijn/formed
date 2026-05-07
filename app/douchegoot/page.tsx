@@ -304,159 +304,156 @@ export default function DouchegootConfigurator() {
     try {
       const d = new Drawing();
       d.setUnits("Millimeters");
-    
-    // Fallback voor lege inputs
-    const safeLength = typeof length === "number" ? length : 800;
-    const safeWidth = typeof width === "number" ? width : 50;
-    const safeHeight = typeof height === "number" ? height : 15;
-    
-    // Maak handige layers aan voor de productiemachines
-    d.addLayer("OUTLINE", Drawing.ACI.WHITE, "CONTINUOUS");
-    d.addLayer("BEND", Drawing.ACI.YELLOW, "DASHED");
-    d.addLayer("CUT", Drawing.ACI.RED, "CONTINUOUS");
-    d.addLayer("TEXT", Drawing.ACI.CYAN, "CONTINUOUS");
-
-    // 1. De Uitslag Buitenlijn
-    const flatWidth = safeWidth + safeHeight * 2; 
-    d.setActiveLayer("OUTLINE");
-    d.drawRect(-flatWidth / 2, -safeLength / 2, flatWidth / 2, safeLength / 2);
-
-    // 2. Plooilijnen
-    d.setActiveLayer("BEND");
-    const bendX1 = -flatWidth / 2 + safeHeight;
-    const bendX2 = flatWidth / 2 - safeHeight;
-    d.drawLine(bendX1, -safeLength / 2, bendX1, safeLength / 2);
-    d.drawLine(bendX2, -safeLength / 2, bendX2, safeLength / 2);
-
-    let clearance = 0;
-
-    // 3. Tekst
-    if (text && fontData) {
-      d.setActiveLayer("TEXT");
-      const font = new FontLoader().parse(fontData);
-      const shapes = font.generateShapes(text.toUpperCase(), safeWidth * 0.4);
       
-      let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
-      shapes.forEach(s => {
-        s.getPoints().forEach(p => {
-          if (p.x < xMin) xMin = p.x;
-          if (p.x > xMax) xMax = p.x;
-          if (p.y < yMin) yMin = p.y;
-          if (p.y > yMax) yMax = p.y;
-        });
-      });
-      const offsetX = -(xMax + xMin) / 2;
-      const offsetY = -(yMax + yMin) / 2;
+      // Fallback voor lege inputs
+      const safeLength = typeof length === "number" ? length : 800;
+      const safeWidth = typeof width === "number" ? width : 50;
+      const safeHeight = typeof height === "number" ? height : 15;
       
-      const realClearance = (xMax - xMin) / 2 + 15;
-      clearance = text === "" ? 0 : realClearance;
+      // Maak handige layers aan voor de productiemachines
+      d.addLayer("OUTLINE", Drawing.ACI.WHITE, "CONTINUOUS");
+      d.addLayer("BEND", Drawing.ACI.YELLOW, "DASHED");
+      d.addLayer("CUT", Drawing.ACI.RED, "CONTINUOUS");
+      d.addLayer("TEXT", Drawing.ACI.CYAN, "CONTINUOUS");
 
-      shapes.forEach(shape => {
-        const points = shape.getPoints(4);
-        const pts: [number, number][] = points.map(p => {
-          let px = p.x + offsetX;
-          let py = p.y + offsetY;
-          // Zelfde orientatie als 3D model
-          const rotX = -py;
-          const rotY = px;
-          return [rotX, rotY];
-        });
-        d.drawPolyline(pts, true);
+      // 1. De Uitslag Buitenlijn
+      const flatWidth = safeWidth + safeHeight * 2; 
+      d.setActiveLayer("OUTLINE");
+      d.drawRect(-flatWidth / 2, -safeLength / 2, flatWidth / 2, safeLength / 2);
+
+      // 2. Plooilijnen
+      d.setActiveLayer("BEND");
+      const bendX1 = -flatWidth / 2 + safeHeight;
+      const bendX2 = flatWidth / 2 - safeHeight;
+      d.drawLine(bendX1, -safeLength / 2, bendX1, safeLength / 2);
+      d.drawLine(bendX2, -safeLength / 2, bendX2, safeLength / 2);
+
+      let clearance = 0;
+
+      // 3. Tekst
+      if (text && fontData) {
+        d.setActiveLayer("TEXT");
+        const font = new FontLoader().parse(fontData);
+        const shapes = font.generateShapes(text.toUpperCase(), safeWidth * 0.4);
         
-        shape.holes.forEach(hole => {
-          const hPoints = hole.getPoints(4);
-          const hPts: [number, number][] = hPoints.map(p => {
+        let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+        shapes.forEach(s => {
+          s.getPoints().forEach(p => {
+            if (p.x < xMin) xMin = p.x;
+            if (p.x > xMax) xMax = p.x;
+            if (p.y < yMin) yMin = p.y;
+            if (p.y > yMax) yMax = p.y;
+          });
+        });
+        const offsetX = -(xMax + xMin) / 2;
+        const offsetY = -(yMax + yMin) / 2;
+        
+        const realClearance = (xMax - xMin) / 2 + 15;
+        clearance = text === "" ? 0 : realClearance;
+
+        shapes.forEach(shape => {
+          const points = shape.getPoints(4);
+          const pts: [number, number][] = points.map(p => {
             let px = p.x + offsetX;
             let py = p.y + offsetY;
+            // Zelfde orientatie als 3D model
             const rotX = -py;
             const rotY = px;
             return [rotX, rotY];
           });
-          d.drawPolyline(hPts, true);
+          d.drawPolyline(pts, true);
+          
+          shape.holes.forEach(hole => {
+            const hPoints = hole.getPoints(4);
+            const hPts: [number, number][] = hPoints.map(p => {
+              let px = p.x + offsetX;
+              let py = p.y + offsetY;
+              const rotX = -py;
+              const rotY = px;
+              return [rotX, rotY];
+            });
+            d.drawPolyline(hPts, true);
+          });
         });
-      });
-    }
+      }
 
-    // 4. Afvoer Gaten Patroon met Afronding
-    d.setActiveLayer("CUT");
-    const edgeMargin = 20;
-    const usableLength = safeLength - 2 * edgeMargin;
+      // 4. Afvoer Gaten Patroon met Afronding
+      d.setActiveLayer("CUT");
+      const edgeMargin = 20;
+      const usableLength = safeLength - 2 * edgeMargin;
+      
+      if (patternType === "vierkant") {
+        const holeSize = 6, holeSpacing = 4, numRows = 3;
+        const step = holeSize + holeSpacing;
+        if (step > 2) {
+          const numCols = Math.floor(usableLength / step);
+          const startY = -((numCols * step) / 2) + step / 2; // Y is de lengte in DXF
     
-    if (patternType === "vierkant") {
-      const holeSize = 6, holeSpacing = 4, numRows = 3;
-      const step = holeSize + holeSpacing;
-      if (step > 2) {
-        const numCols = Math.floor(usableLength / step);
-        const startY = -((numCols * step) / 2) + step / 2; // Y is de lengte in DXF
-  
-        const rowStep = holeSize + holeSpacing;
-        const totalPatternWidth = numRows * holeSize + (numRows - 1) * holeSpacing;
-        const startX = -totalPatternWidth / 2 + holeSize / 2; // X is breedte in DXF
-  
-        for (let c = 0; c < numCols; c++) {
-          const y = startY + c * step;
-          if (Math.abs(y) > clearance || text === "") {
-            for (let r = 0; r < numRows; r++) {
-              const x = startX + r * rowStep;
-              const path = new THREE.Path();
-              const rRadius = 1;
-              const w = holeSize;
-              const h = holeSize;
-              path.moveTo(x - w/2 + rRadius, y + h/2);
-              path.lineTo(x + w/2 - rRadius, y + h/2);
-              path.absarc(x + w/2 - rRadius, y + h/2 - rRadius, rRadius, Math.PI/2, 0, true);
-              path.lineTo(x + w/2, y - h/2 + rRadius);
-              path.absarc(x + w/2 - rRadius, y - h/2 + rRadius, rRadius, 0, -Math.PI/2, true);
-              path.lineTo(x - w/2 + rRadius, y - h/2);
-              path.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
-              path.lineTo(x - w/2, y + h/2 - rRadius);
-              path.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
-              
-              const pts: [number, number][] = path.getPoints(2).map(p => [p.x, p.y]);
-              d.drawPolyline(pts, true);
+          const rowStep = holeSize + holeSpacing;
+          const totalPatternWidth = numRows * holeSize + (numRows - 1) * holeSpacing;
+          const startX = -totalPatternWidth / 2 + holeSize / 2; // X is breedte in DXF
+    
+          for (let c = 0; c < numCols; c++) {
+            const y = startY + c * step;
+            if (Math.abs(y) > clearance || text === "") {
+              for (let r = 0; r < numRows; r++) {
+                const x = startX + r * rowStep;
+                const path = new THREE.Path();
+                const rRadius = 1;
+                const w = holeSize;
+                const h = holeSize;
+                path.moveTo(x - w/2 + rRadius, y + h/2);
+                path.lineTo(x + w/2 - rRadius, y + h/2);
+                path.absarc(x + w/2 - rRadius, y + h/2 - rRadius, rRadius, Math.PI/2, 0, true);
+                path.lineTo(x + w/2, y - h/2 + rRadius);
+                path.absarc(x + w/2 - rRadius, y - h/2 + rRadius, rRadius, 0, -Math.PI/2, true);
+                path.lineTo(x - w/2 + rRadius, y - h/2);
+                path.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
+                path.lineTo(x - w/2, y + h/2 - rRadius);
+                path.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
+                
+                const pts: [number, number][] = path.getPoints(2).map(p => [p.x, p.y]);
+                d.drawPolyline(pts, true);
+              }
             }
           }
         }
-      }
-    } else if (patternType === "sleuven") {
-      const slotSpacing = 20;
-      const slotWidth = 4;
-      const slotLength = safeWidth * 0.4;
-      const numSlots = Math.floor(usableLength / slotSpacing);
-      const startY = -((numSlots * slotSpacing) / 2) + slotSpacing / 2;
-      
-      for (let i = 0; i < numSlots; i++) {
-        const y = startY + i * slotSpacing;
-        if (Math.abs(y) > clearance || text === "") {
-          const path = new THREE.Path();
-          const rRadius = 2;
-          const w = slotLength;
-          const h = slotWidth;
-          const x = 0;
-          path.moveTo(x - w/2 + rRadius, y + h/2);
-          path.lineTo(x + w/2 - rRadius, y + h/2);
-          path.absarc(x + w/2 - rRadius, y + h/2 - rRadius, rRadius, Math.PI/2, 0, true);
-          path.lineTo(x + w/2, y - h/2 + rRadius);
-          path.absarc(x + w/2 - rRadius, y - h/2 + rRadius, rRadius, 0, -Math.PI/2, true);
-          path.lineTo(x - w/2 + rRadius, y - h/2);
-          path.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
-          path.lineTo(x - w/2, y + h/2 - rRadius);
-          path.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
-          
-          const pts: [number, number][] = path.getPoints(2).map(p => [p.x, p.y]);
-          d.drawPolyline(pts, true);
+      } else if (patternType === "sleuven") {
+        const slotSpacing = 20;
+        const slotWidth = 4;
+        const slotLength = safeWidth * 0.4;
+        const numSlots = Math.floor(usableLength / slotSpacing);
+        const startY = -((numSlots * slotSpacing) / 2) + slotSpacing / 2;
+        
+        for (let i = 0; i < numSlots; i++) {
+          const y = startY + i * slotSpacing;
+          if (Math.abs(y) > clearance || text === "") {
+            const path = new THREE.Path();
+            const rRadius = 2;
+            const w = slotLength;
+            const h = slotWidth;
+            const x = 0;
+            path.moveTo(x - w/2 + rRadius, y + h/2);
+            path.lineTo(x + w/2 - rRadius, y + h/2);
+            path.absarc(x + w/2 - rRadius, y + h/2 - rRadius, rRadius, Math.PI/2, 0, true);
+            path.lineTo(x + w/2, y - h/2 + rRadius);
+            path.absarc(x + w/2 - rRadius, y - h/2 + rRadius, rRadius, 0, -Math.PI/2, true);
+            path.lineTo(x - w/2 + rRadius, y - h/2);
+            path.absarc(x - w/2 + rRadius, y - h/2 + rRadius, rRadius, -Math.PI/2, -Math.PI, true);
+            path.lineTo(x - w/2, y + h/2 - rRadius);
+            path.absarc(x - w/2 + rRadius, y + h/2 - rRadius, rRadius, Math.PI, Math.PI/2, true);
+            
+            const pts: [number, number][] = path.getPoints(2).map(p => [p.x, p.y]);
+            d.drawPolyline(pts, true);
+          }
         }
       }
-    }
 
-
-    // Genereer de file
-    const dxfString = d.toDxfString();
-    const safeText = text.replace(/[^a-zA-Z0-9]/g, '_');
-    const fileName = `uitslag_douchegoot_${safeLength}x${safeWidth}_${safeText}.dxf`;
-    
-    // Naar Bureaublad schrijven via API
-    try {
+      // Genereer de file
+      const dxfString = d.toDxfString();
+      const safeText = text.replace(/[^a-zA-Z0-9]/g, '_');
+      const fileName = `uitslag_douchegoot_${safeLength}x${safeWidth}_${safeText}.dxf`;
+      
       const res = await fetch('/api/save-dxf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

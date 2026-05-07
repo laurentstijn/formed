@@ -5,7 +5,7 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 
 export type CartItem = {
-  id: number
+  id: string | number
   name: string
   price: number
   quantity: number
@@ -13,13 +13,15 @@ export type CartItem = {
   color?: string
   variant_id?: string
   variant_name?: string
+  dxf_string?: string
+  dxf_filename?: string
 }
 
 type CartContextType = {
   items: CartItem[]
   addItem: (item: Omit<CartItem, "quantity">) => void
-  removeItem: (id: number, variantId?: string) => void
-  updateQuantity: (id: number, quantity: number, variantId?: string) => void
+  removeItem: (id: string | number, variantId?: string) => void
+  updateQuantity: (id: string | number, quantity: number, variantId?: string) => void
   clearCart: () => void
   totalItems: number
   totalPrice: number
@@ -57,13 +59,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  const removeItem = (id: number, variantId?: string) => {
+  const removeItem = (id: string | number, variantId?: string) => {
     setItems((currentItems) =>
       currentItems.filter((item) => !(item.id === id && (variantId ? item.variant_id === variantId : true))),
     )
   }
 
-  const updateQuantity = (id: number, quantity: number, variantId?: string) => {
+  const updateQuantity = (id: string | number, quantity: number, variantId?: string) => {
     if (quantity <= 0) {
       removeItem(id, variantId)
       return

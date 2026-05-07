@@ -4,16 +4,16 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Achtergrond aangepast naar zeer zachte, subtiele blush roze tint */
-  --background: oklch(0.98 0.015 15);
-  --foreground: oklch(0.205 0 0);
-  /* Cards in bijna wit met een hint van roze */
-  --card: oklch(0.99 0.01 15);
-  --card-foreground: oklch(0.205 0 0);
-  --popover: oklch(0.995 0.008 15);
-  --popover-foreground: oklch(0.205 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  /* Achtergrond aangepast naar grijzige off-white (minimalistisch) */
+  --background: oklch(0.95 0.005 90);
+  --foreground: oklch(0.18 0 0);
+  /* Cards in off-white */
+  --card: oklch(0.95 0.005 90);
+  --card-foreground: oklch(0.18 0 0);
+  --popover: oklch(0.96 0.005 90);
+  --popover-foreground: oklch(0.18 0 0);
+  --primary: oklch(0.18 0 0);
+  --primary-foreground: oklch(0.98 0 0);
   /* Secondary en accent in zeer zachte roze grijze tonen */
   --secondary: oklch(0.95 0.015 15);
   --secondary-foreground: oklch(0.205 0 0);
@@ -80,10 +80,10 @@
 }
 
 @theme inline {
-  /* Open Sans als hoofdfont voor hele website */
-  --font-sans: "Open Sans", sans-serif;
-  --font-mono: "Open Sans", sans-serif;
-  --font-serif: "Open Sans", sans-serif;
+  /* Monospace als hoofdfont via next/font */
+  --font-sans: var(--font-sans), sans-serif;
+  --font-mono: var(--font-mono), monospace;
+  --font-serif: var(--font-mono), monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

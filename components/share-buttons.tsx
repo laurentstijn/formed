@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Facebook, Twitter, Linkedin, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -22,12 +23,20 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
     pinterest: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedTitle}`,
   }
 
+  const [canShare, setCanShare] = useState(false)
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      setCanShare(true)
+    }
+  }, [])
+
   const handleShare = (platform: keyof typeof shareLinks) => {
     window.open(shareLinks[platform], "_blank", "noopener,noreferrer,width=600,height=600")
   }
 
   const handleNativeShare = async () => {
-    if (navigator.share) {
+    if (canShare) {
       try {
         await navigator.share({
           title,
@@ -99,7 +108,7 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
       </Button>
 
       {/* Native Share (for mobile) */}
-      {typeof navigator !== "undefined" && navigator.share && (
+      {canShare && (
         <Button variant="outline" size="icon" onClick={handleNativeShare} className="hover:bg-muted bg-transparent">
           <Share2 className="h-4 w-4" />
         </Button>

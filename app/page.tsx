@@ -136,6 +136,11 @@ export default function HomePage() {
                           <span className="text-white font-semibold text-lg">Uitverkocht</span>
                         </div>
                       )}
+                      {product.is_new && !isProductOutOfStock(product) && (
+                        <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                          Nieuw
+                        </div>
+                      )}
                     </div>
                     <div className="p-6">
                       <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">{product.category}</p>
@@ -156,7 +161,11 @@ export default function HomePage() {
                                     : "text-green-600"
                               }`}
                             >
-                              {totalStock === 0 ? "Uitverkocht" : `${totalStock} op voorraad`}
+                              {totalStock === 0 
+                                ? "Uitverkocht" 
+                                : totalStock > 50 
+                                  ? "Op bestelling gemaakt" 
+                                  : `${totalStock} op voorraad`}
                             </span>
                           )
                         })()}

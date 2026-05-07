@@ -101,15 +101,20 @@ export function ProductDetailClient({ product, productUrl, variants }: ProductDe
         ? [product.technical_drawing]
         : []
 
+    let combinedImages: string[] = []
+
     if (colorImages.length > 0) {
-      return [...colorImages, ...technicalDrawing, ...galleryImages]
+      combinedImages = [...colorImages, ...technicalDrawing, ...galleryImages]
     } else if (galleryImages.length > 0) {
-      return [...mainImage, ...technicalDrawing, ...galleryImages]
+      combinedImages = [...mainImage, ...technicalDrawing, ...galleryImages]
     } else if (technicalDrawing.length > 0) {
-      return [...mainImage, ...technicalDrawing]
+      combinedImages = [...mainImage, ...technicalDrawing]
     } else {
-      return mainImage
+      combinedImages = mainImage
     }
+
+    // Verwijder duplicaten zodat dezelfde foto niet 2x verschijnt
+    return Array.from(new Set(combinedImages.filter(Boolean)))
   })()
 
   console.log("[v0] Final display images:", displayImages)
@@ -140,6 +145,10 @@ export function ProductDetailClient({ product, productUrl, variants }: ProductDe
           ) : availableStock !== undefined && availableStock <= 5 ? (
             <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-lg">
               <p className="text-sm">Nog maar {availableStock} stuks op voorraad</p>
+            </div>
+          ) : availableStock !== undefined && availableStock > 50 ? (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+              <p className="text-sm">Op bestelling gemaakt</p>
             </div>
           ) : (
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -191,12 +200,22 @@ export function ProductDetailClient({ product, productUrl, variants }: ProductDe
           <ProductGallery images={displayImages} productName={product.name} isOutOfStock={availableStock === 0} />
         </div>
 
-        <AddToCartButton
-          product={product}
-          availableStock={availableStock}
-          selectedColor={sortedColors?.[selectedColorIndex]?.name}
-          selectedVariant={selectedVariant}
-        />
+        {product.name === "Gepersonaliseerde Douchegoot" ? (
+          <a href="/douchegoot" className="w-full inline-flex justify-center items-center px-8 py-4 bg-foreground text-background font-semibold rounded-lg hover:opacity-90 transition-opacity">
+            Personaliseer in 3D
+          </a>
+        ) : product.name === "Gepersonaliseerd Naambordje" ? (
+          <a href="/naambordje" className="w-full inline-flex justify-center items-center px-8 py-4 bg-foreground text-background font-semibold rounded-lg hover:opacity-90 transition-opacity">
+            Personaliseer in 3D
+          </a>
+        ) : (
+          <AddToCartButton
+            product={product}
+            availableStock={availableStock}
+            selectedColor={sortedColors?.[selectedColorIndex]?.name}
+            selectedVariant={selectedVariant}
+          />
+        )}
 
         <div className="mt-6 pt-6 border-t border-border">
           <ShareButtons url={productUrl} title={`${product.name} - FORMD`} description={product.description} />

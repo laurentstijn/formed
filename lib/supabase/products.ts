@@ -28,6 +28,7 @@ export type Product = {
   stock?: number
   display_order?: number
   is_active?: boolean
+  is_new?: boolean
   created_at?: string
   updated_at?: string
   main_image_source?: string
@@ -65,6 +66,7 @@ export async function getProducts(): Promise<Product[]> {
       stock: product.stock,
       display_order: product.display_order,
       is_active: product.is_active,
+      is_new: product.is_new || false,
       created_at: product.created_at,
       updated_at: product.updated_at,
       main_image_source: product.main_image_source,
@@ -108,6 +110,7 @@ export async function getAllProducts(): Promise<Product[]> {
       stock: product.stock,
       display_order: product.display_order,
       is_active: product.is_active,
+      is_new: product.is_new || false,
       created_at: product.created_at,
       updated_at: product.updated_at,
       main_image_source: product.main_image_source,
@@ -155,6 +158,7 @@ export async function getProductById(id: string): Promise<Product | null> {
       stock: product.stock,
       display_order: product.display_order,
       is_active: product.is_active,
+      is_new: product.is_new || false,
       created_at: product.created_at,
       updated_at: product.updated_at,
       main_image_source: product.main_image_source,
@@ -182,6 +186,7 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
       image: product.image,
       category: product.category,
       is_active: product.is_active !== false,
+      is_new: product.is_new === true,
       stock: product.stock || 0,
       features: product.features || [],
       colors: product.colors || [],
@@ -212,6 +217,7 @@ export async function updateProduct(id: string, updates: Partial<Product>) {
   if (updates.image !== undefined) updateData.image_url = updates.image
   if (updates.category !== undefined) updateData.category = updates.category
   if (updates.is_active !== undefined) updateData.is_active = updates.is_active
+  if (updates.is_new !== undefined) updateData.is_new = updates.is_new
   if (updates.stock !== undefined) updateData.stock = updates.stock
   if (updates.features !== undefined) updateData.features = updates.features
   if (updates.colors !== undefined) updateData.colors = updates.colors

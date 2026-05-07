@@ -1,13 +1,22 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Open_Sans } from "next/font/google"
+import { IBM_Plex_Mono, Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { CartProvider } from "@/components/cart-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { DemoModeBanner } from "@/components/demo-mode-banner"
 
-const openSans = Open_Sans({ subsets: ["latin"] })
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-mono",
+})
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+})
 
 export const metadata: Metadata = {
   title: "FORMD - Formd in steel",
@@ -45,7 +54,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl">
-      <body className={`${openSans.className} antialiased`}>
+      <body className={`${ibmPlexMono.variable} ${inter.variable} font-mono antialiased uppercase tracking-wide`}>
         <CartProvider>
           <DemoModeBanner />
           {children}

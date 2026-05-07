@@ -11,6 +11,8 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import Drawing from "dxf-writer";
+import { useCart } from "@/components/cart-provider";
+import { useRouter } from "next/navigation";
 
 interface ShowerDrainProps {
   length: number;
@@ -18,7 +20,6 @@ interface ShowerDrainProps {
   height: number;
   thickness: number;
   text: string;
-  edgeMargin: number;
   patternType: string;
   materialType: string;
   fontData: any;
@@ -266,15 +267,16 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
   );
 }
 
-export default function DouchegootConfigurator() {
-  const [length, setLength] = useState<number | "">(800); 
-  const [width, setWidth] = useState<number | "">(50); 
-  const [height, setHeight] = useState<number | "">(15); 
-  const [thickness, setThickness] = useState(1); 
-  const [text, setText] = useState("UW TEKST");
-  
-  const [patternType, setPatternType] = useState("vierkant"); // 'vierkant' of 'sleuven'
-  const [materialType, setMaterialType] = useState("inox"); // 'inox', 'chrome', 'messing'
+export default function ShowerDrainConfigurator() {
+  const router = useRouter();
+  const { addItem } = useCart();
+  const [length, setLength] = useState<number | "">(800);
+  const [width, setWidth] = useState<number | "">(50);
+  const [height, setHeight] = useState<number | "">(15);
+  const [thickness, setThickness] = useState<number>(1);
+  const [text, setText] = useState<string>("UW TEKST");
+  const [patternType, setPatternType] = useState<string>("vierkant");
+  const [materialType, setMaterialType] = useState<string>("inox"); // 'inox', 'chrome', 'messing'
   const [fontData, setFontData] = useState<any>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -460,20 +462,33 @@ export default function DouchegootConfigurator() {
       const safeText = text.replace(/[^a-zA-Z0-9]/g, '_');
       const fileName = `uitslag_douchegoot_${safeLength}x${safeWidth}_${safeText}.dxf`;
       
-      const res = await fetch('/api/save-dxf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: fileName, dxfContent: dxfString })
+      // Neem een snapshot van de 3D canvas
+      let snapshotDataUrl = "/images/douchegoot.png";
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        try {
+          snapshotDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        } catch (e) {
+          console.error("Kon geen snapshot maken", e);
+        }
+      }
+
+      // Voeg toe aan winkelwagen zonder eerst naar de server te posten
+      addItem({
+        id: "936ed3f8-a94f-4a3c-88cc-8c1afb63c9c9" as any, // Gebruik de UUID van de database, we casten even als any omdat addItem number verwacht in de oude typings
+        name: `Douchegoot op maat: ${safeLength}x${safeWidth}mm`,
+        price: 149.00,
+        image: snapshotDataUrl,
+        color: materialType,
+        dxf_string: dxfString,
+        dxf_filename: fileName
       });
       
-      if (res.ok) {
-        alert(`SUCCES!\nDe productieklare DXF (${fileName}) is zojuist direct gemaild naar info@formd.be.`);
-      } else {
-        alert("Oeps, er ging iets mis bij het mailen van de DXF.");
-      }
+      // Navigeer naar cart
+      router.push('/cart');
     } catch (err) {
       console.error(err);
-      alert("Kan e-mail niet verzenden.");
+      alert("Er is een fout opgetreden.");
     } finally {
       setIsExporting(false);
     }
@@ -651,12 +666,12 @@ export default function DouchegootConfigurator() {
                 {isExporting ? (
                   <>
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    DXF Genereren...
+                    Toevoegen aan winkelwagen...
                   </>
                 ) : (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5C2 7 4 5 6.5 5H18c2.2 0 4 1.8 4 4v8Z"/><polyline points="15,9 18,9 18,11"/><path d="M5.5 7.4L12 12l6.5-4.6"/></svg>
-                    Verstuur DXF naar info@formd.be
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                    In Winkelwagen
                   </>
                 )}
               </button>
@@ -666,7 +681,7 @@ export default function DouchegootConfigurator() {
 
         {/* Rechter paneel: 3D Weergave */}
         <div className="flex-1 relative bg-zinc-100 min-h-[350px] md:min-h-[500px] h-[45vh] md:h-auto shrink-0 md:shrink md:flex-1 order-1 md:order-2">
-          <Canvas camera={{ position: [600, 400, -600], fov: 40, near: 0.1, far: 10000 }}>
+          <Canvas gl={{ preserveDrawingBuffer: true }} camera={{ position: [600, 400, -600], fov: 40, near: 0.1, far: 10000 }}>
             <color attach="background" args={["#f4f4f5"]} />
             
             <ambientLight intensity={0.8} />

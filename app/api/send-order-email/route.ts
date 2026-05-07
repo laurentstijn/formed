@@ -217,11 +217,22 @@ export async function POST(request: NextRequest) {
       console.log("[v0] Subject:", adminSubject)
       console.log("[v0] Sending admin email now...")
 
+      const attachments: any[] = [];
+      order.items.forEach((item: any) => {
+        if (item.dxf_string && item.dxf_filename) {
+          attachments.push({
+            filename: item.dxf_filename,
+            content: Buffer.from(item.dxf_string, 'utf-8')
+          });
+        }
+      });
+
       adminEmailResult = await resend.emails.send({
         from: `FORMD <${fromEmail}>`,
         to: adminEmail,
         subject: adminSubject,
         html: adminHtml,
+        attachments: attachments.length > 0 ? attachments : undefined,
       })
 
       console.log("[v0] ✅ Admin email Resend response:", JSON.stringify(adminEmailResult, null, 2))

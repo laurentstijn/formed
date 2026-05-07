@@ -208,7 +208,7 @@ export async function POST(request: Request) {
         )
       }
 
-      if (item.color && product.colors) {
+      if (item.color && product.colors && product.colors.length > 0) {
         const selectedColorData = product.colors.find((c: any) => c.name === item.color)
 
         if (!selectedColorData || !selectedColorData.stock || selectedColorData.stock < item.quantity) {

@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { createProduct, updateProduct, deleteProduct, updateProductOrder, type Product } from "@/lib/supabase/products"
 import { getAllProducts } from "@/lib/supabase/products"
 import { GripVertical, Pencil, Trash2, Plus, Power, PowerOff, X, Upload, FileText } from "lucide-react"
@@ -56,11 +57,14 @@ export default function ProductsManagement() {
     gallery_images: [] as string[],
     technical_drawing: "",
     isActive: true,
+    isNew: false,
+    stock: 0,
     colors: [] as { name: string; hex: string; stock: number; images: string[] }[],
     features: "",
     materials: "",
     dimensions: "",
     main_image_source: "" as string,
+    isNew: false,
   })
 
   const addCategory = () => {
@@ -150,9 +154,9 @@ export default function ProductsManagement() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const maxSize = 2 * 1024 * 1024 // 2MB
+    const maxSize = 10 * 1024 * 1024 // 10MB
     if (file.size > maxSize) {
-      toast.error("Afbeelding is te groot (max 2MB)")
+      toast.error("Afbeelding is te groot (max 10MB)")
       return
     }
 
@@ -209,6 +213,8 @@ export default function ProductsManagement() {
       materials: product.materials || "",
       dimensions: product.dimensions || "",
       main_image_source: product.main_image_source || "",
+      isNew: product.is_new || false,
+      stock: product.stock || 0,
     })
     setIsDialogOpen(true)
   }
@@ -243,6 +249,8 @@ export default function ProductsManagement() {
       materials: "",
       dimensions: "",
       main_image_source: "",
+      isNew: false,
+      stock: 0,
     })
     setSelectedVariant(null)
     setVariantFormData({ name: "", price: "", stock: 0, sku: "" })
@@ -326,9 +334,9 @@ export default function ProductsManagement() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const maxSize = 2 * 1024 * 1024 // 2MB
+    const maxSize = 10 * 1024 * 1024 // 10MB
     if (file.size > maxSize) {
-      toast.error("Afbeelding is te groot (max 2MB)")
+      toast.error("Afbeelding is te groot (max 10MB)")
       return
     }
 
@@ -406,6 +414,8 @@ export default function ProductsManagement() {
       dimensions: formData.dimensions,
       colors: formData.colors.filter((c) => c != null),
       is_active: formData.isActive,
+      is_new: formData.isNew,
+      stock: formData.stock,
     }
 
     try {
@@ -1129,6 +1139,23 @@ export default function ProductsManagement() {
                     </div>
                   </div>
 
+                  {(!formData.colors || formData.colors.length === 0) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="stock">Algemene Voorraad</Label>
+                      <Input
+                        id="stock"
+                        type="number"
+                        min="0"
+                        value={formData.stock}
+                        onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
+                        placeholder="0"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Als je kleuren toevoegt, wordt de voorraad per kleur beheerd.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="category">Categorie (optioneel)</Label>
                     <Select
@@ -1185,6 +1212,25 @@ export default function ProductsManagement() {
                         </Button>
                       </div>
                     )}
+                  </div>
+
+                  <div className="flex items-center space-x-4 pt-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="isActive"
+                        checked={formData.isActive}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked === true })}
+                      />
+                      <Label htmlFor="isActive" className="cursor-pointer">Zichtbaar in webshop</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="isNew"
+                        checked={formData.isNew}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isNew: checked === true })}
+                      />
+                      <Label htmlFor="isNew" className="cursor-pointer">Markeer als "Nieuw" (badge)</Label>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -1250,6 +1296,17 @@ export default function ProductsManagement() {
                                   Hoofdfoto
                                 </div>
                               )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  removeGalleryImage(index)
+                                }}
+                                className="absolute top-2 left-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md z-10"
+                                title="Verwijder afbeelding"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </button>
                           )
                         })}

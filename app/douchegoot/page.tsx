@@ -25,7 +25,7 @@ interface ShowerDrainProps {
   fontData: any;
 }
 
-function ShowerDrainModel({ length, width, height, thickness, text, patternType, materialType, fontData }: ShowerDrainProps) {
+function ShowerDrainModel({ length, width, height, thickness, text, patternType, materialType, fontData, letterSpacing }: ShowerDrainProps & { letterSpacing: number }) {
   // Luxe materialen opzetten met useMemo zodat ze niet elke frame opnieuw opbouwen
   const materials = React.useMemo(() => ({
     inox: new THREE.MeshStandardMaterial({
@@ -65,33 +65,68 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
     if (!text || !fontData) return { clearance: 0, textPaths: paths };
     try {
       const font = new FontLoader().parse(fontData);
-      const shapes = font.generateShapes(text.toUpperCase(), width * 0.4);
-      let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
-      shapes.forEach(s => {
-        s.getPoints().forEach(p => {
-          if (p.x < xMin) xMin = p.x;
-          if (p.x > xMax) xMax = p.x;
-          if (p.y < yMin) yMin = p.y;
-          if (p.y > yMax) yMax = p.y;
+      const textUpper = text.toUpperCase();
+      const size = width * 0.4;
+      const scale = size / font.data.resolution;
+      
+      let currentX = 0;
+      let globalXMin = Infinity, globalXMax = -Infinity, globalYMin = Infinity, globalYMax = -Infinity;
+      
+      const charData: { points: THREE.Vector2[], holes: THREE.Vector2[][], xOffset: number }[] = [];
+
+      for (let i = 0; i < textUpper.length; i++) {
+        const char = textUpper.charAt(i);
+        const cShapes = font.generateShapes(char, size);
+        
+        cShapes.forEach(s => {
+          const pts = s.getPoints(4);
+          const hPts = s.holes ? s.holes.map(h => h.getPoints(4)) : [];
+          
+          pts.forEach(p => {
+            const finalX = p.x + currentX;
+            if (finalX < globalXMin) globalXMin = finalX;
+            if (finalX > globalXMax) globalXMax = finalX;
+            if (p.y < globalYMin) globalYMin = p.y;
+            if (p.y > globalYMax) globalYMax = p.y;
+          });
+          
+          charData.push({ points: pts, holes: hPts, xOffset: currentX });
         });
-      });
-      realClearance = (xMax - xMin) / 2 + 15;
+        
+        const glyph = font.data.glyphs[char] || font.data.glyphs['?'];
+        if (glyph) {
+          currentX += glyph.ha * scale + letterSpacing;
+        }
+      }
+      
+      realClearance = (globalXMax - globalXMin) / 2 + 15;
+      const offsetX = -(globalXMax + globalXMin) / 2;
+      const offsetY = -(globalYMax + globalYMin) / 2;
 
-      const offsetX = -(xMax + xMin) / 2;
-      const offsetY = -(yMax + yMin) / 2;
-
-      shapes.forEach(letterShape => {
-        const points = letterShape.getPoints(4); // 4 is laag genoeg voor performance
+      charData.forEach(cd => {
         const letterPath = new THREE.Path();
-        points.forEach((p, i) => {
-          const px = p.x + offsetX;
+        cd.points.forEach((p, i) => {
+          const px = p.x + cd.xOffset + offsetX;
           const py = p.y + offsetY;
-          // 90 graden rotatie
           const rotX = -py; 
           const rotY = px;
           if (i === 0) letterPath.moveTo(rotX, rotY);
           else letterPath.lineTo(rotX, rotY);
         });
+        
+        cd.holes.forEach(holePoints => {
+          const holePath = new THREE.Path();
+          holePoints.forEach((p, i) => {
+            const px = p.x + cd.xOffset + offsetX;
+            const py = p.y + offsetY;
+            const rotX = -py; 
+            const rotY = px;
+            if (i === 0) holePath.moveTo(rotX, rotY);
+            else holePath.lineTo(rotX, rotY);
+          });
+          letterPath.holes.push(holePath);
+        });
+        
         paths.push(letterPath);
       });
       
@@ -100,7 +135,7 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
       console.error("Font error", e);
       return { clearance: 0, textPaths: paths };
     }
-  }, [text, fontData, width]);
+  }, [text, fontData, width, letterSpacing]);
 
   // Wiskunde voor de Top Plaat (Solid, patroongaten, géén CSG)
   const topPlateGeometry = React.useMemo(() => {
@@ -330,6 +365,7 @@ export default function ShowerDrainConfigurator() {
   const [materialType, setMaterialType] = useState<string>("inox"); // 'inox', 'chrome', 'messing'
   const [fontData, setFontData] = useState<any>(null);
   const [fontUrl, setFontUrl] = useState<string>("/AllertaStencil-Regular.ttf");
+  const [letterSpacing, setLetterSpacing] = useState<number>(0);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Bereken dynamisch maximaal aantal karakters op basis van beschikbare lengte
@@ -389,39 +425,58 @@ export default function ShowerDrainConfigurator() {
       if (text && fontData) {
         d.setActiveLayer("TEXT");
         const font = new FontLoader().parse(fontData);
-        const shapes = font.generateShapes(text.toUpperCase(), safeWidth * 0.4);
+        const textUpper = text.toUpperCase();
+        const size = safeWidth * 0.4;
+        const scale = size / font.data.resolution;
         
-        let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
-        shapes.forEach(s => {
-          s.getPoints().forEach(p => {
-            if (p.x < xMin) xMin = p.x;
-            if (p.x > xMax) xMax = p.x;
-            if (p.y < yMin) yMin = p.y;
-            if (p.y > yMax) yMax = p.y;
+        let currentX = 0;
+        let globalXMin = Infinity, globalXMax = -Infinity, globalYMin = Infinity, globalYMax = -Infinity;
+        const charData: { points: THREE.Vector2[], holes: THREE.Vector2[][], xOffset: number }[] = [];
+
+        for (let i = 0; i < textUpper.length; i++) {
+          const char = textUpper.charAt(i);
+          const cShapes = font.generateShapes(char, size);
+          
+          cShapes.forEach(s => {
+            const pts = s.getPoints(4);
+            const hPts = s.holes ? s.holes.map(h => h.getPoints(4)) : [];
+            
+            pts.forEach(p => {
+              const finalX = p.x + currentX;
+              if (finalX < globalXMin) globalXMin = finalX;
+              if (finalX > globalXMax) globalXMax = finalX;
+              if (p.y < globalYMin) globalYMin = p.y;
+              if (p.y > globalYMax) globalYMax = p.y;
+            });
+            
+            charData.push({ points: pts, holes: hPts, xOffset: currentX });
           });
-        });
-        const offsetX = -(xMax + xMin) / 2;
-        const offsetY = -(yMax + yMin) / 2;
+          
+          const glyph = font.data.glyphs[char] || font.data.glyphs['?'];
+          if (glyph) {
+            currentX += glyph.ha * scale + letterSpacing;
+          }
+        }
         
-        const realClearance = (xMax - xMin) / 2 + 15;
+        const offsetX = -(globalXMax + globalXMin) / 2;
+        const offsetY = -(globalYMax + globalYMin) / 2;
+        
+        const realClearance = (globalXMax - globalXMin) / 2 + 15;
         clearance = text === "" ? 0 : realClearance;
 
-        shapes.forEach(shape => {
-          const points = shape.getPoints(4);
-          const pts: [number, number][] = points.map(p => {
-            let px = p.x + offsetX;
+        charData.forEach(cd => {
+          const pts: [number, number][] = cd.points.map(p => {
+            let px = p.x + cd.xOffset + offsetX;
             let py = p.y + offsetY;
-            // Zelfde orientatie als 3D model
             const rotX = -py;
             const rotY = px;
             return [rotX, rotY];
           });
           d.drawPolyline(pts, true);
           
-          shape.holes.forEach(hole => {
-            const hPoints = hole.getPoints(4);
+          cd.holes.forEach(hPoints => {
             const hPts: [number, number][] = hPoints.map(p => {
-              let px = p.x + offsetX;
+              let px = p.x + cd.xOffset + offsetX;
               let py = p.y + offsetY;
               const rotX = -py;
               const rotY = px;
@@ -512,7 +567,7 @@ export default function ShowerDrainConfigurator() {
         for (let i = 0; i < numWaves; i++) {
           const y = startY + i * waveSpacing;
           if (Math.abs(y) > clearance || text === "") {
-            const steps = 16;
+            const steps = 64;
             const pts: [number, number][] = [];
             const xLeft = -waveLength / 2;
             const w = waveWidth;
@@ -530,7 +585,7 @@ export default function ShowerDrainConfigurator() {
             }
             
             const rRadius = waveWidth / 2;
-            const rightCapSteps = 4;
+            const rightCapSteps = 16;
             for (let s = 1; s <= rightCapSteps; s++) {
               const angle = Math.PI/2 - (Math.PI * s / rightCapSteps);
               pts.push([
@@ -574,14 +629,32 @@ export default function ShowerDrainConfigurator() {
       const safeText = text.replace(/[^a-zA-Z0-9]/g, '_');
       const fileName = `uitslag_douchegoot_${safeLength}x${safeWidth}_${safeText}.dxf`;
       
-      // Neem een snapshot van de 3D canvas
       let snapshotDataUrl = "/images/douchegoot.png";
       const canvas = document.querySelector('canvas');
       if (canvas) {
         try {
-          snapshotDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          const base64 = canvas.toDataURL('image/jpeg', 0.8);
+          
+          // Upload to server to get a public URL for Stripe and Emails
+          const res = await fetch(base64);
+          const blob = await res.blob();
+          const formData = new FormData();
+          formData.append("file", blob, `snapshot_${Date.now()}.jpg`);
+          
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          
+          if (uploadRes.ok) {
+            const data = await uploadRes.json();
+            snapshotDataUrl = data.url;
+          } else {
+            // Fallback to base64 if upload fails, though it might break Stripe
+            snapshotDataUrl = base64;
+          }
         } catch (e) {
-          console.error("Kon geen snapshot maken", e);
+          console.error("Kon geen snapshot maken of uploaden", e);
         }
       }
 
@@ -615,14 +688,14 @@ export default function ShowerDrainConfigurator() {
         {/* Linker paneel: Configuratie */}
         <div className="w-full md:w-[400px] lg:w-[450px] bg-card md:border-r border-t md:border-t-0 p-6 z-10 flex flex-col gap-6 overflow-y-auto order-2 md:order-1 flex-1 md:flex-none">
           <div>
-            <h1 className="text-2xl font-bold text-foreground uppercase tracking-wider">Douchegoot</h1>
-            <p className="text-sm text-muted-foreground mt-1">Live 3D & DXF Configurator</p>
+            <h1 className="text-2xl font-light tracking-widest text-zinc-900 mb-2">DOUCHEGOOT</h1>
+            <p className="text-zinc-500 text-sm">Configureer je gepersonaliseerde douchegoot</p>
           </div>
           
           <div className="space-y-6">
             {/* Tekst Invoer */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">
+              <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase block mb-2">
                 Gepersonaliseerde Tekst
               </label>
               <input
@@ -633,18 +706,27 @@ export default function ShowerDrainConfigurator() {
                 placeholder="Bijv. UW TEKST"
                 className="w-full border border-input rounded-md p-3 bg-background text-foreground uppercase outline-none focus:ring-2 focus:ring-primary font-mono tracking-widest transition-all"
               />
-              <p className="text-xs text-green-600 mt-2 font-medium flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                Live Stencil lettertype geactiveerd
-              </p>
-              
+
+              <div className="pt-4">
+                <label className="text-xs text-muted-foreground block mb-2">Letter Spatiëring ({letterSpacing}mm)</label>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="20" 
+                  step="0.5"
+                  value={letterSpacing}
+                  onChange={(e) => setLetterSpacing(Number(e.target.value))}
+                  className="w-full accent-primary"
+                />
+              </div>
+
               <div className="pt-4">
                 <label className="text-xs text-muted-foreground block mb-2">Lettertype</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { url: '/AllertaStencil-Regular.ttf', name: 'Allerta Stencil' },
                     { url: '/SairaStencilOne.ttf', name: 'Saira Stencil' },
-                    { url: '/StardosStencil.ttf', name: 'Stardos Stencil' },
+                    { url: '/Plaster.ttf', name: 'Plaster' },
                     { url: '/BlackOpsOne.ttf', name: 'Black Ops' },
                     { url: '/SirinStencil.ttf', name: 'Sirin Stencil' }
                   ].map((f) => (
@@ -668,7 +750,7 @@ export default function ShowerDrainConfigurator() {
 
             {/* Afmetingen (Invoervelden i.p.v. Sliders) */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-sm">Afmetingen (mm)</h3>
+              <h3 className="text-xs font-semibold tracking-wider text-zinc-400 uppercase mb-2">Afmetingen (mm)</h3>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">Lengte</label>
@@ -718,7 +800,7 @@ export default function ShowerDrainConfigurator() {
 
             {/* Patroon Keuze (Knoppen i.p.v. Sliders) */}
             <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Design Opties</h3>
+              <h3 className="text-xs font-semibold tracking-wider text-zinc-400 uppercase mb-2">Design Opties</h3>
               
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground">Materiaal / Finish</label>
@@ -838,15 +920,16 @@ export default function ShowerDrainConfigurator() {
 
             <Suspense fallback={null}>
               <Center position={[0, -20, 0]}>
-                <ShowerDrainModel
+                <ShowerDrainModel 
                   length={typeof length === "number" ? length : 800}
                   width={typeof width === "number" ? width : 50}
                   height={typeof height === "number" ? height : 15}
-                  thickness={thickness}
-                  text={text}
-                  patternType={patternType}
-                  materialType={materialType}
+                  thickness={thickness} 
+                  text={text} 
                   fontData={fontData}
+                  materialType={materialType}
+                  patternType={patternType}
+                  letterSpacing={letterSpacing}
                 />
               </Center>
               <ContactShadows 

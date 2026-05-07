@@ -188,6 +188,11 @@ export async function POST(request: Request) {
         quantity: item.quantity,
       })
 
+      if (item.id && typeof item.id === 'string' && item.id.startsWith('eigen-ontwerp')) {
+        console.log("[v0] Server: Custom item, skipping stock check");
+        continue;
+      }
+
       const productResponse = await fetch(`${supabaseUrl}/rest/v1/products?id=eq.${item.id}&select=stock,colors`, {
         headers: {
           apikey: serviceRoleKey,

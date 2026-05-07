@@ -1275,11 +1275,10 @@ export default function ProductsManagement() {
                         {formData.gallery_images.map((imageUrl, index) => {
                           const isSelected = formData.image === imageUrl
                           return (
-                            <button
+                            <div
                               key={`gallery-${index}`}
-                              type="button"
                               onClick={() => setFormData({ ...formData, image: imageUrl })}
-                              className={`relative border-2 rounded-lg overflow-hidden hover:border-primary transition-colors ${
+                              className={`relative border-2 rounded-lg overflow-hidden cursor-pointer hover:border-primary transition-colors ${
                                 isSelected ? "border-primary ring-2 ring-primary" : "border-gray-200"
                               }`}
                             >
@@ -1307,7 +1306,7 @@ export default function ProductsManagement() {
                               >
                                 <X className="h-4 w-4" />
                               </button>
-                            </button>
+                            </div>
                           )
                         })}
                       </div>

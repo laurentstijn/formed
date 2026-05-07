@@ -17,8 +17,11 @@ export default function HomePage() {
   }, [products])
 
   const filteredProducts = useMemo(() => {
-    if (!selectedCategory) return products
-    return products.filter((p) => p.category === selectedCategory)
+    let result = products
+    if (selectedCategory) {
+      result = products.filter((p) => p.category === selectedCategory)
+    }
+    return result
   }, [products, selectedCategory])
 
   const getDisplayImage = (product: any) => {
@@ -72,8 +75,12 @@ export default function HomePage() {
     return product.stock || 0
   }
 
-  const handleProductClick = (productId: number, productName: string) => {
-    router.push(`/product/${productId}`)
+  const handleProductClick = (productId: number | string, productName: string) => {
+    if (productName.toLowerCase().includes("eigen ontwerp")) {
+      router.push("/eigen-ontwerp")
+    } else {
+      router.push(`/product/${productId}`)
+    }
   }
 
   return (
@@ -148,8 +155,12 @@ export default function HomePage() {
                         {product.name}
                       </h3>
                       <div className="flex items-center justify-between">
-                        <p className="text-xl font-semibold text-foreground">€{product.price.toFixed(2)}</p>
-                        {(() => {
+                        <p className="text-xl font-semibold text-foreground">
+                          {product.name.toLowerCase().includes('eigen ontwerp') ? 'Bereken live' : `€${product.price.toFixed(2)}`}
+                        </p>
+                        {product.name.toLowerCase().includes('eigen ontwerp') ? (
+                          <span className="text-xs font-medium text-black">Upload DXF</span>
+                        ) : (() => {
                           const totalStock = getProductStock(product)
                           return (
                             <span

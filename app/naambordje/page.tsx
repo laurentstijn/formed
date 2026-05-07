@@ -23,7 +23,7 @@ interface NamePlateProps {
   vorm: string;
 }
 
-function NamePlateModel({ width, height, thickness, huisnummer, naam, materialType, fontData, vorm }: NamePlateProps) {
+function NamePlateModel({ width, height, thickness, huisnummer, naam, materialType, fontData, vorm, letterSpacing }: NamePlateProps & { letterSpacing: number }) {
   const materials = React.useMemo(() => ({
     inox: new THREE.MeshStandardMaterial({
       color: "#a8adb0",
@@ -86,42 +86,71 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
       if (!text || !fontData) return;
       try {
         const font = new FontLoader().parse(fontData);
-        const shapes = font.generateShapes(text.toUpperCase(), size);
+        const textUpper = text.toUpperCase();
         
-        let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
-        shapes.forEach(s => {
-          s.getPoints().forEach(p => {
-            if (p.x < xMin) xMin = p.x;
-            if (p.x > xMax) xMax = p.x;
-            if (p.y < yMin) yMin = p.y;
-            if (p.y > yMax) yMax = p.y;
+        let currentX = 0;
+        let globalXMin = Infinity, globalXMax = -Infinity, globalYMin = Infinity, globalYMax = -Infinity;
+        const charData: { shape: THREE.Shape, points: THREE.Vector2[], xOffset: number, holes: THREE.Vector2[][] }[] = [];
+
+        for (let i = 0; i < textUpper.length; i++) {
+          const char = textUpper.charAt(i);
+          if (char === ' ') {
+            currentX += size * 0.3 + letterSpacing;
+            continue;
+          }
+          
+          const cShapes = font.generateShapes(char, size);
+          let cMinX = Infinity, cMaxX = -Infinity;
+          
+          cShapes.forEach(s => {
+            s.getPoints().forEach(p => {
+              if (p.x < cMinX) cMinX = p.x;
+              if (p.x > cMaxX) cMaxX = p.x;
+              if (p.y < globalYMin) globalYMin = p.y;
+              if (p.y > globalYMax) globalYMax = p.y;
+            });
           });
-        });
+          
+          const cWidth = cMaxX === -Infinity ? 0 : cMaxX - cMinX;
+          
+          cShapes.forEach(s => {
+            const pts = s.getPoints(4);
+            const holePts = s.holes ? s.holes.map(h => h.getPoints(4)) : [];
+            
+            pts.forEach(p => {
+              const finalX = p.x - cMinX + currentX;
+              if (finalX < globalXMin) globalXMin = finalX;
+              if (finalX > globalXMax) globalXMax = finalX;
+            });
+            
+            charData.push({ shape: s, points: pts, xOffset: currentX - cMinX, holes: holePts });
+          });
+          
+          currentX += cWidth + letterSpacing;
+        }
         
-        const textWidth = xMax - xMin;
+        const textWidth = globalXMax - globalXMin;
         const availableWidth = vorm === 'ovaal' ? w * 0.75 : w;
         const maxWidth = availableWidth - 50;
         const scale = textWidth > maxWidth ? maxWidth / textWidth : 1.0;
 
-        const offsetX = -(xMax + xMin) / 2;
-        const offsetY = -(yMax + yMin) / 2;
+        const offsetX = -(globalXMax + globalXMin) / 2;
+        const offsetY = -(globalYMax + globalYMin) / 2;
 
-        shapes.forEach(letterShape => {
-          const points = letterShape.getPoints(4);
+        charData.forEach(cd => {
           const letterPath = new THREE.Path();
-          points.forEach((p, i) => {
-            const px = (p.x + offsetX) * scale;
+          cd.points.forEach((p, i) => {
+            const px = (p.x + cd.xOffset + offsetX) * scale;
             const py = (p.y + offsetY) * scale + yOffset;
             if (i === 0) letterPath.moveTo(px, py);
             else letterPath.lineTo(px, py);
           });
           shape.holes.push(letterPath);
           
-          letterShape.holes.forEach(hole => {
-            const hPoints = hole.getPoints(4);
+          cd.holes.forEach(holePoints => {
             const innerPath = new THREE.Path();
-            hPoints.forEach((p, i) => {
-              const px = (p.x + offsetX) * scale;
+            holePoints.forEach((p, i) => {
+              const px = (p.x + cd.xOffset + offsetX) * scale;
               const py = (p.y + offsetY) * scale + yOffset;
               if (i === 0) innerPath.moveTo(px, py);
               else innerPath.lineTo(px, py);
@@ -162,6 +191,7 @@ export default function NaambordjeConfigurator() {
   
   const [fontData, setFontData] = useState<any>(null);
   const [fontUrl, setFontUrl] = useState<string>("/AllertaStencil-Regular.ttf");
+  const [letterSpacing, setLetterSpacing] = useState<number>(0);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   React.useEffect(() => {
@@ -217,34 +247,71 @@ export default function NaambordjeConfigurator() {
 
         const addTextToDXF = (text: string, size: number, yOffset: number) => {
           if (!text) return;
-          const shapes = font.generateShapes(text.toUpperCase(), size);
+          const textUpper = text.toUpperCase();
           
-          let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
-          shapes.forEach(s => {
-            s.getPoints().forEach(p => {
-              if (p.x < xMin) xMin = p.x;
-              if (p.x > xMax) xMax = p.x;
-              if (p.y < yMin) yMin = p.y;
-              if (p.y > yMax) yMax = p.y;
+          let currentX = 0;
+          let globalXMin = Infinity, globalXMax = -Infinity, globalYMin = Infinity, globalYMax = -Infinity;
+          const charData: { points: THREE.Vector2[], xOffset: number, holes: THREE.Vector2[][] }[] = [];
+
+          for (let i = 0; i < textUpper.length; i++) {
+            const char = textUpper.charAt(i);
+            if (char === ' ') {
+              currentX += size * 0.3 + letterSpacing;
+              continue;
+            }
+            
+            const cShapes = font.generateShapes(char, size);
+            let cMinX = Infinity, cMaxX = -Infinity;
+            
+            cShapes.forEach(s => {
+              s.getPoints().forEach(p => {
+                if (p.x < cMinX) cMinX = p.x;
+                if (p.x > cMaxX) cMaxX = p.x;
+                if (p.y < globalYMin) globalYMin = p.y;
+                if (p.y > globalYMax) globalYMax = p.y;
+              });
             });
-          });
+            
+            const cWidth = cMaxX === -Infinity ? 0 : cMaxX - cMinX;
+            
+            cShapes.forEach(s => {
+              const pts = s.getPoints(4);
+              const holePts = s.holes ? s.holes.map(h => h.getPoints(4)) : [];
+              
+              pts.forEach(p => {
+                const finalX = p.x - cMinX + currentX;
+                if (finalX < globalXMin) globalXMin = finalX;
+                if (finalX > globalXMax) globalXMax = finalX;
+              });
+              
+              charData.push({ points: pts, xOffset: currentX - cMinX, holes: holePts });
+            });
+            
+            currentX += cWidth + letterSpacing;
+          }
           
-          const textWidth = xMax - xMin;
+          const textWidth = globalXMax - globalXMin;
           const availableWidth = vorm === 'ovaal' ? w * 0.75 : w;
           const maxWidth = availableWidth - 50;
           const scale = textWidth > maxWidth ? maxWidth / textWidth : 1.0;
 
-          const offsetX = -(xMax + xMin) / 2;
-          const offsetY = -(yMax + yMin) / 2;
+          const offsetX = -(globalXMax + globalXMin) / 2;
+          const offsetY = -(globalYMax + globalYMin) / 2;
 
-          shapes.forEach(shape => {
-            const points = shape.getPoints(4);
-            const pts: [number, number][] = points.map(p => [(p.x + offsetX) * scale, (p.y + offsetY) * scale + yOffset]);
+          charData.forEach(cd => {
+            const pts: [number, number][] = cd.points.map(p => {
+              let px = (p.x + cd.xOffset + offsetX) * scale;
+              let py = (p.y + offsetY) * scale + yOffset;
+              return [px, py];
+            });
             d.drawPolyline(pts, true);
             
-            shape.holes.forEach(hole => {
-              const hPoints = hole.getPoints(4);
-              const hPts: [number, number][] = hPoints.map(p => [(p.x + offsetX) * scale, (p.y + offsetY) * scale + yOffset]);
+            cd.holes.forEach(hPoints => {
+              const hPts: [number, number][] = hPoints.map(p => {
+                let px = (p.x + cd.xOffset + offsetX) * scale;
+                let py = (p.y + offsetY) * scale + yOffset;
+                return [px, py];
+              });
               d.drawPolyline(hPts, true);
             });
           });
@@ -375,19 +442,33 @@ export default function NaambordjeConfigurator() {
               </div>
               
               <div className="space-y-4 pt-2">
+                <label className="text-xs text-muted-foreground block mb-2">Letter Spatiëring ({letterSpacing}mm)</label>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="20" 
+                  step="0.5"
+                  value={letterSpacing}
+                  onChange={(e) => setLetterSpacing(Number(e.target.value))}
+                  className="w-full accent-primary"
+                />
+              </div>
+
+              <div className="space-y-4 pt-2">
                 <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Lettertype</label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { url: '/AllertaStencil-Regular.ttf', name: 'Allerta Stencil' },
                     { url: '/SairaStencilOne.ttf', name: 'Saira Stencil' },
-                    { url: '/StardosStencil.ttf', name: 'Stardos Stencil' },
+                    { url: '/Plaster.ttf', name: 'Plaster' },
                     { url: '/BlackOpsOne.ttf', name: 'Black Ops' },
                     { url: '/SirinStencil.ttf', name: 'Sirin Stencil' }
                   ].map((f) => (
                     <button
                       key={f.url}
                       onClick={() => setFontUrl(f.url)}
-                      className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
+                      style={{ fontFamily: f.name }}
+                      className={`py-2 px-3 rounded-md border text-sm transition-colors ${
                         fontUrl === f.url 
                           ? 'bg-black text-white border-black' 
                           : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
@@ -462,6 +543,7 @@ export default function NaambordjeConfigurator() {
                   materialType={materialType}
                   fontData={fontData}
                   vorm={vorm}
+                  letterSpacing={letterSpacing}
                 />
               </Center>
               <ContactShadows 

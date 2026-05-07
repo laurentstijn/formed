@@ -1,6 +1,27 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: 'Allerta Stencil';
+  src: url('/AllertaStencil-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Saira Stencil';
+  src: url('/SairaStencilOne.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Plaster';
+  src: url('/Plaster.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Black Ops';
+  src: url('/BlackOpsOne.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Sirin Stencil';
+  src: url('/SirinStencil.ttf') format('truetype');
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

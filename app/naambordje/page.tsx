@@ -135,7 +135,7 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
   }, [width, height, thickness, huisnummer, naam, fontData]);
 
   return (
-    <mesh geometry={geometry} material={plateMaterial} rotation={[-Math.PI / 2, 0, 0]} castShadow receiveShadow />
+    <mesh geometry={geometry} material={plateMaterial} castShadow receiveShadow />
   );
 }
 
@@ -359,7 +359,7 @@ export default function NaambordjeConfigurator() {
 
         {/* Rechter paneel: 3D Weergave */}
         <div className="flex-1 relative bg-zinc-100 min-h-[350px] md:min-h-[500px] h-[45vh] md:h-auto shrink-0 md:shrink md:flex-1 order-1 md:order-2">
-          <Canvas camera={{ position: [0, 0, 400], fov: 40, near: 0.1, far: 10000 }}>
+          <Canvas camera={{ position: [-150, -50, 400], fov: 40, near: 0.1, far: 10000 }}>
             <color attach="background" args={["#f4f4f5"]} />
             <ambientLight intensity={0.8} />
             <directionalLight position={[100, 300, 100]} intensity={1.0} castShadow />
@@ -379,7 +379,8 @@ export default function NaambordjeConfigurator() {
               </Center>
               <ContactShadows 
                 key={`${width}-${height}-${huisnummer}-${naam}`}
-                position={[0, -height/2 - 20, 0]} 
+                position={[0, 0, -2]} 
+                rotation={[Math.PI / 2, 0, 0]}
                 opacity={0.4} 
                 scale={1000} 
                 blur={2.5} 

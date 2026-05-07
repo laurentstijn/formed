@@ -329,7 +329,8 @@ export default function ShowerDrainConfigurator() {
   const [patternType, setPatternType] = useState<string>("vierkant");
   const [materialType, setMaterialType] = useState<string>("inox"); // 'inox', 'chrome', 'messing'
   const [fontData, setFontData] = useState<any>(null);
-  const [isExporting, setIsExporting] = useState(false);
+  const [fontUrl, setFontUrl] = useState<string>("/AllertaStencil-Regular.ttf");
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Bereken dynamisch maximaal aantal karakters op basis van beschikbare lengte
   const maxTextLength = React.useMemo(() => {
@@ -343,11 +344,12 @@ export default function ShowerDrainConfigurator() {
 
   // Laad de Stencil font bij het opstarten
   React.useEffect(() => {
+    setFontData(null); // Clear previous font
     const loader = new TTFLoader();
-    loader.load('/AllertaStencil-Regular.ttf', (json) => {
+    loader.load(fontUrl, (json) => {
       setFontData(json);
     });
-  }, []);
+  }, [fontUrl]);
 
   // Functie om de DXF (Uitslag) te genereren
   const handleExportDXF = async () => {
@@ -635,6 +637,31 @@ export default function ShowerDrainConfigurator() {
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 Live Stencil lettertype geactiveerd
               </p>
+              
+              <div className="pt-4">
+                <label className="text-xs text-muted-foreground block mb-2">Lettertype</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { url: '/AllertaStencil-Regular.ttf', name: 'Allerta Stencil' },
+                    { url: '/SairaStencilOne.ttf', name: 'Saira Stencil' },
+                    { url: '/StardosStencil.ttf', name: 'Stardos Stencil' },
+                    { url: '/BlackOpsOne.ttf', name: 'Black Ops' },
+                    { url: '/SirinStencil.ttf', name: 'Sirin Stencil' }
+                  ].map((f) => (
+                    <button
+                      key={f.url}
+                      onClick={() => setFontUrl(f.url)}
+                      className={`py-2 px-3 rounded-md border text-xs font-medium transition-colors ${
+                        fontUrl === f.url 
+                          ? 'bg-black text-white border-black' 
+                          : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                      }`}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <hr className="border-border" />

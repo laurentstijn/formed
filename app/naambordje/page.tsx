@@ -161,14 +161,16 @@ export default function NaambordjeConfigurator() {
   const [vorm, setVorm] = useState<string>("rechthoek");
   
   const [fontData, setFontData] = useState<any>(null);
+  const [fontUrl, setFontUrl] = useState<string>("/AllertaStencil-Regular.ttf");
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   React.useEffect(() => {
+    setFontData(null); // Clear previous font while loading
     const loader = new TTFLoader();
-    loader.load('/AllertaStencil-Regular.ttf', (json) => {
+    loader.load(fontUrl, (json) => {
       setFontData(json);
     });
-  }, []);
+  }, [fontUrl]);
 
   const handleExportDXF = async () => {
     if (isExporting) return;
@@ -371,6 +373,32 @@ export default function NaambordjeConfigurator() {
                   />
                 </div>
               </div>
+              
+              <div className="space-y-4 pt-2">
+                <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Lettertype</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { url: '/AllertaStencil-Regular.ttf', name: 'Allerta Stencil' },
+                    { url: '/SairaStencilOne.ttf', name: 'Saira Stencil' },
+                    { url: '/StardosStencil.ttf', name: 'Stardos Stencil' },
+                    { url: '/BlackOpsOne.ttf', name: 'Black Ops' },
+                    { url: '/SirinStencil.ttf', name: 'Sirin Stencil' }
+                  ].map((f) => (
+                    <button
+                      key={f.url}
+                      onClick={() => setFontUrl(f.url)}
+                      className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
+                        fontUrl === f.url 
+                          ? 'bg-black text-white border-black' 
+                          : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                      }`}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
 
               <div className="space-y-3">
                 <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Materiaal / Finish</label>

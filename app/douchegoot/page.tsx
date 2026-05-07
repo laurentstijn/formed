@@ -25,7 +25,7 @@ interface ShowerDrainProps {
   fontData: any;
 }
 
-function ShowerDrainModel({ length, width, height, thickness, text, patternType, materialType, fontData, letterSpacing }: ShowerDrainProps & { letterSpacing: number }) {
+function ShowerDrainModel({ length, width, height, thickness, text, patternType, materialType, fontData }: ShowerDrainProps) {
   // Luxe materialen opzetten met useMemo zodat ze niet elke frame opnieuw opbouwen
   const materials = React.useMemo(() => ({
     inox: new THREE.MeshStandardMaterial({
@@ -65,78 +65,33 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
     if (!text || !fontData) return { clearance: 0, textPaths: paths };
     try {
       const font = new FontLoader().parse(fontData);
-      const textUpper = text.toUpperCase();
-      const size = width * 0.4;
-      
-      let currentX = 0;
-      let globalXMin = Infinity, globalXMax = -Infinity, globalYMin = Infinity, globalYMax = -Infinity;
-      const charData: { shape: THREE.Shape, points: THREE.Vector2[], xOffset: number, holes: THREE.Vector2[][] }[] = [];
-
-      for (let i = 0; i < textUpper.length; i++) {
-        const char = textUpper.charAt(i);
-        if (char === ' ') {
-          currentX += size * 0.3 + letterSpacing;
-          continue;
-        }
-        
-        const cShapes = font.generateShapes(char, size);
-        let cMinX = Infinity, cMaxX = -Infinity;
-        
-        cShapes.forEach(s => {
-          s.getPoints().forEach(p => {
-            if (p.x < cMinX) cMinX = p.x;
-            if (p.x > cMaxX) cMaxX = p.x;
-            if (p.y < globalYMin) globalYMin = p.y;
-            if (p.y > globalYMax) globalYMax = p.y;
-          });
+      const shapes = font.generateShapes(text.toUpperCase(), width * 0.4);
+      let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+      shapes.forEach(s => {
+        s.getPoints().forEach(p => {
+          if (p.x < xMin) xMin = p.x;
+          if (p.x > xMax) xMax = p.x;
+          if (p.y < yMin) yMin = p.y;
+          if (p.y > yMax) yMax = p.y;
         });
-        
-        const cWidth = cMaxX === -Infinity ? 0 : cMaxX - cMinX;
-        
-        cShapes.forEach(s => {
-          const pts = s.getPoints(4);
-          const holePts = s.holes ? s.holes.map(h => h.getPoints(4)) : [];
-          
-          pts.forEach(p => {
-            const finalX = p.x - cMinX + currentX;
-            if (finalX < globalXMin) globalXMin = finalX;
-            if (finalX > globalXMax) globalXMax = finalX;
-          });
-          
-          charData.push({ shape: s, points: pts, xOffset: currentX - cMinX, holes: holePts });
-        });
-        
-        currentX += cWidth + letterSpacing;
-      }
-      
-      realClearance = (globalXMax - globalXMin) / 2 + 15;
-      const offsetX = -(globalXMax + globalXMin) / 2;
-      const offsetY = -(globalYMax + globalYMin) / 2;
+      });
+      realClearance = (xMax - xMin) / 2 + 15;
 
-      charData.forEach(cd => {
+      const offsetX = -(xMax + xMin) / 2;
+      const offsetY = -(yMax + yMin) / 2;
+
+      shapes.forEach(letterShape => {
+        const points = letterShape.getPoints(4); // 4 is laag genoeg voor performance
         const letterPath = new THREE.Path();
-        cd.points.forEach((p, i) => {
-          const px = p.x + cd.xOffset + offsetX;
+        points.forEach((p, i) => {
+          const px = p.x + offsetX;
           const py = p.y + offsetY;
+          // 90 graden rotatie
           const rotX = -py; 
           const rotY = px;
           if (i === 0) letterPath.moveTo(rotX, rotY);
           else letterPath.lineTo(rotX, rotY);
         });
-        
-        cd.holes.forEach(holePoints => {
-          const holePath = new THREE.Path();
-          holePoints.forEach((p, i) => {
-            const px = p.x + cd.xOffset + offsetX;
-            const py = p.y + offsetY;
-            const rotX = -py; 
-            const rotY = px;
-            if (i === 0) holePath.moveTo(rotX, rotY);
-            else holePath.lineTo(rotX, rotY);
-          });
-          letterPath.holes.push(holePath);
-        });
-        
         paths.push(letterPath);
       });
       
@@ -375,7 +330,6 @@ export default function ShowerDrainConfigurator() {
   const [materialType, setMaterialType] = useState<string>("inox"); // 'inox', 'chrome', 'messing'
   const [fontData, setFontData] = useState<any>(null);
   const [fontUrl, setFontUrl] = useState<string>("/AllertaStencil-Regular.ttf");
-  const [letterSpacing, setLetterSpacing] = useState<number>(0);
   const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Bereken dynamisch maximaal aantal karakters op basis van beschikbare lengte
@@ -435,69 +389,39 @@ export default function ShowerDrainConfigurator() {
       if (text && fontData) {
         d.setActiveLayer("TEXT");
         const font = new FontLoader().parse(fontData);
-        const textUpper = text.toUpperCase();
-        const size = safeWidth * 0.4;
+        const shapes = font.generateShapes(text.toUpperCase(), safeWidth * 0.4);
         
-        let currentX = 0;
-        let globalXMin = Infinity, globalXMax = -Infinity, globalYMin = Infinity, globalYMax = -Infinity;
-        const charData: { points: THREE.Vector2[], xOffset: number, holes: THREE.Vector2[][] }[] = [];
-
-        for (let i = 0; i < textUpper.length; i++) {
-          const char = textUpper.charAt(i);
-          if (char === ' ') {
-            currentX += size * 0.3 + letterSpacing;
-            continue;
-          }
-          
-          const cShapes = font.generateShapes(char, size);
-          let cMinX = Infinity, cMaxX = -Infinity;
-          
-          cShapes.forEach(s => {
-            s.getPoints().forEach(p => {
-              if (p.x < cMinX) cMinX = p.x;
-              if (p.x > cMaxX) cMaxX = p.x;
-              if (p.y < globalYMin) globalYMin = p.y;
-              if (p.y > globalYMax) globalYMax = p.y;
-            });
+        let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+        shapes.forEach(s => {
+          s.getPoints().forEach(p => {
+            if (p.x < xMin) xMin = p.x;
+            if (p.x > xMax) xMax = p.x;
+            if (p.y < yMin) yMin = p.y;
+            if (p.y > yMax) yMax = p.y;
           });
-          
-          const cWidth = cMaxX === -Infinity ? 0 : cMaxX - cMinX;
-          
-          cShapes.forEach(s => {
-            const pts = s.getPoints(4);
-            const holePts = s.holes ? s.holes.map(h => h.getPoints(4)) : [];
-            
-            pts.forEach(p => {
-              const finalX = p.x - cMinX + currentX;
-              if (finalX < globalXMin) globalXMin = finalX;
-              if (finalX > globalXMax) globalXMax = finalX;
-            });
-            
-            charData.push({ points: pts, xOffset: currentX - cMinX, holes: holePts });
-          });
-          
-          currentX += cWidth + letterSpacing;
-        }
+        });
+        const offsetX = -(xMax + xMin) / 2;
+        const offsetY = -(yMax + yMin) / 2;
         
-        const offsetX = -(globalXMax + globalXMin) / 2;
-        const offsetY = -(globalYMax + globalYMin) / 2;
-        
-        const realClearance = (globalXMax - globalXMin) / 2 + 15;
+        const realClearance = (xMax - xMin) / 2 + 15;
         clearance = text === "" ? 0 : realClearance;
 
-        charData.forEach(cd => {
-          const pts: [number, number][] = cd.points.map(p => {
-            let px = p.x + cd.xOffset + offsetX;
+        shapes.forEach(shape => {
+          const points = shape.getPoints(4);
+          const pts: [number, number][] = points.map(p => {
+            let px = p.x + offsetX;
             let py = p.y + offsetY;
+            // Zelfde orientatie als 3D model
             const rotX = -py;
             const rotY = px;
             return [rotX, rotY];
           });
           d.drawPolyline(pts, true);
           
-          cd.holes.forEach(hPoints => {
+          shape.holes.forEach(hole => {
+            const hPoints = hole.getPoints(4);
             const hPts: [number, number][] = hPoints.map(p => {
-              let px = p.x + cd.xOffset + offsetX;
+              let px = p.x + offsetX;
               let py = p.y + offsetY;
               const rotX = -py;
               const rotY = px;
@@ -715,32 +639,19 @@ export default function ShowerDrainConfigurator() {
               </p>
               
               <div className="pt-4">
-                <label className="text-xs text-muted-foreground block mb-2">Letter Spatiëring ({letterSpacing}mm)</label>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="20" 
-                  step="0.5"
-                  value={letterSpacing}
-                  onChange={(e) => setLetterSpacing(Number(e.target.value))}
-                  className="w-full accent-primary"
-                />
-              </div>
-              <div className="pt-4">
                 <label className="text-xs text-muted-foreground block mb-2">Lettertype</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { url: '/AllertaStencil-Regular.ttf', name: 'Allerta Stencil' },
                     { url: '/SairaStencilOne.ttf', name: 'Saira Stencil' },
-                    { url: '/Plaster.ttf', name: 'Plaster' },
+                    { url: '/StardosStencil.ttf', name: 'Stardos Stencil' },
                     { url: '/BlackOpsOne.ttf', name: 'Black Ops' },
                     { url: '/SirinStencil.ttf', name: 'Sirin Stencil' }
                   ].map((f) => (
                     <button
                       key={f.url}
                       onClick={() => setFontUrl(f.url)}
-                      style={{ fontFamily: f.name }}
-                      className={`py-2 px-3 rounded-md border text-sm transition-colors ${
+                      className={`py-2 px-3 rounded-md border text-xs font-medium transition-colors ${
                         fontUrl === f.url 
                           ? 'bg-black text-white border-black' 
                           : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
@@ -927,16 +838,15 @@ export default function ShowerDrainConfigurator() {
 
             <Suspense fallback={null}>
               <Center position={[0, -20, 0]}>
-                <ShowerDrainModel 
+                <ShowerDrainModel
                   length={typeof length === "number" ? length : 800}
                   width={typeof width === "number" ? width : 50}
                   height={typeof height === "number" ? height : 15}
-                  thickness={thickness} 
-                  text={text} 
-                  fontData={fontData}
-                  materialType={materialType}
+                  thickness={thickness}
+                  text={text}
                   patternType={patternType}
-                  letterSpacing={letterSpacing}
+                  materialType={materialType}
+                  fontData={fontData}
                 />
               </Center>
               <ContactShadows 

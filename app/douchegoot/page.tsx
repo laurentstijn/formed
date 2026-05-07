@@ -193,18 +193,36 @@ function ShowerDrainModel({ length, width, height, thickness, text, patternType,
           const w = waveWidth;
           const A = 5; // amplitude
           
+          const steps = 12; // Aantal segmenten voor de golf
+          
           holePath.moveTo(xLeft, y + w/2);
-          holePath.bezierCurveTo(
-            xLeft + waveLength * 0.33, y + w/2 + A,
-            xLeft + waveLength * 0.66, y + w/2 - A,
-            xRight, y + w/2
-          );
+          
+          // Top curve left to right
+          for (let s = 1; s <= steps; s++) {
+            const t = s / steps;
+            const ptX = xLeft + t * waveLength;
+            const p0 = y + w/2;
+            const p1 = y + w/2 + A;
+            const p2 = y + w/2 - A;
+            const p3 = y + w/2;
+            const ptY = p0*Math.pow(1-t, 3) + p1*3*t*Math.pow(1-t, 2) + p2*3*Math.pow(t, 2)*(1-t) + p3*Math.pow(t, 3);
+            holePath.lineTo(ptX, ptY);
+          }
+          
           holePath.absarc(xRight, y, rRadius, Math.PI/2, -Math.PI/2, true);
-          holePath.bezierCurveTo(
-            xLeft + waveLength * 0.66, y - w/2 - A,
-            xLeft + waveLength * 0.33, y - w/2 + A,
-            xLeft, y - w/2
-          );
+          
+          // Bottom curve right to left
+          for (let s = 1; s <= steps; s++) {
+            const t = s / steps;
+            const ptX = (xLeft + waveLength) - t * waveLength;
+            const p0 = y - w/2;
+            const p1 = y - w/2 - A;
+            const p2 = y - w/2 + A;
+            const p3 = y - w/2;
+            const ptY = p0*Math.pow(1-t, 3) + p1*3*t*Math.pow(1-t, 2) + p2*3*Math.pow(t, 2)*(1-t) + p3*Math.pow(t, 3);
+            holePath.lineTo(ptX, ptY);
+          }
+          
           holePath.absarc(xLeft, y, rRadius, -Math.PI/2, Math.PI/2, true);
           
           shapeFull.holes.push(holePath);

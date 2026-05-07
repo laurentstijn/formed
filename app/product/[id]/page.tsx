@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { ProductDetailClient } from "@/components/product-detail-client"
 import { createClient } from "@/lib/supabase/server"
 import type { Product } from "@/lib/supabase/products"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
@@ -30,6 +31,10 @@ export default async function ProductPage({
           </div>
         </div>
       )
+    }
+
+    if (rawProduct.name.toLowerCase().includes("eigen ontwerp")) {
+      redirect("/eigen-ontwerp")
     }
 
     const { data: variantsData } = await supabase

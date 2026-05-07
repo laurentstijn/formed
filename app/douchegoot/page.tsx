@@ -449,8 +449,14 @@ export default function DouchegootConfigurator() {
         }
       }
 
+      // Forceer dunne lijnen (Hairline) in de header
+      d.header("LWDEFAULT", [[280, 0]]); // Default line weight: 0.00mm
+      
       // Genereer de file
-      const dxfString = d.toDxfString();
+      let dxfString = d.toDxfString();
+      // Vervang alle 'ByLayer' (-1) line weights naar 'Hairline' (0) voor polylines
+      dxfString = dxfString.replace(/370\n-1/g, '370\n0');
+      
       const safeText = text.replace(/[^a-zA-Z0-9]/g, '_');
       const fileName = `uitslag_douchegoot_${safeLength}x${safeWidth}_${safeText}.dxf`;
       

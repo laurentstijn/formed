@@ -130,7 +130,7 @@ function NamePlateModel({ width, height, thickness, huisnummer, naam, materialTy
     return new THREE.ExtrudeGeometry(shape, {
       depth: thickness,
       bevelEnabled: false,
-      curveSegments: 3
+      curveSegments: 24
     });
   }, [width, height, thickness, huisnummer, naam, fontData]);
 

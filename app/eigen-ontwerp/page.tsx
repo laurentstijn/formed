@@ -156,7 +156,8 @@ function extractAllPaths(dxfData: any, rawText?: string) {
             const knots = ent.knotValues;
             try {
               const curve = new NURBSCurve(degree, knots, ctrlPts);
-              points = curve.getPoints(128).map(p => new THREE.Vector3(p.x, p.y, 0));
+              const divisions = Math.max(256, ctrlPts.length * 20);
+              points = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
             } catch (e) {
               console.warn("Failed to create NURBSCurve, falling back to control points", e);
               const pts = ent.controlPoints || ent.fitPoints || ent.vertices || [];

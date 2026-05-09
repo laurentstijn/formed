@@ -687,7 +687,18 @@ export default function EigenOntwerpConfigurator() {
               <div className="space-y-4">
                 <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Lagen & Bewerkingen</label>
                 {dxfLayers.length === 0 ? (
-                  <p className="text-xs text-zinc-500">Upload een DXF om lagen in te stellen.</p>
+                  <div className="bg-zinc-50 border border-zinc-200 p-4 rounded-md">
+                    <p className="text-sm text-zinc-800 font-medium mb-1">Tip: Hoe maak je een goed DXF bestand?</p>
+                    <p className="text-xs text-zinc-500 leading-relaxed">
+                      Teken je ontwerp in je CAD-software bij voorkeur met minimaal 3 duidelijke lagen, bijvoorbeeld:
+                      <br/><br/>
+                      • <strong>1. "Snijden"</strong> (Buitencontour en gaten)<br/>
+                      • <strong>2. "Graveren"</strong> (Logo's, markeringen en tekst)<br/>
+                      • <strong>3. "Hulplijnen"</strong> (Constructie- of buiglijnen, deze kun je op "Negeren" zetten)<br/>
+                      <br/>
+                      Zodra je je DXF uploadt, leest de configurator deze lagen uit en kun je per laag eenvoudig de juiste laserkop-actie bepalen.
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {dxfLayers.map(layer => (

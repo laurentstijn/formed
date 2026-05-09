@@ -691,7 +691,7 @@ export default function EigenOntwerpConfigurator() {
                 ) : (
                   <div className="space-y-3">
                     {dxfLayers.map(layer => (
-                      <div key={layer.name} className="flex flex-col gap-2 bg-zinc-50 p-3 rounded-md border border-zinc-200">
+                      <div key={layer.name} className="flex flex-col gap-2 bg-card p-3 rounded-md border border-border">
                         <span className="text-sm font-medium text-zinc-700">Laag: {layer.name}</span>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                           <button
@@ -782,7 +782,7 @@ export default function EigenOntwerpConfigurator() {
             </div>
           </div>
 
-          <div className="p-6 md:p-8 bg-zinc-50 border-t border-zinc-200">
+          <div className="p-6 md:p-8 bg-secondary border-t border-border">
             {dxfLayers.length > 0 && (
               <div className="mb-6">
                 <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase mb-3 block">Hoeveelheid (Stuks)</label>
@@ -841,9 +841,9 @@ export default function EigenOntwerpConfigurator() {
         </div>
 
         {/* Rechter paneel: 3D Weergave */}
-        <div className="flex-1 bg-[#f5f5f5] relative h-[45vh] md:h-auto order-1 md:order-2">
+        <div className="flex-1 bg-background relative h-[45vh] md:h-auto order-1 md:order-2">
           <Canvas shadows camera={{ position: [0, 400, 400], fov: 45 }} gl={{ preserveDrawingBuffer: true }}>
-            <color attach="background" args={["#f5f5f5"]} />
+            <color attach="background" args={["#fdf8f8"]} />
             <ambientLight intensity={0.5} />
             <directionalLight
               position={[10, 20, 10]}

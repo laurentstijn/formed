@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { useCart } from "@/components/cart-provider";
 import { useRouter } from "next/navigation";
 import DxfParser from 'dxf-parser';
+import { NURBSCurve } from 'three/examples/jsm/curves/NURBSCurve.js';
 
 // Simpele basis materialen
 const materials = {
@@ -111,8 +112,22 @@ function extractAllPaths(dxfData: any, rawText?: string) {
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, rx, ry, ent.startAngle, ent.endAngle, false, angle);
           points = curve.getPoints(256).map(p => new THREE.Vector3(p.x, p.y, 0));
         } else if (ent.type === 'SPLINE') {
-          const pts = ent.controlPoints || ent.fitPoints || ent.vertices || [];
-          points = pts.map((v: any) => new THREE.Vector3(v.x, v.y, 0));
+          if (ent.knotValues && ent.controlPoints) {
+            const degree = ent.degreeOfSplineCurve || 3;
+            const ctrlPts = ent.controlPoints.map((p: any) => new THREE.Vector4(p.x, p.y, p.z || 0, p.weight || 1));
+            const knots = ent.knotValues;
+            try {
+              const curve = new NURBSCurve(degree, knots, ctrlPts);
+              points = curve.getPoints(128).map(p => new THREE.Vector3(p.x, p.y, 0));
+            } catch (e) {
+              console.warn("Failed to create NURBSCurve, falling back to control points", e);
+              const pts = ent.controlPoints || ent.fitPoints || ent.vertices || [];
+              points = pts.map((v: any) => new THREE.Vector3(v.x, v.y, 0));
+            }
+          } else {
+            const pts = ent.controlPoints || ent.fitPoints || ent.vertices || [];
+            points = pts.map((v: any) => new THREE.Vector3(v.x, v.y, 0));
+          }
         }
         
         if (points.length > 0) {

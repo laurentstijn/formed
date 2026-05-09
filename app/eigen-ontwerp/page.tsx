@@ -31,14 +31,29 @@ const materials = {
 function extractAllPaths(dxfData: any) {
   let allLayers: Record<string, THREE.Vector3[][]> = {};
   
-  const extract = (entities: any[], offsetX = 0, offsetY = 0) => {
+  const extract = (entities: any[], parentMatrix = new THREE.Matrix4()) => {
     entities.forEach(ent => {
       if (ent.type === 'INSERT') {
         const block = dxfData.blocks[ent.name];
         if (block && block.entities) {
-          const bx = ent.position ? ent.position.x : 0;
-          const by = ent.position ? ent.position.y : 0;
-          extract(block.entities, offsetX + bx, offsetY + by);
+          const px = ent.position ? ent.position.x : 0;
+          const py = ent.position ? ent.position.y : 0;
+          const pz = ent.position ? ent.position.z : 0;
+          const scaleX = ent.scaleX !== undefined ? ent.scaleX : 1;
+          const scaleY = ent.scaleY !== undefined ? ent.scaleY : 1;
+          const scaleZ = ent.scaleZ !== undefined ? ent.scaleZ : 1;
+          // DXF parser usually provides rotation in degrees for INSERT
+          const rotZ = ent.rotation ? (ent.rotation * Math.PI / 180) : 0; 
+
+          const m = new THREE.Matrix4();
+          m.compose(
+            new THREE.Vector3(px, py, pz),
+            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), rotZ),
+            new THREE.Vector3(scaleX, scaleY, scaleZ)
+          );
+
+          const childMatrix = parentMatrix.clone().multiply(m);
+          extract(block.entities, childMatrix);
         }
       } else {
         const layerName = ent.layer || '0';
@@ -73,9 +88,8 @@ function extractAllPaths(dxfData: any) {
         }
         
         if (points.length > 0) {
-          if (offsetX !== 0 || offsetY !== 0) {
-            points = points.map(p => new THREE.Vector3(p.x + offsetX, p.y + offsetY, 0));
-          }
+          // Apply transformation matrix (translation, rotation, scale from INSERT)
+          points.forEach(p => p.applyMatrix4(parentMatrix));
           allLayers[layerName].push(points);
         }
       }
@@ -219,42 +233,86 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
       
     // Merge all cut paths across all cut layers
     const cutLoops = mergePaths(cutPathsRaw);
-    const shape = new THREE.Shape();
+    const shapes: THREE.Shape[] = [];
 
     if (cutLoops.length > 0) {
-      // Sorteer op oppervlakte om de buitenste rand (grootste bounding box) te vinden
-      cutLoops.sort((a,b) => getLoopArea(b) - getLoopArea(a));
-      
-      let outer = [...cutLoops[0]];
-      // Three.js vereist dat de buitenste shape tegen de klok in (CCW) is
-      if (THREE.ShapeUtils.isClockWise(outer)) {
-        outer.reverse();
-      }
+      // 1. Bereken bounding boxes
+      const loopsWithBounds = cutLoops.map(loop => {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for(const p of loop) {
+           if(p.x < minX) minX = p.x;
+           if(p.x > maxX) maxX = p.x;
+           if(p.y < minY) minY = p.y;
+           if(p.y > maxY) maxY = p.y;
+        }
+        return { loop, minX, maxX, minY, maxY, depth: 0, isHole: false, parentIndex: -1, shape: null as THREE.Shape | null };
+      });
 
-      shape.moveTo(outer[0].x, outer[0].y);
-      for(let i=1; i<outer.length; i++) {
-        shape.lineTo(outer[i].x, outer[i].y);
-      }
-      
-      // De overige loops zijn waarschijnlijk gaten (uitsparingen)
-      for(let j=1; j<cutLoops.length; j++) {
-        let holePath = [...cutLoops[j]];
-        if (holePath.length > 2) {
-          // Three.js vereist dat gaten met de klok mee (CW) zijn
-          if (!THREE.ShapeUtils.isClockWise(holePath)) {
-            holePath.reverse();
-          }
+      // Sorteer op oppervlakte (grootste eerst)
+      loopsWithBounds.sort((a,b) => ((b.maxX - b.minX) * (b.maxY - b.minY)) - ((a.maxX - a.minX) * (a.maxY - a.minY)));
 
-          const hole = new THREE.Path();
-          hole.moveTo(holePath[0].x, holePath[0].y);
-          for(let i=1; i<holePath.length; i++) {
-            hole.lineTo(holePath[i].x, holePath[i].y);
+      // 2. Bepaal nesting diepte (Shape of Hole)
+      for(let i = 0; i < loopsWithBounds.length; i++) {
+        let depth = 0;
+        let directParent = -1;
+        const child = loopsWithBounds[i];
+        
+        for(let j = i - 1; j >= 0; j--) {
+          const parent = loopsWithBounds[j];
+          const eps = 0.5; // tolerantie
+          if (child.minX >= parent.minX - eps && child.maxX <= parent.maxX + eps &&
+              child.minY >= parent.minY - eps && child.maxY <= parent.maxY + eps) {
+             directParent = j;
+             depth = parent.depth + 1;
+             break;
           }
-          shape.holes.push(hole);
+        }
+        
+        child.depth = depth;
+        child.isHole = (depth % 2 !== 0);
+        if (child.isHole) {
+          child.parentIndex = directParent;
         }
       }
+
+      // 3. Maak Shapes
+      loopsWithBounds.forEach(item => {
+        if (!item.isHole) {
+          const shape = new THREE.Shape();
+          let pathPoints = [...item.loop];
+          if (THREE.ShapeUtils.isClockWise(pathPoints)) {
+            pathPoints.reverse();
+          }
+          shape.moveTo(pathPoints[0].x, pathPoints[0].y);
+          for(let k=1; k<pathPoints.length; k++) {
+            shape.lineTo(pathPoints[k].x, pathPoints[k].y);
+          }
+          item.shape = shape;
+          shapes.push(shape);
+        }
+      });
+
+      // 4. Voeg gaten toe aan hun Parent Shape
+      loopsWithBounds.forEach(item => {
+        if (item.isHole && item.parentIndex !== -1) {
+          const parent = loopsWithBounds[item.parentIndex];
+          if (parent && parent.shape) {
+            let holePoints = [...item.loop];
+            if (!THREE.ShapeUtils.isClockWise(holePoints)) {
+              holePoints.reverse();
+            }
+            const holePath = new THREE.Path();
+            holePath.moveTo(holePoints[0].x, holePoints[0].y);
+            for(let k=1; k<holePoints.length; k++) {
+              holePath.lineTo(holePoints[k].x, holePoints[k].y);
+            }
+            parent.shape.holes.push(holePath);
+          }
+        }
+      });
     } else {
       // Fallback: gewone rechthoekige plaat
+      const shape = new THREE.Shape();
       const halfW = width / 2;
       const halfL = length / 2;
       shape.moveTo(-halfW, -halfL);
@@ -262,9 +320,10 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
       shape.lineTo(halfW, halfL);
       shape.lineTo(-halfW, halfL);
       shape.lineTo(-halfW, -halfL);
+      shapes.push(shape);
     }
 
-    return new THREE.ExtrudeGeometry(shape, {
+    return new THREE.ExtrudeGeometry(shapes, {
       depth: thickness,
       bevelEnabled: false,
     });

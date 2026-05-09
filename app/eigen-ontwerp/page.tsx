@@ -786,7 +786,7 @@ export default function EigenOntwerpConfigurator() {
             {dxfLayers.length > 0 && (
               <div className="mb-6">
                 <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase mb-3 block">Hoeveelheid (Stuks)</label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                   {quantities.map(q => {
                     const pricePerItem = (startCost / q) + unitProductionCost;
                     return (
@@ -804,6 +804,23 @@ export default function EigenOntwerpConfigurator() {
                       </button>
                     )
                   })}
+                  
+                  <div className={`flex flex-col items-center justify-center p-1 rounded-md border transition-colors relative ${
+                    !quantities.includes(selectedQuantity) ? 'bg-black text-white border-black' : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-100'
+                  }`}>
+                    <span className="text-[10px] uppercase opacity-60 absolute top-1">Aangepast</span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={!quantities.includes(selectedQuantity) ? selectedQuantity : ""} 
+                      onChange={(e) => setSelectedQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                      placeholder="..."
+                      className={`w-full text-center bg-transparent outline-none text-sm font-bold ${!quantities.includes(selectedQuantity) ? 'mt-3' : ''}`}
+                    />
+                    {!quantities.includes(selectedQuantity) && (
+                       <span className="text-[10px] mt-1 opacity-80">€{((startCost / selectedQuantity) + unitProductionCost).toFixed(2)}/st</span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

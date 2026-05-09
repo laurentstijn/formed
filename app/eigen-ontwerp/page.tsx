@@ -180,6 +180,8 @@ function DxfRenderer({ dxfLayers, layerSettings }) {
     <group>
       {dxfLayers && dxfLayers.map((layer: any) => {
         const mode = layerSettings[layer.name] || 'graveren';
+        if (mode === 'negeren') return null;
+        
         const loops = layer.loops || layer.paths;
 
         return loops.map((loop: THREE.Vector3[], i: number) => {
@@ -206,21 +208,17 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
   const plateMaterial = materials[materialType] || materials.inox;
 
   const geometry = React.useMemo(() => {
-    let cutLoopsRaw: THREE.Vector3[][] = [];
+    let cutPathsRaw: THREE.Vector3[][] = [];
     
     dxfLayers.forEach((layer: any) => {
       const mode = layerSettings[layer.name] || 'graveren';
-      const loops = layer.loops || layer.paths;
-      if (mode === 'snijden') {
-        cutLoopsRaw.push(...loops);
-      } else if (mode === 'omtrek') {
-        if (loops.length > 0) {
-          cutLoopsRaw.push(loops[0]);
-        }
+      if (mode === 'snijden' || mode === 'omtrek') {
+        cutPathsRaw.push(...layer.paths);
       }
     });
       
-    const cutLoops = cutLoopsRaw;
+    // Merge all cut paths across all cut layers
+    const cutLoops = mergePaths(cutPathsRaw);
     const shape = new THREE.Shape();
 
     if (cutLoops.length > 0) {
@@ -296,7 +294,7 @@ export default function EigenOntwerpConfigurator() {
   const [bewerking, setBewerking] = useState("graveren");
   
   const [dxfLayers, setDxfLayers] = useState<any[]>([]);
-  const [layerSettings, setLayerSettings] = useState<Record<string, 'snijden' | 'graveren' | 'omtrek'>>({});
+  const [layerSettings, setLayerSettings] = useState<Record<string, 'snijden' | 'graveren' | 'omtrek' | 'negeren'>>({});
   const [dxfFileName, setDxfFileName] = useState("");
   const [dxfContent, setDxfContent] = useState("");
   
@@ -500,7 +498,7 @@ export default function EigenOntwerpConfigurator() {
                     {dxfLayers.map(layer => (
                       <div key={layer.name} className="flex flex-col gap-2 bg-zinc-50 p-3 rounded-md border border-zinc-200">
                         <span className="text-sm font-medium text-zinc-700">Laag: {layer.name}</span>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                           <button
                             onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'graveren' }))}
                             className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
@@ -530,6 +528,16 @@ export default function EigenOntwerpConfigurator() {
                             }`}
                           >
                             Omtrek Snijden
+                          </button>
+                          <button
+                            onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'negeren' }))}
+                            className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
+                              layerSettings[layer.name] === 'negeren' 
+                                ? 'bg-red-500 text-white border-red-500' 
+                                : 'bg-transparent text-zinc-500 border border-zinc-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
+                            }`}
+                          >
+                            Negeren
                           </button>
                         </div>
                       </div>

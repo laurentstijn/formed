@@ -441,6 +441,8 @@ export default function EigenOntwerpConfigurator() {
   const router = useRouter();
   
   const [pricingSettings, setPricingSettings] = useState<any>(null);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const quantities = [1, 10, 25, 100, 500];
 
   React.useEffect(() => {
     async function loadSettings() {
@@ -563,7 +565,9 @@ export default function EigenOntwerpConfigurator() {
   const cuttingCost = (cutLength / 1000) * cuttingPricePerMeter;
   const engraveCost = (engraveLength / 1000) * engravePricePerMeter;
   
-  const totalPrice = startCost + materialCost + cuttingCost + engraveCost;
+  const unitProductionCost = materialCost + cuttingCost + engraveCost;
+  const unitPrice = (startCost / selectedQuantity) + unitProductionCost;
+  const totalPrice = unitPrice * selectedQuantity;
 
   const handleAddToCart = async () => {
     if (dxfLayers.length === 0) {
@@ -602,7 +606,8 @@ export default function EigenOntwerpConfigurator() {
       addItem({
         id: `eigen-ontwerp-${Date.now()}` as any, // Gebruik een unieke ID zodat ze niet overschrijven
         name: `Eigen Ontwerp: ${length}x${width}x${thickness}mm`,
-        price: Number(totalPrice.toFixed(2)),
+        price: Number(unitPrice.toFixed(2)),
+        quantity: selectedQuantity,
         image: snapshotDataUrl,
         color: materialType,
         dxf_string: dxfContent,
@@ -778,6 +783,31 @@ export default function EigenOntwerpConfigurator() {
           </div>
 
           <div className="p-6 md:p-8 bg-zinc-50 border-t border-zinc-200">
+            {dxfLayers.length > 0 && (
+              <div className="mb-6">
+                <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase mb-3 block">Hoeveelheid (Stuks)</label>
+                <div className="grid grid-cols-5 gap-2">
+                  {quantities.map(q => {
+                    const pricePerItem = (startCost / q) + unitProductionCost;
+                    return (
+                      <button
+                        key={q}
+                        onClick={() => setSelectedQuantity(q)}
+                        className={`flex flex-col items-center justify-center py-2 px-1 rounded-md border transition-colors ${
+                          selectedQuantity === q 
+                            ? 'bg-black text-white border-black' 
+                            : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-100'
+                        }`}
+                      >
+                        <span className="text-sm font-bold">{q}</span>
+                        <span className="text-[10px] mt-1 opacity-80">€{pricePerItem.toFixed(2)}/st</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            
             <div className="flex justify-between items-center mb-4">
               <span className="text-sm text-zinc-500 uppercase tracking-wider">Totaal Prijs</span>
               <span className="text-xl font-medium text-zinc-900">€ {totalPrice.toFixed(2)}</span>
@@ -789,7 +819,7 @@ export default function EigenOntwerpConfigurator() {
                 isExporting || dxfLayers.length === 0 ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed' : 'bg-black text-white hover:bg-zinc-800'
               }`}
             >
-              {isExporting ? 'Laden...' : dxfLayers.length === 0 ? 'Upload DXF om te bestellen' : 'In Winkelwagen'}
+              {isExporting ? 'Laden...' : dxfLayers.length === 0 ? 'Upload DXF om te bestellen' : `Voeg ${selectedQuantity} ${selectedQuantity === 1 ? 'stuk' : 'stuks'} toe`}
             </button>
           </div>
         </div>

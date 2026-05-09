@@ -88,6 +88,19 @@ function extractAllPaths(dxfData: any) {
         }
         
         if (points.length > 0) {
+          // Check for Object Coordinate System (OCS) mirroring (Arbitrary Axis Algorithm)
+          // If extrusion direction Z is negative, the X axis is mirrored.
+          let extZ = 1;
+          if (ent.extrusionDirectionZ !== undefined) {
+             extZ = ent.extrusionDirectionZ;
+          } else if (ent.extrusionDirection && ent.extrusionDirection.z !== undefined) {
+             extZ = ent.extrusionDirection.z;
+          }
+          
+          if (extZ < 0) {
+             points = points.map(p => new THREE.Vector3(-p.x, p.y, p.z));
+          }
+
           // Apply transformation matrix (translation, rotation, scale from INSERT)
           points.forEach(p => p.applyMatrix4(parentMatrix));
           allLayers[layerName].push(points);

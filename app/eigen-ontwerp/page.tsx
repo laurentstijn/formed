@@ -28,8 +28,31 @@ const materials = {
   })
 };
 
-function extractAllPaths(dxfData: any) {
+function extractAllPaths(dxfData: any, rawText?: string) {
   let allLayers: Record<string, THREE.Vector3[][]> = {};
+  
+  // SCAN FOR MIRRORED CIRCLES IN RAW TEXT (since dxf-parser drops code 230)
+  const flippedCircles: {x: number, y: number}[] = [];
+  if (rawText) {
+     const lines = rawText.split(/\r?\n/).map(l => l.trim());
+     for(let i=0; i<lines.length; i++) {
+        if (lines[i] === 'CIRCLE') {
+           let x = null, y = null, extZ = null;
+           for(let j=i+1; j<i+30 && j<lines.length; j++) {
+              const code = lines[j];
+              if (code === '0') break;
+              const val = parseFloat(lines[j+1]);
+              if (code === '10') x = val;
+              if (code === '20') y = val;
+              if (code === '230') extZ = val;
+              j++;
+           }
+           if (x !== null && y !== null && extZ !== null && extZ < 0) {
+              flippedCircles.push({x, y});
+           }
+        }
+     }
+  }
   
   const extract = (entities: any[], parentMatrix = new THREE.Matrix4()) => {
     entities.forEach(ent => {
@@ -73,6 +96,11 @@ function extractAllPaths(dxfData: any) {
         } else if (ent.type === 'CIRCLE') {
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, ent.radius, ent.radius, 0, 2 * Math.PI, false, 0);
           points = curve.getPoints(256).map(p => new THREE.Vector3(p.x, p.y, 0));
+          
+          // Apply manual fix for dxf-parser bug (ignoring code 230 for circles)
+          if (flippedCircles.some(c => Math.abs(c.x - ent.center.x) < 0.001 && Math.abs(c.y - ent.center.y) < 0.001)) {
+             points = points.map(p => new THREE.Vector3(-p.x, p.y, p.z));
+          }
         } else if (ent.type === 'ARC') {
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, ent.radius, ent.radius, ent.startAngle, ent.endAngle, false, 0);
           points = curve.getPoints(128).map(p => new THREE.Vector3(p.x, p.y, 0));
@@ -387,7 +415,7 @@ export default function EigenOntwerpConfigurator() {
         const parser = new DxfParser();
         const parsedDxf = parser.parseSync(content);
         
-        const { layers, width: extractedWidth, length: extractedLength } = extractAllPaths(parsedDxf);
+        const { layers, width: extractedWidth, length: extractedLength } = extractAllPaths(parsedDxf, content);
         setDxfLayers(layers);
         
         const defaultSettings: Record<string, 'snijden' | 'graveren'> = {};

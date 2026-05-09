@@ -91,9 +91,46 @@ function extractAllPaths(dxfData: any, rawText?: string) {
             new THREE.Vector3(ent.vertices[1].x, ent.vertices[1].y, 0)
           ];
         } else if (ent.type === 'LWPOLYLINE' || ent.type === 'POLYLINE') {
-          points = ent.vertices.map((v: any) => new THREE.Vector3(v.x, v.y, 0));
+          const vertices = ent.vertices;
+          for (let i = 0; i < vertices.length; i++) {
+            const p1 = vertices[i];
+            points.push(new THREE.Vector3(p1.x, p1.y, 0));
+            
+            if (p1.bulge && Math.abs(p1.bulge) > 1e-6) {
+              const isLast = i === vertices.length - 1;
+              if (isLast && !(ent.shape || ent.closed)) {
+                continue;
+              }
+              const p2 = isLast ? vertices[0] : vertices[i + 1];
+              
+              const bulge = p1.bulge;
+              const theta = 4 * Math.atan(bulge);
+              const d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+              const r = Math.abs(d / (2 * Math.sin(theta / 2)));
+              const alpha = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+              const h = d / (2 * Math.tan(theta / 2));
+              
+              const mx = (p1.x + p2.x) / 2;
+              const my = (p1.y + p2.y) / 2;
+              const cx = mx - h * Math.sin(alpha);
+              const cy = my + h * Math.cos(alpha);
+              
+              let startAngle = Math.atan2(p1.y - cy, p1.x - cx);
+              let endAngle = Math.atan2(p2.y - cy, p2.x - cx);
+              
+              const ccw = bulge > 0;
+              if (ccw && endAngle < startAngle) endAngle += 2 * Math.PI;
+              if (!ccw && startAngle < endAngle) startAngle += 2 * Math.PI;
+              
+              const curve = new THREE.EllipseCurve(cx, cy, r, r, startAngle, endAngle, !ccw, 0);
+              const arcPts = curve.getPoints(32).map(p => new THREE.Vector3(p.x, p.y, 0));
+              arcPts.shift(); // Verwijder startpunt (al toegevoegd)
+              arcPts.pop();   // Verwijder eindpunt (wordt in volgende iteratie of close toegevoegd)
+              points.push(...arcPts);
+            }
+          }
           if (ent.shape || ent.closed) {
-            points.push(points[0].clone());
+            points.push(new THREE.Vector3(vertices[0].x, vertices[0].y, 0));
           }
         } else if (ent.type === 'CIRCLE') {
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, ent.radius, ent.radius, 0, 2 * Math.PI, false, 0);

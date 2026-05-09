@@ -123,7 +123,8 @@ function extractAllPaths(dxfData: any, rawText?: string) {
               if (!ccw && startAngle < endAngle) startAngle += 2 * Math.PI;
               
               const curve = new THREE.EllipseCurve(cx, cy, r, r, startAngle, endAngle, !ccw, 0);
-              const arcPts = curve.getPoints(32).map(p => new THREE.Vector3(p.x, p.y, 0));
+              const divisions = Math.max(4, Math.min(16, Math.floor(theta * r / 5)));
+              const arcPts = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
               arcPts.shift(); // Verwijder startpunt (al toegevoegd)
               arcPts.pop();   // Verwijder eindpunt (wordt in volgende iteratie of close toegevoegd)
               points.push(...arcPts);
@@ -133,8 +134,9 @@ function extractAllPaths(dxfData: any, rawText?: string) {
             points.push(new THREE.Vector3(vertices[0].x, vertices[0].y, 0));
           }
         } else if (ent.type === 'CIRCLE') {
+          const divisions = Math.max(32, Math.min(128, Math.floor(ent.radius * 2)));
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, ent.radius, ent.radius, 0, 2 * Math.PI, false, 0);
-          points = curve.getPoints(256).map(p => new THREE.Vector3(p.x, p.y, 0));
+          points = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
           
           // Apply manual fix for dxf-parser bug (ignoring code 230 for circles)
           if (flippedCircles.some(c => Math.abs(c.x - ent.center.x) < 0.001 && Math.abs(c.y - ent.center.y) < 0.001)) {
@@ -142,13 +144,15 @@ function extractAllPaths(dxfData: any, rawText?: string) {
           }
         } else if (ent.type === 'ARC') {
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, ent.radius, ent.radius, ent.startAngle, ent.endAngle, false, 0);
-          points = curve.getPoints(128).map(p => new THREE.Vector3(p.x, p.y, 0));
+          const divisions = Math.max(16, Math.min(64, Math.floor(Math.abs(ent.endAngle - ent.startAngle) * ent.radius)));
+          points = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
         } else if (ent.type === 'ELLIPSE') {
           const angle = Math.atan2(ent.majorAxisEndPoint.y, ent.majorAxisEndPoint.x);
           const rx = Math.sqrt(ent.majorAxisEndPoint.x*ent.majorAxisEndPoint.x + ent.majorAxisEndPoint.y*ent.majorAxisEndPoint.y);
           const ry = rx * ent.axisRatio;
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, rx, ry, ent.startAngle, ent.endAngle, false, angle);
-          points = curve.getPoints(256).map(p => new THREE.Vector3(p.x, p.y, 0));
+          const divisions = Math.max(32, Math.min(128, Math.floor(rx * 2)));
+          points = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
         } else if (ent.type === 'SPLINE') {
           if (ent.knotValues && ent.controlPoints) {
             const degree = ent.degreeOfSplineCurve || 3;
@@ -156,7 +160,7 @@ function extractAllPaths(dxfData: any, rawText?: string) {
             const knots = ent.knotValues;
             try {
               const curve = new NURBSCurve(degree, knots, ctrlPts);
-              const divisions = Math.max(256, ctrlPts.length * 20);
+              const divisions = Math.min(200, Math.max(32, ctrlPts.length * 3));
               points = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
             } catch (e) {
               console.warn("Failed to create NURBSCurve, falling back to control points", e);
@@ -313,7 +317,7 @@ function DxfRenderer({ dxfLayers, layerSettings }) {
   );
 }
 
-function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, layerSettings }) {
+function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, layerSettings, invertCut }) {
   const plateMaterial = materials[materialType] || materials.inox;
 
   const geometry = React.useMemo(() => {
@@ -340,7 +344,7 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
            if(p.y < minY) minY = p.y;
            if(p.y > maxY) maxY = p.y;
         }
-        return { loop, minX, maxX, minY, maxY, depth: 0, isHole: false, parentIndex: -1, shape: null as THREE.Shape | null };
+        return { loop, minX, maxX, minY, maxY, depth: 0, isHole: false, isDropped: false, parentIndex: -1, shape: null as THREE.Shape | null };
       });
 
       // Sorteer op oppervlakte (grootste eerst)
@@ -363,8 +367,9 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
           }
         }
         
-        child.depth = depth;
-        child.isHole = (depth % 2 !== 0);
+        child.depth = invertCut ? depth - 1 : depth;
+        child.isDropped = child.depth < 0;
+        child.isHole = (child.depth % 2 !== 0);
         if (child.isHole) {
           child.parentIndex = directParent;
         }
@@ -372,7 +377,7 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
 
       // 3. Maak Shapes
       loopsWithBounds.forEach(item => {
-        if (!item.isHole) {
+        if (!item.isDropped && !item.isHole) {
           const shape = new THREE.Shape();
           let pathPoints = [...item.loop];
           if (THREE.ShapeUtils.isClockWise(pathPoints)) {
@@ -389,9 +394,9 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
 
       // 4. Voeg gaten toe aan hun Parent Shape
       loopsWithBounds.forEach(item => {
-        if (item.isHole && item.parentIndex !== -1) {
+        if (!item.isDropped && item.isHole && item.parentIndex !== -1) {
           const parent = loopsWithBounds[item.parentIndex];
-          if (parent && parent.shape) {
+          if (parent && !parent.isDropped && parent.shape) {
             let holePoints = [...item.loop];
             if (!THREE.ShapeUtils.isClockWise(holePoints)) {
               holePoints.reverse();
@@ -443,6 +448,7 @@ export default function EigenOntwerpConfigurator() {
   
   const [pricingSettings, setPricingSettings] = useState<any>(null);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const [invertCut, setInvertCut] = useState(false);
   const quantities = [1, 10, 25, 100, 500];
 
   React.useEffect(() => {
@@ -613,7 +619,7 @@ export default function EigenOntwerpConfigurator() {
         color: materialType,
         dxf_string: dxfContent,
         dxf_filename: `custom_${dxfFileName}`,
-        layer_settings: JSON.stringify(layerSettings)
+        layer_settings: JSON.stringify({ ...layerSettings, invertCut })
       });
       
       router.push('/cart');
@@ -756,6 +762,28 @@ export default function EigenOntwerpConfigurator() {
                 )}
               </div>
 
+              {dxfLayers.length > 0 && (
+                <div className="space-y-4">
+                  <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Weergave / Snijgedrag</label>
+                  <div className="bg-card border border-border rounded-md p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-zinc-700">Logo Inverteren (Negatief/Positief)</span>
+                      <button 
+                        onClick={() => setInvertCut(!invertCut)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${invertCut ? 'bg-black' : 'bg-zinc-200'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${invertCut ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    <p className="text-xs text-zinc-500">
+                      {invertCut 
+                        ? "Positief (Onderdelen): De buitenste rand wordt genegeerd, de binnenste objecten (zoals losse letters) worden uitgesneden." 
+                        : "Negatief (Stencil): De buitenste rand wordt als staalplaat gezien, met het ontwerp eruit gesneden."}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Materiaal</label>
                 <div className="grid grid-cols-2 gap-3">
@@ -873,6 +901,7 @@ export default function EigenOntwerpConfigurator() {
                   materialType={materialType}
                   dxfLayers={dxfLayers}
                   layerSettings={layerSettings}
+                  invertCut={invertCut}
                 />
               )}
             </Center>

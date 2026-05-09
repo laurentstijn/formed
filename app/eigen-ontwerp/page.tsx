@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { SiteHeader } from "@/components/site-header";
 import { useCart } from "@/components/cart-provider";
 import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@/lib/supabase/client";
 import DxfParser from 'dxf-parser';
 import { NURBSCurve } from 'three/examples/jsm/curves/NURBSCurve.js';
 
@@ -402,6 +403,27 @@ export default function EigenOntwerpConfigurator() {
   const { addItem } = useCart();
   const router = useRouter();
   
+  const [pricingSettings, setPricingSettings] = useState<any>(null);
+
+  React.useEffect(() => {
+    async function loadSettings() {
+      try {
+        const supabase = createBrowserClient()
+        const { data } = await supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "custom_design_settings")
+          .maybeSingle()
+        if (data?.value) {
+          setPricingSettings(JSON.parse(data.value))
+        }
+      } catch (e) {
+        console.error("Fout bij laden van prijzen", e)
+      }
+    }
+    loadSettings()
+  }, [])
+  
   const [length, setLength] = useState(200);
   const [width, setWidth] = useState(200);
   const [thickness, setThickness] = useState(3);
@@ -483,17 +505,16 @@ export default function EigenOntwerpConfigurator() {
   });
 
   // --- PRIJSTABEL ---
-  // Hier kan je gemakkelijk alle prijzen aanpassen!
-  const startCost = 25; // €25 opstartkosten
+  const startCost = pricingSettings?.startCost ?? 25;
   
   const pricePerKg = {
-    inox: 8.00,     // €8 per kg voor Geborsteld INOX
-    chroom: 10.00,  // €10 per kg voor Spiegel Chroom
-    messing: 15.00  // €15 per kg voor Goud / Messing
+    inox: pricingSettings?.pricePerKgInox ?? 8.00,
+    chroom: pricingSettings?.pricePerKgChroom ?? 10.00,
+    messing: pricingSettings?.pricePerKgMessing ?? 15.00
   };
 
-  const cuttingPricePerMeter = 4.00;  // €4 per meter voor het snijden
-  const engravePricePerMeter = 2.00;  // €2 per meter voor het graveren
+  const cuttingPricePerMeter = pricingSettings?.cuttingPricePerMeter ?? 4.00;
+  const engravePricePerMeter = pricingSettings?.engravePricePerMeter ?? 2.00;
   // ------------------
 
   const volumeMm3 = length * width * thickness;

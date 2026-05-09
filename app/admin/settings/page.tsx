@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Info } from "lucide-react"
 import { StandardColorsManagement } from "@/components/standard-colors-management"
+import { CustomDesignSettingsManagement } from "@/components/custom-design-settings-management"
 import { Switch } from "@/components/ui/switch"
 
 interface InvoiceSettings {
@@ -294,6 +295,8 @@ export default function SettingsPage() {
           </Card>
 
           <StandardColorsManagement />
+
+          <CustomDesignSettingsManagement />
 
           <Card>
             <CardHeader>

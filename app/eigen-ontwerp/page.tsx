@@ -689,14 +689,16 @@ export default function EigenOntwerpConfigurator() {
             />
             
             <Center>
-              <CustomDesignModel 
-                width={width} 
-                length={length} 
-                thickness={thickness} 
-                materialType={materialType}
-                dxfLayers={dxfLayers}
-                layerSettings={layerSettings}
-              />
+              {dxfLayers.length > 0 && (
+                <CustomDesignModel 
+                  width={width} 
+                  length={length} 
+                  thickness={thickness} 
+                  materialType={materialType}
+                  dxfLayers={dxfLayers}
+                  layerSettings={layerSettings}
+                />
+              )}
             </Center>
             
             <ContactShadows 

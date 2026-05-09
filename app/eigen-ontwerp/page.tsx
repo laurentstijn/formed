@@ -467,12 +467,29 @@ export default function EigenOntwerpConfigurator() {
     }
   });
 
+  // --- PRIJSTABEL ---
+  // Hier kan je gemakkelijk alle prijzen aanpassen!
   const startCost = 25; // €25 opstartkosten
+  
+  const pricePerKg = {
+    inox: 8.00,     // €8 per kg voor Geborsteld INOX
+    chroom: 10.00,  // €10 per kg voor Spiegel Chroom
+    messing: 15.00  // €15 per kg voor Goud / Messing
+  };
+
+  const cuttingPricePerMeter = 4.00;  // €4 per meter voor het snijden
+  const engravePricePerMeter = 2.00;  // €2 per meter voor het graveren
+  // ------------------
+
   const volumeMm3 = length * width * thickness;
-  const weightKg = volumeMm3 * 0.00000785;
-  const materialCost = weightKg * 8; // €8 per kg staal
-  const cuttingCost = (cutLength / 1000) * 4; // €4 per meter snijden
-  const engraveCost = (engraveLength / 1000) * 2; // €2 per meter graveren
+  const weightKg = volumeMm3 * 0.00000785; // Dichtheid staal (7.85 g/cm3)
+  
+  const currentMaterialPrice = pricePerKg[materialType as keyof typeof pricePerKg] || 8;
+  const materialCost = weightKg * currentMaterialPrice;
+  
+  const cuttingCost = (cutLength / 1000) * cuttingPricePerMeter;
+  const engraveCost = (engraveLength / 1000) * engravePricePerMeter;
+  
   const totalPrice = startCost + materialCost + cuttingCost + engraveCost;
 
   const handleAddToCart = async () => {

@@ -95,10 +95,10 @@ export function ProfessionalOrderEmail({ order, customer, companyInfo }: Profess
                             (item, index) => `
                           <tr style="border-bottom: 1px solid #f7e8e8; ${index % 2 === 0 ? "background-color: #fef9f9;" : ""}">
                             <td style="padding: 15px 12px; color: #1a1a1a; font-size: 14px; font-weight: 500;">
-                              <div style="display: flex; align-items: center; gap: 15px;">
-                                ${item.image && !item.image.startsWith('data:') ? `<img src="${item.image}" alt="${item.name}" style="width: 80px; height: auto; border-radius: 4px; border: 1px solid #eaeaea; display: block;" />` : ''}
-                                <div>
-                                  ${item.name}${item.variant_name ? " - " + item.variant_name : ""}${item.color ? " (" + item.color + ")" : ""}
+                              <div style="display: flex; align-items: center; gap: 20px;">
+                                ${item.image && !item.image.startsWith('data:') ? `<img src="${item.image}" alt="${item.name}" style="width: 120px; height: auto; border-radius: 4px; border: 1px solid #eaeaea; display: block;" />` : ''}
+                                <div style="line-height: 1.5;">
+                                  ${item.name}${item.variant_name ? " - " + item.variant_name : ""}${item.color && !item.name.includes(item.color) ? " (" + item.color + ")" : ""}
                                 </div>
                               </div>
                             </td>

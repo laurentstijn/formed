@@ -471,15 +471,8 @@ export default function EigenOntwerpConfigurator() {
   const quantities = [1, 10, 25, 100, 500];
 
   const [wantsPowderCoating, setWantsPowderCoating] = useState(false);
-  const [powderCoatingColor, setPowderCoatingColor] = useState('#0a0a0a'); // RAL 9005
-
-  const ralColors = [
-    { hex: '#0a0a0a', name: 'RAL 9005 (Gitzwart)' },
-    { hex: '#f4f4f4', name: 'RAL 9010 (Zuiver wit)' },
-    { hex: '#383e42', name: 'RAL 7016 (Antracietgrijs)' },
-    { hex: '#cc0605', name: 'RAL 3020 (Verkeersrood)' },
-    { hex: '#20214f', name: 'RAL 5002 (Ultramarijnblauw)' },
-  ];
+  const [powderCoatingColor, setPowderCoatingColor] = useState('#0a0a0a');
+  const [standardColors, setStandardColors] = useState<{name: string, hex: string, ral?: string}[]>([]);
 
   React.useEffect(() => {
     async function loadSettings() {
@@ -491,7 +484,25 @@ export default function EigenOntwerpConfigurator() {
           .eq("key", "custom_design_settings")
           .maybeSingle()
         if (data?.value) {
-          setPricingSettings(JSON.parse(data.value))
+          const parsed = JSON.parse(data.value);
+          if (!parsed.materials) {
+            parsed.materials = [
+              { id: 'inox', name: 'Geborsteld INOX', pricePerKg: parsed.pricePerKgInox ?? 8.0 },
+              { id: 'chroom', name: 'Polijst Chroom', pricePerKg: parsed.pricePerKgChroom ?? 10.0 },
+              { id: 'messing', name: 'Goud / Messing', pricePerKg: parsed.pricePerKgMessing ?? 15.0 }
+            ];
+          }
+          setPricingSettings(parsed)
+        }
+
+        const res = await fetch("/api/admin/settings/standard-colors");
+        if (res.ok) {
+          const json = await res.json();
+          const colors = json.colors || [];
+          setStandardColors(colors);
+          if (colors.length > 0) {
+            setPowderCoatingColor(colors[0].hex);
+          }
         }
       } catch (e) {
         console.error("Fout bij laden van prijzen", e)
@@ -596,8 +607,8 @@ export default function EigenOntwerpConfigurator() {
   const volumeMm3 = length * width * thickness;
   const weightKg = volumeMm3 * 0.00000785; // Dichtheid staal (7.85 g/cm3)
   
-  const currentMaterialPrice = pricePerKg[materialType as keyof typeof pricePerKg] || 8;
-  const materialCost = weightKg * currentMaterialPrice;
+  const selectedMaterial = (pricingSettings?.materials || []).find((m: any) => m.id === materialType) || { name: materialType, pricePerKg: 8 };
+  const materialCost = weightKg * selectedMaterial.pricePerKg;
   
   const cuttingCost = (cutLength / 1000) * cuttingPricePerMeter;
   const engraveCost = (engraveLength / 1000) * engravePricePerMeter;
@@ -607,8 +618,8 @@ export default function EigenOntwerpConfigurator() {
   let coatingUnitPrice = 0;
   if (wantsPowderCoating) {
     const areaM2 = (width * length * 2) / 1000000;
-    const coatingSetup = 25.00;
-    const coatingPerItem = areaM2 * 45.00;
+    const coatingSetup = pricingSettings?.powderCoatingSetup ?? 25.00;
+    const coatingPerItem = areaM2 * (pricingSettings?.powderCoatingPerM2 ?? 45.00);
     coatingUnitPrice = (coatingSetup / selectedQuantity) + coatingPerItem;
   }
   
@@ -649,19 +660,19 @@ export default function EigenOntwerpConfigurator() {
         }
       }
 
-      const selectedRal = ralColors.find(c => c.hex === powderCoatingColor);
-      const ralName = selectedRal ? selectedRal.name : powderCoatingColor;
+      const selectedColor = standardColors.find(c => c.hex === powderCoatingColor);
+      const colorName = selectedColor ? (selectedColor.ral ? `RAL ${selectedColor.ral} (${selectedColor.name})` : selectedColor.name) : powderCoatingColor;
 
       addItem({
         id: `eigen-ontwerp-${Date.now()}` as any,
-        name: `Eigen Ontwerp: ${length}x${width}x${thickness}mm${wantsPowderCoating ? ` (Poedercoating ${ralName})` : ''}`,
+        name: `Eigen Ontwerp: ${length}x${width}x${thickness}mm${wantsPowderCoating ? ` (Poedercoating ${colorName})` : ''}`,
         price: Number(unitPrice.toFixed(2)),
         quantity: selectedQuantity,
         image: snapshotDataUrl,
-        color: wantsPowderCoating ? ralName : materialType,
+        color: wantsPowderCoating ? colorName : selectedMaterial.name,
         dxf_string: dxfContent,
         dxf_filename: `custom_${dxfFileName}`,
-        layer_settings: JSON.stringify({ ...layerSettings, invertCut, wantsPowderCoating, powderCoatingColor: ralName })
+        layer_settings: JSON.stringify({ ...layerSettings, invertCut, wantsPowderCoating, powderCoatingColor: colorName })
       });
       
       router.push('/cart');
@@ -743,36 +754,19 @@ export default function EigenOntwerpConfigurator() {
                       <div className="space-y-4">
                         <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Materiaal</label>
                         <div className="grid grid-cols-2 gap-3">
-                          <button
-                            onClick={() => setMaterialType('inox')}
-                            className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
-                              materialType === 'inox' 
-                                ? 'bg-black text-white border-black' 
-                                : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                            }`}
-                          >
-                            Geborsteld INOX
-                          </button>
-                          <button
-                            onClick={() => setMaterialType('chroom')}
-                            className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
-                              materialType === 'chroom' 
-                                ? 'bg-black text-white border-black' 
-                                : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                            }`}
-                          >
-                            Polijst Chroom
-                          </button>
-                          <button
-                            onClick={() => setMaterialType('messing')}
-                            className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
-                              materialType === 'messing' 
-                                ? 'bg-black text-white border-black' 
-                                : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                            }`}
-                          >
-                            Goud / Messing
-                          </button>
+                          {(pricingSettings?.materials || []).map((mat: any) => (
+                            <button
+                              key={mat.id}
+                              onClick={() => setMaterialType(mat.id)}
+                              className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
+                                materialType === mat.id
+                                  ? 'bg-black text-white border-black' 
+                                  : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                              }`}
+                            >
+                              {mat.name}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
@@ -789,15 +783,16 @@ export default function EigenOntwerpConfigurator() {
                         
                         {wantsPowderCoating && (
                           <div className="bg-card border border-border rounded-md p-3">
-                            <p className="text-xs text-zinc-500 mb-3">Kies een RAL kleur voor de poedercoating. Dit voegt een setupkost van €25 toe en €45 per m².</p>
+                            <p className="text-xs text-zinc-500 mb-3">Kies een RAL kleur voor de poedercoating. Dit voegt een setupkost van €{pricingSettings?.powderCoatingSetup ?? 25} toe en €{pricingSettings?.powderCoatingPerM2 ?? 45} per m².</p>
                             <div className="relative">
                               <select 
                                 value={powderCoatingColor}
                                 onChange={(e) => setPowderCoatingColor(e.target.value)}
                                 className="w-full appearance-none bg-white border border-zinc-200 text-zinc-700 py-2 pl-10 pr-8 rounded-md text-sm focus:outline-none focus:border-zinc-400 cursor-pointer"
                               >
-                                {ralColors.map(c => (
-                                  <option key={c.hex} value={c.hex}>{c.name}</option>
+                                {standardColors.length === 0 && <option value={powderCoatingColor}>Standaard Zwart</option>}
+                                {standardColors.map(c => (
+                                  <option key={c.hex} value={c.hex}>{c.ral ? `RAL ${c.ral} (${c.name})` : c.name}</option>
                                 ))}
                               </select>
                               <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: powderCoatingColor }} />

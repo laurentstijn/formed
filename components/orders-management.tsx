@@ -420,16 +420,19 @@ export default function OrdersManagement() {
                     <div className="mt-4">
                       <p className="text-sm font-medium mb-2">Producten ({order.order_items.length})</p>
                       <div className="space-y-1">
-                        {order.order_items.map((item: any) => (
-                          <div key={item.id} className="flex justify-between text-sm">
-                            <span>
-                              {item.quantity}x {item.name}
-                              {item.variant_name ? ` - ${item.variant_name}` : ""}
-                              {item.color ? ` (${item.color})` : ""}
-                            </span>
-                            <span>€{(item.price * item.quantity).toFixed(2)}</span>
-                          </div>
-                        ))}
+                        {order.order_items.map((item: any) => {
+                          const hasColorInName = item.color && item.name.toLowerCase().includes(item.color.toLowerCase());
+                          return (
+                            <div key={item.id} className="flex justify-between text-sm">
+                              <span>
+                                {item.quantity}x {item.name}
+                                {item.variant_name ? ` - ${item.variant_name}` : ""}
+                                {item.color && !hasColorInName ? ` (${item.color})` : ""}
+                              </span>
+                              <span>€{(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 

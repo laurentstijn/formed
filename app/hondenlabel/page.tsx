@@ -14,11 +14,10 @@ interface DogTagProps {
   shape: string;
   materialType: string;
   frontText: string;
-  backText: string;
   thickness: number;
 }
 
-function DogTagModel({ shape, materialType, frontText, backText, thickness }: DogTagProps) {
+function DogTagModel({ shape, materialType, frontText, thickness }: DogTagProps) {
   const materials = React.useMemo(() => ({
     inox: new THREE.MeshStandardMaterial({
       color: "#a8adb0",
@@ -38,18 +37,33 @@ function DogTagModel({ shape, materialType, frontText, backText, thickness }: Do
   const geometry = React.useMemo(() => {
     const s = new THREE.Shape();
     if (shape === 'botje') {
-      // Create a dog bone shape
-      s.moveTo(-15, 5);
-      s.lineTo(15, 5);
-      s.absarc(18, 8, 4, Math.PI, Math.PI*2, true);
-      s.absarc(18, -8, 4, 0, Math.PI, true);
-      s.lineTo(-15, -5);
-      s.absarc(-18, -8, 4, 0, Math.PI, true);
-      s.absarc(-18, 8, 4, Math.PI, Math.PI*2, true);
-      
-      // Add a hole
+      // Perfect Dog Bone Math
+      const r = 5;
+      const cx = 14;
+      const cy = 4;
+      const intersectAngle = 0.927; // atan2(4, 3)
+
+      s.moveTo(-9, cy);
+      s.lineTo(9, cy);
+
+      // Top Right Arc
+      s.absarc(cx, cy, r, Math.PI, -intersectAngle, true);
+
+      // Bottom Right Arc
+      s.absarc(cx, -cy, r, intersectAngle, -Math.PI, true);
+
+      // Bottom Line
+      s.lineTo(-9, -cy);
+
+      // Bottom Left Arc
+      s.absarc(-cx, -cy, r, 0, -Math.PI - intersectAngle, true);
+
+      // Top Left Arc
+      s.absarc(-cx, cy, r, -Math.PI + intersectAngle, -2 * Math.PI, true);
+
+      // Add a hole for the keyring
       const hole = new THREE.Path();
-      hole.absarc(-20, 0, 2.5, 0, Math.PI * 2, false);
+      hole.absarc(-14, 0, 2, 0, Math.PI * 2, false);
       s.holes.push(hole);
     } else if (shape === 'rondje') {
       s.absarc(0, 0, 15, 0, Math.PI * 2, false);
@@ -102,24 +116,6 @@ function DogTagModel({ shape, materialType, frontText, backText, thickness }: Do
           </Center>
         </group>
       )}
-
-      {/* Back Text */}
-      {backText && (
-        <group position={[0, 0, -0.05]} rotation={[0, Math.PI, 0]}>
-          <Center>
-            <Text
-              font="/AllertaStencil-Regular.ttf"
-              fontSize={3}
-              color="#333"
-              anchorX="center"
-              anchorY="middle"
-              depthOffset={2}
-            >
-              {backText}
-            </Text>
-          </Center>
-        </group>
-      )}
     </group>
   );
 }
@@ -131,7 +127,6 @@ export default function HondenlabelPage() {
   const [shape, setShape] = useState('botje');
   const [materialType, setMaterialType] = useState('inox');
   const [frontText, setFrontText] = useState('MAX');
-  const [backText, setBackText] = useState('0470 12 34 56');
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const quantities = [1, 2, 5, 10];
 
@@ -155,7 +150,7 @@ export default function HondenlabelPage() {
       quantity: selectedQuantity,
       image: '/placeholder.svg', // In a real app, generate snapshot
       color: materialName,
-      layer_settings: JSON.stringify({ frontText, backText })
+      layer_settings: JSON.stringify({ frontText })
     });
     
     router.push('/cart');
@@ -233,22 +228,12 @@ export default function HondenlabelPage() {
                 </AccordionTrigger>
                 <AccordionContent className="pb-4 space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-zinc-500 uppercase">Naam (Voorkant)</label>
+                    <label className="text-xs font-semibold text-zinc-500 uppercase">Naam / Tekst (Max 12 karakters)</label>
                     <input 
                       type="text" 
                       value={frontText} 
                       onChange={(e) => setFrontText(e.target.value.toUpperCase())}
                       maxLength={12}
-                      className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-black"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-zinc-500 uppercase">Telefoon (Achterkant)</label>
-                    <input 
-                      type="text" 
-                      value={backText} 
-                      onChange={(e) => setBackText(e.target.value)}
-                      maxLength={15}
                       className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-black"
                     />
                   </div>
@@ -305,7 +290,6 @@ export default function HondenlabelPage() {
                   shape={shape} 
                   materialType={materialType} 
                   frontText={frontText} 
-                  backText={backText}
                   thickness={2}
                 />
               </Center>

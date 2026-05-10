@@ -76,8 +76,15 @@ export default function HomePage() {
   }
 
   const handleProductClick = (productId: number | string, productName: string) => {
-    if (productName.toLowerCase().includes("eigen ontwerp")) {
+    const nameLower = productName.toLowerCase();
+    if (nameLower.includes("eigen ontwerp")) {
       router.push("/eigen-ontwerp")
+    } else if (nameLower.includes("douchegoot")) {
+      router.push("/douchegoot")
+    } else if (nameLower.includes("naambordje")) {
+      router.push("/naambordje")
+    } else if (nameLower.includes("hondenlabel") || nameLower.includes("dog tag")) {
+      router.push("/hondenlabel")
     } else {
       router.push(`/product/${productId}`)
     }

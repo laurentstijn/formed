@@ -649,16 +649,19 @@ export default function EigenOntwerpConfigurator() {
         }
       }
 
+      const selectedRal = ralColors.find(c => c.hex === powderCoatingColor);
+      const ralName = selectedRal ? selectedRal.name : powderCoatingColor;
+
       addItem({
         id: `eigen-ontwerp-${Date.now()}` as any,
-        name: `Eigen Ontwerp: ${length}x${width}x${thickness}mm${wantsPowderCoating ? ' (Poedercoating)' : ''}`,
+        name: `Eigen Ontwerp: ${length}x${width}x${thickness}mm${wantsPowderCoating ? ` (Poedercoating ${ralName})` : ''}`,
         price: Number(unitPrice.toFixed(2)),
         quantity: selectedQuantity,
         image: snapshotDataUrl,
-        color: wantsPowderCoating ? powderCoatingColor : materialType,
+        color: wantsPowderCoating ? ralName : materialType,
         dxf_string: dxfContent,
         dxf_filename: `custom_${dxfFileName}`,
-        layer_settings: JSON.stringify({ ...layerSettings, invertCut, wantsPowderCoating, powderCoatingColor })
+        layer_settings: JSON.stringify({ ...layerSettings, invertCut, wantsPowderCoating, powderCoatingColor: ralName })
       });
       
       router.push('/cart');

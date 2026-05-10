@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Environment, ContactShadows, Center } from "@react-three/drei";
+import { OrbitControls, Environment, ContactShadows, Center, Bounds } from "@react-three/drei";
 import * as THREE from "three";
 import { SiteHeader } from "@/components/site-header";
 import { useCart } from "@/components/cart-provider";
@@ -964,21 +964,23 @@ export default function EigenOntwerpConfigurator() {
               shadow-mapSize={[1024, 1024]}
             />
             
-            <Center>
-              {dxfLayers.length > 0 && (
-                <CustomDesignModel 
-                  width={width} 
-                  length={length} 
-                  thickness={thickness} 
-                  materialType={materialType}
-                  dxfLayers={dxfLayers}
-                  layerSettings={layerSettings}
-                  invertCut={invertCut}
-                  wantsPowderCoating={wantsPowderCoating}
-                  powderCoatingColor={powderCoatingColor}
-                />
-              )}
-            </Center>
+            <Bounds fit clip observe margin={1.2}>
+              <Center>
+                {dxfLayers.length > 0 && (
+                  <CustomDesignModel 
+                    width={width} 
+                    length={length} 
+                    thickness={thickness} 
+                    materialType={materialType}
+                    dxfLayers={dxfLayers}
+                    layerSettings={layerSettings}
+                    invertCut={invertCut}
+                    wantsPowderCoating={wantsPowderCoating}
+                    powderCoatingColor={powderCoatingColor}
+                  />
+                )}
+              </Center>
+            </Bounds>
             
             <ContactShadows 
               position={[0, -2, 0]} 

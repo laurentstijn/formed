@@ -463,6 +463,7 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
 export default function EigenOntwerpConfigurator() {
   const { addItem } = useCart();
   const router = useRouter();
+  const controlsRef = useRef<any>(null);
   
   const [pricingSettings, setPricingSettings] = useState<any>(null);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
@@ -990,6 +991,7 @@ export default function EigenOntwerpConfigurator() {
             />
             
             <OrbitControls 
+              ref={controlsRef}
               makeDefault 
               minPolarAngle={0} 
               maxPolarAngle={Math.PI / 2.1} 
@@ -997,6 +999,14 @@ export default function EigenOntwerpConfigurator() {
             />
             <Environment preset="studio" />
           </Canvas>
+
+          <button 
+            onClick={() => controlsRef.current?.reset()}
+            className="absolute top-6 right-6 w-10 h-10 bg-white border border-zinc-200 rounded-md shadow-sm flex items-center justify-center text-zinc-600 hover:bg-zinc-50 hover:text-black transition-colors z-10"
+            title="Reset Camera"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          </button>
           
           <div className="absolute bottom-6 right-6 text-xs font-medium tracking-widest text-zinc-400 uppercase">
             SLEEP OM TE DRAAIEN • SCROLL OM TE ZOOMEN

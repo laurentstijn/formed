@@ -19,7 +19,17 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "FORMD - Formd in steel",
+  title: "FORMD | Staal & RVS Op Maat Gesneden & Gegraveerd",
+  description: "Upload je DXF en bestel direct online. Wij snijden, graveren en poedercoaten plaatwerk in staal, RVS, aluminium, chroom en messing. Snel geleverd door FORMD.",
+  keywords: ["DXF laseren", "staal op maat", "RVS snijden", "metaalbewerking", "poedercoaten", "aluminium laseren", "metaal graveren", "FORMD"],
+  authors: [{ name: "FORMD" }],
+  creator: "FORMD",
+  publisher: "FORMD",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   icons: {
     icon: "/favicon.png",
     apple: "/favicon.png",
@@ -28,7 +38,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "nl_BE",
     url: "https://formd.be",
-    title: "FORMD - Formd in steel",
+    title: "FORMD | DXF Laseren & Plaatwerk Op Maat",
+    description: "Upload je DXF bestand en zie direct de prijs. Wij snijden en poedercoaten metaal op maat.",
     siteName: "FORMD",
     images: [
       {
@@ -41,10 +52,22 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FORMD - Formd in steel",
+    title: "FORMD | Staal & RVS Op Maat",
+    description: "Upload je DXF en bestel direct online. Snel, simpel en op maat.",
     images: ["/og-image.png?v=2"],
   },
-    generator: 'v0.app'
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  generator: 'Next.js'
 }
 
 export default function RootLayout({

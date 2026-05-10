@@ -59,8 +59,8 @@ export default function CartPage() {
               <div key={item.id} className="flex gap-6 pb-6 border-b border-border">
                 <Dialog>
                   <DialogTrigger asChild>
-                    <div className="w-24 h-24 flex-shrink-0 bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-                      <img src={item.image || "/placeholder.svg"} alt={item.name} className="w-full h-full object-cover" />
+                    <div className="w-32 md:w-40 h-32 md:h-40 flex-shrink-0 bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity p-2">
+                      <img src={item.image || "/placeholder.svg"} alt={item.name} className="w-full h-full object-contain" />
                     </div>
                   </DialogTrigger>
                   <DialogContent className="max-w-3xl border-none p-0 bg-transparent shadow-none">

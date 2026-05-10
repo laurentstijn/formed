@@ -814,98 +814,79 @@ export default function EigenOntwerpConfigurator() {
                     <AccordionContent className="space-y-6 pb-4">
                       <div className="space-y-4">
                         <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Lagen & Bewerkingen</label>
-                {dxfLayers.length === 0 ? (
-                  <div className="bg-zinc-50 border border-zinc-200 p-4 rounded-md">
-                    <p className="text-sm text-zinc-800 font-medium mb-1">Tip: Hoe maak je een goed DXF bestand?</p>
-                    <p className="text-xs text-zinc-500 leading-relaxed">
-                      Teken je ontwerp in je CAD-software bij voorkeur met minimaal 3 duidelijke lagen, bijvoorbeeld:
-                      <br/><br/>
-                      • <strong>1. "Snijden"</strong> (Buitencontour en gaten)<br/>
-                      • <strong>2. "Graveren"</strong> (Logo's, markeringen en tekst)<br/>
-                      • <strong>3. "Hulplijnen"</strong> (Constructie- of buiglijnen, deze kun je op "Negeren" zetten)<br/>
-                      <br/>
-                      Zodra je je DXF uploadt, leest de configurator deze lagen uit en kun je per laag eenvoudig de juiste laserkop-actie bepalen.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {dxfLayers.map(layer => (
-                      <div key={layer.name} className="flex flex-col gap-2 bg-card p-3 rounded-md border border-border">
-                        <span className="text-sm font-medium text-zinc-700">Laag: {layer.name}</span>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          <button
-                            onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'graveren' }))}
-                            className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
-                              layerSettings[layer.name] === 'graveren' 
-                                ? 'bg-black text-white' 
-                                : 'bg-transparent text-zinc-500 border border-zinc-200 hover:bg-zinc-100'
-                            }`}
-                          >
-                            Graveren
-                          </button>
-                          <button
-                            onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'snijden' }))}
-                            className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
-                              layerSettings[layer.name] === 'snijden' 
-                                ? 'bg-black text-white' 
-                                : 'bg-transparent text-zinc-500 border border-zinc-200 hover:bg-zinc-100'
-                            }`}
-                          >
-                            Alles Snijden
-                          </button>
-                          <button
-                            onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'omtrek' }))}
-                            className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
-                              layerSettings[layer.name] === 'omtrek' 
-                                ? 'bg-black text-white' 
-                                : 'bg-transparent text-zinc-500 border border-zinc-200 hover:bg-zinc-100'
-                            }`}
-                          >
-                            Omtrek Snijden
-                          </button>
-                          <button
-                            onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'negeren' }))}
-                            className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
-                              layerSettings[layer.name] === 'negeren' 
-                                ? 'bg-red-500 text-white border-red-500' 
-                                : 'bg-transparent text-zinc-500 border border-zinc-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
-                            }`}
-                          >
-                            Negeren
-                          </button>
+                        <div className="space-y-3">
+                          {dxfLayers.map(layer => (
+                            <div key={layer.name} className="flex flex-col gap-2 bg-card p-3 rounded-md border border-border">
+                              <span className="text-sm font-medium text-zinc-700">Laag: {layer.name}</span>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <button
+                                  onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'graveren' }))}
+                                  className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
+                                    layerSettings[layer.name] === 'graveren' 
+                                      ? 'bg-black text-white' 
+                                      : 'bg-transparent text-zinc-500 border border-zinc-200 hover:bg-zinc-100'
+                                  }`}
+                                >
+                                  Graveren
+                                </button>
+                                <button
+                                  onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'snijden' }))}
+                                  className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
+                                    layerSettings[layer.name] === 'snijden' 
+                                      ? 'bg-black text-white' 
+                                      : 'bg-transparent text-zinc-500 border border-zinc-200 hover:bg-zinc-100'
+                                  }`}
+                                >
+                                  Alles Snijden
+                                </button>
+                                <button
+                                  onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'omtrek' }))}
+                                  className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
+                                    layerSettings[layer.name] === 'omtrek' 
+                                      ? 'bg-black text-white' 
+                                      : 'bg-transparent text-zinc-500 border border-zinc-200 hover:bg-zinc-100'
+                                  }`}
+                                >
+                                  Omtrek Snijden
+                                </button>
+                                <button
+                                  onClick={() => setLayerSettings(prev => ({ ...prev, [layer.name]: 'negeren' }))}
+                                  className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
+                                    layerSettings[layer.name] === 'negeren' 
+                                      ? 'bg-red-500 text-white border-red-500' 
+                                      : 'bg-transparent text-zinc-500 border border-zinc-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
+                                  }`}
+                                >
+                                  Negeren
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          <p className="text-xs text-zinc-500 leading-relaxed mt-2">
+                            Tip: Met "Omtrek Snijden" wordt de grootste buitenste rand uitgesneden, en worden alle overige binnenste lijnen van deze laag gegraveerd.
+                          </p>
                         </div>
                       </div>
-                    ))}
-                    <p className="text-xs text-zinc-500 leading-relaxed mt-2">
-                      Tip: Met "Omtrek Snijden" wordt de grootste buitenste rand uitgesneden, en worden alle overige binnenste lijnen van deze laag gegraveerd.
-                    </p>
-                  </div>
-                )}
-              </div>
 
-              {dxfLayers.length > 0 && (
-                <div className="space-y-4">
-                  <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Weergave / Snijgedrag</label>
-                  <div className="bg-card border border-border rounded-md p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-zinc-700">Logo Inverteren (Negatief/Positief)</span>
-                      <button 
-                        onClick={() => setInvertCut(!invertCut)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${invertCut ? 'bg-black' : 'bg-zinc-200'}`}
-                      >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${invertCut ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
-                    <p className="text-xs text-zinc-500">
-                      {invertCut 
-                        ? "Positief (Onderdelen): De buitenste rand wordt genegeerd, de binnenste objecten (zoals losse letters) worden uitgesneden." 
-                        : "Negatief (Stencil): De buitenste rand wordt als staalplaat gezien, met het ontwerp eruit gesneden."}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-                      )}
+                      <div className="space-y-4">
+                        <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Weergave / Snijgedrag</label>
+                        <div className="bg-card border border-border rounded-md p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-zinc-700">Logo Inverteren (Negatief/Positief)</span>
+                            <button 
+                              onClick={() => setInvertCut(!invertCut)}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${invertCut ? 'bg-black' : 'bg-zinc-200'}`}
+                            >
+                              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${invertCut ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                          </div>
+                          <p className="text-xs text-zinc-500">
+                            {invertCut 
+                              ? "Positief (Onderdelen): De buitenste rand wordt genegeerd, de binnenste objecten (zoals losse letters) worden uitgesneden." 
+                              : "Negatief (Stencil): De buitenste rand wordt als staalplaat gezien, met het ontwerp eruit gesneden."}
+                          </p>
+                        </div>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>

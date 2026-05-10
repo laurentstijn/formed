@@ -15,9 +15,10 @@ interface DogTagProps {
   materialType: string;
   frontText: string;
   thickness: number;
+  size: string;
 }
 
-function DogTagModel({ shape, materialType, frontText, thickness }: DogTagProps) {
+function DogTagModel({ shape, materialType, frontText, thickness, size }: DogTagProps) {
   const materials = React.useMemo(() => ({
     inox: new THREE.MeshStandardMaterial({
       color: "#a8adb0",
@@ -89,28 +90,31 @@ function DogTagModel({ shape, materialType, frontText, thickness }: DogTagProps)
       bevelEnabled: true,
       bevelSegments: 4,
       steps: 2,
-      bevelSize: 0.5,
-      bevelThickness: 0.5,
+      bevelSize: 0.3,
+      bevelThickness: 0.3,
       curveSegments: 64,
     });
   }, [shape, thickness]);
 
+  const scaleMultiplier = size === 'klein' ? 0.75 : size === 'groot' ? 1.25 : 1.0;
+
   return (
-    <group>
+    <group scale={[scaleMultiplier, scaleMultiplier, scaleMultiplier]}>
       <mesh geometry={geometry} material={activeMaterial} castShadow receiveShadow />
       
       {/* Front Text */}
       {frontText && (
-        <group position={[0, 0, thickness + 0.05]}>
+        <group position={[0, 0, thickness + 0.35]}>
           <Center>
             <Text
               font="/AllertaStencil-Regular.ttf"
               fontSize={4}
-              color="#333"
+              color="#111"
               anchorX="center"
               anchorY="middle"
               depthOffset={2}
             >
+              <meshStandardMaterial color="#111" roughness={0.9} metalness={0.1} />
               {frontText}
             </Text>
           </Center>
@@ -126,6 +130,7 @@ export default function HondenlabelPage() {
   
   const [shape, setShape] = useState('botje');
   const [materialType, setMaterialType] = useState('inox');
+  const [size, setSize] = useState('standaard');
   const [frontText, setFrontText] = useState('MAX');
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const quantities = [1, 2, 5, 10];
@@ -136,6 +141,8 @@ export default function HondenlabelPage() {
     let base = 15; // Base price
     if (materialType === 'messing') base += 5;
     if (shape === 'schild') base += 2;
+    if (size === 'groot') base += 3;
+    if (size === 'klein') base -= 2;
     return base;
   };
 
@@ -145,7 +152,7 @@ export default function HondenlabelPage() {
     
     addItem({
       id: `hondenlabel-${Date.now()}` as any,
-      name: `Hondenlabel: ${shape.toUpperCase()} (${materialName})`,
+      name: `Hondenlabel: ${shape.toUpperCase()} (${materialName}) - ${size.toUpperCase()}`,
       price: unitPrice,
       quantity: selectedQuantity,
       image: '/placeholder.svg', // In a real app, generate snapshot
@@ -221,10 +228,32 @@ export default function HondenlabelPage() {
                 </AccordionContent>
               </AccordionItem>
 
-              {/* Gravure */}
+              {/* Formaat */}
               <AccordionItem value="item-3" className="border-b-0 bg-zinc-50/50 rounded-lg border border-zinc-200 px-4">
                 <AccordionTrigger className="hover:no-underline py-4">
-                  <span className="text-sm font-semibold tracking-wider text-zinc-800 uppercase">3. Tekst Graveren</span>
+                  <span className="text-sm font-semibold tracking-wider text-zinc-800 uppercase">3. Formaat</span>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <div className="grid grid-cols-3 gap-2">
+                    {['klein', 'standaard', 'groot'].map(sz => (
+                      <button
+                        key={sz}
+                        onClick={() => setSize(sz)}
+                        className={`py-2 px-1 rounded-md border text-sm font-medium transition-colors uppercase ${
+                          size === sz ? 'bg-black text-white border-black' : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                        }`}
+                      >
+                        {sz}
+                      </button>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Gravure */}
+              <AccordionItem value="item-4" className="border-b-0 bg-zinc-50/50 rounded-lg border border-zinc-200 px-4">
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <span className="text-sm font-semibold tracking-wider text-zinc-800 uppercase">4. Tekst Graveren</span>
                 </AccordionTrigger>
                 <AccordionContent className="pb-4 space-y-4">
                   <div>
@@ -290,7 +319,8 @@ export default function HondenlabelPage() {
                   shape={shape} 
                   materialType={materialType} 
                   frontText={frontText} 
-                  thickness={2}
+                  thickness={1.5}
+                  size={size}
                 />
               </Center>
             </Bounds>

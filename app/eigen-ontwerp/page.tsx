@@ -678,8 +678,8 @@ export default function EigenOntwerpConfigurator() {
       <SiteHeader />
       
       <div className="flex flex-col md:flex-row flex-1">
-        <div className="w-full md:w-[400px] bg-white border-r border-zinc-200 flex flex-col h-[55vh] md:h-auto overflow-y-auto order-2 md:order-1">
-          <div className="p-6 md:p-8 flex-1 space-y-8">
+        <div className="w-full md:w-[400px] bg-white border-r border-zinc-200 flex flex-col h-[55vh] md:h-[calc(100vh-64px)] order-2 md:order-1">
+          <div className="p-6 md:p-8 flex-1 overflow-y-auto space-y-8">
             <div>
               <h1 className="text-2xl font-light tracking-widest text-zinc-900 mb-2">EIGEN ONTWERP</h1>
               <p className="text-zinc-500 text-sm">Upload je DXF voor graveren of snijden op een staalplaat</p>
@@ -899,7 +899,7 @@ export default function EigenOntwerpConfigurator() {
             </div>
           </div>
 
-          <div className="p-6 md:p-8 bg-secondary border-t border-border">
+          <div className="p-6 md:p-8 bg-secondary border-t border-border shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             {dxfLayers.length > 0 && (
               <div className="mb-6">
                 <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase mb-3 block">Hoeveelheid (Stuks)</label>

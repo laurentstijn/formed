@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
 import DxfParser from 'dxf-parser';
 import { NURBSCurve } from 'three/examples/jsm/curves/NURBSCurve.js';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // Simpele basis materialen
 const materials = {
@@ -162,6 +163,9 @@ function extractAllPaths(dxfData: any, rawText?: string) {
               const curve = new NURBSCurve(degree, knots, ctrlPts);
               const divisions = Math.min(200, Math.max(32, ctrlPts.length * 3));
               points = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
+              if (ent.closed && points.length > 0) {
+                 points.push(points[0].clone());
+              }
             } catch (e) {
               console.warn("Failed to create NURBSCurve, falling back to control points", e);
               const pts = ent.controlPoints || ent.fitPoints || ent.vertices || [];
@@ -317,16 +321,29 @@ function DxfRenderer({ dxfLayers, layerSettings }) {
   );
 }
 
-function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, layerSettings, invertCut }) {
-  const plateMaterial = materials[materialType] || materials.inox;
+function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, layerSettings, invertCut, wantsPowderCoating, powderCoatingColor }) {
+  const plateMaterial = React.useMemo(() => {
+    if (wantsPowderCoating) {
+      return new THREE.MeshStandardMaterial({ 
+        color: powderCoatingColor, 
+        metalness: 0.1, 
+        roughness: 0.8,
+        side: THREE.DoubleSide
+      });
+    }
+    return materials[materialType] || materials.inox;
+  }, [materialType, wantsPowderCoating, powderCoatingColor]);
 
   const geometry = React.useMemo(() => {
     let cutPathsRaw: THREE.Vector3[][] = [];
     
     dxfLayers.forEach((layer: any) => {
       const mode = layerSettings[layer.name] || 'graveren';
-      if (mode === 'snijden' || mode === 'omtrek') {
-        cutPathsRaw.push(...layer.paths);
+      const loops = layer.loops || layer.paths;
+      if (mode === 'snijden') {
+        cutPathsRaw.push(...loops);
+      } else if (mode === 'omtrek' && loops.length > 0) {
+        cutPathsRaw.push(loops[0]);
       }
     });
       
@@ -344,7 +361,7 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
            if(p.y < minY) minY = p.y;
            if(p.y > maxY) maxY = p.y;
         }
-        return { loop, minX, maxX, minY, maxY, depth: 0, isHole: false, isDropped: false, parentIndex: -1, shape: null as THREE.Shape | null };
+        return { loop, minX, maxX, minY, maxY, originalDepth: 0, depth: 0, isHole: false, isDropped: false, parentIndex: -1, shape: null as THREE.Shape | null };
       });
 
       // Sorteer op oppervlakte (grootste eerst)
@@ -362,11 +379,12 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
           if (child.minX >= parent.minX - eps && child.maxX <= parent.maxX + eps &&
               child.minY >= parent.minY - eps && child.maxY <= parent.maxY + eps) {
              directParent = j;
-             depth = parent.depth + 1;
+             depth = parent.originalDepth + 1;
              break;
           }
         }
         
+        child.originalDepth = depth;
         child.depth = invertCut ? depth - 1 : depth;
         child.isDropped = child.depth < 0;
         child.isHole = (child.depth % 2 !== 0);
@@ -427,7 +445,7 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
       depth: thickness,
       bevelEnabled: false,
     });
-  }, [width, length, thickness, dxfLayers, layerSettings]);
+  }, [width, length, thickness, dxfLayers, layerSettings, invertCut]);
 
   return (
     <group>
@@ -450,6 +468,17 @@ export default function EigenOntwerpConfigurator() {
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [invertCut, setInvertCut] = useState(false);
   const quantities = [1, 10, 25, 100, 500];
+
+  const [wantsPowderCoating, setWantsPowderCoating] = useState(false);
+  const [powderCoatingColor, setPowderCoatingColor] = useState('#0a0a0a'); // RAL 9005
+
+  const ralColors = [
+    { hex: '#0a0a0a', name: 'RAL 9005 (Gitzwart)' },
+    { hex: '#f4f4f4', name: 'RAL 9010 (Zuiver wit)' },
+    { hex: '#383e42', name: 'RAL 7016 (Antracietgrijs)' },
+    { hex: '#cc0605', name: 'RAL 3020 (Verkeersrood)' },
+    { hex: '#20214f', name: 'RAL 5002 (Ultramarijnblauw)' },
+  ];
 
   React.useEffect(() => {
     async function loadSettings() {
@@ -573,7 +602,16 @@ export default function EigenOntwerpConfigurator() {
   const engraveCost = (engraveLength / 1000) * engravePricePerMeter;
   
   const unitProductionCost = materialCost + cuttingCost + engraveCost;
-  const unitPrice = (startCost / selectedQuantity) + unitProductionCost;
+  
+  let coatingUnitPrice = 0;
+  if (wantsPowderCoating) {
+    const areaM2 = (width * length * 2) / 1000000;
+    const coatingSetup = 25.00;
+    const coatingPerItem = areaM2 * 45.00;
+    coatingUnitPrice = (coatingSetup / selectedQuantity) + coatingPerItem;
+  }
+  
+  const unitPrice = (startCost / selectedQuantity) + unitProductionCost + coatingUnitPrice;
   const totalPrice = unitPrice * selectedQuantity;
 
   const handleAddToCart = async () => {
@@ -611,15 +649,15 @@ export default function EigenOntwerpConfigurator() {
       }
 
       addItem({
-        id: `eigen-ontwerp-${Date.now()}` as any, // Gebruik een unieke ID zodat ze niet overschrijven
-        name: `Eigen Ontwerp: ${length}x${width}x${thickness}mm`,
+        id: `eigen-ontwerp-${Date.now()}` as any,
+        name: `Eigen Ontwerp: ${length}x${width}x${thickness}mm${wantsPowderCoating ? ' (Poedercoating)' : ''}`,
         price: Number(unitPrice.toFixed(2)),
         quantity: selectedQuantity,
         image: snapshotDataUrl,
-        color: materialType,
+        color: wantsPowderCoating ? powderCoatingColor : materialType,
         dxf_string: dxfContent,
         dxf_filename: `custom_${dxfFileName}`,
-        layer_settings: JSON.stringify({ ...layerSettings, invertCut })
+        layer_settings: JSON.stringify({ ...layerSettings, invertCut, wantsPowderCoating, powderCoatingColor })
       });
       
       router.push('/cart');
@@ -672,27 +710,110 @@ export default function EigenOntwerpConfigurator() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Plaat Dikte (mm)</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[1, 2, 3, 4].map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setThickness(t)}
-                      className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
-                        thickness === t 
-                          ? 'bg-black text-white border-black' 
-                          : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                      }`}
-                    >
-                      {t} mm
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {dxfLayers.length > 0 && (
+                <Accordion type="single" collapsible defaultValue="item-1" className="w-full space-y-4">
+                  <AccordionItem value="item-1" className="border-b-0 bg-zinc-50/50 rounded-lg border border-zinc-200 px-4 data-[state=open]:bg-white transition-colors">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <span className="text-sm font-semibold tracking-wider text-zinc-800 uppercase">1. Materiaal & Dikte</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-6 pb-4">
+                      <div className="space-y-4">
+                        <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Plaat Dikte (mm)</label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[1, 2, 3, 4].map((t) => (
+                            <button
+                              key={t}
+                              onClick={() => setThickness(t)}
+                              className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
+                                thickness === t 
+                                  ? 'bg-black text-white border-black' 
+                                  : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                              }`}
+                            >
+                              {t} mm
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-              <div className="space-y-4">
-                <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Lagen & Bewerkingen</label>
+                      <div className="space-y-4">
+                        <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Materiaal</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => setMaterialType('inox')}
+                            className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
+                              materialType === 'inox' 
+                                ? 'bg-black text-white border-black' 
+                                : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                            }`}
+                          >
+                            Geborsteld INOX
+                          </button>
+                          <button
+                            onClick={() => setMaterialType('chroom')}
+                            className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
+                              materialType === 'chroom' 
+                                ? 'bg-black text-white border-black' 
+                                : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                            }`}
+                          >
+                            Polijst Chroom
+                          </button>
+                          <button
+                            onClick={() => setMaterialType('messing')}
+                            className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
+                              materialType === 'messing' 
+                                ? 'bg-black text-white border-black' 
+                                : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                            }`}
+                          >
+                            Goud / Messing
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Poedercoaten (RAL Kleuren)</label>
+                          <button 
+                            onClick={() => setWantsPowderCoating(!wantsPowderCoating)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${wantsPowderCoating ? 'bg-black' : 'bg-zinc-200'}`}
+                          >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${wantsPowderCoating ? 'translate-x-6' : 'translate-x-1'}`} />
+                          </button>
+                        </div>
+                        
+                        {wantsPowderCoating && (
+                          <div className="bg-card border border-border rounded-md p-3">
+                            <p className="text-xs text-zinc-500 mb-3">Kies een RAL kleur voor de poedercoating. Dit voegt een setupkost van €25 toe en €45 per m².</p>
+                            <div className="relative">
+                              <select 
+                                value={powderCoatingColor}
+                                onChange={(e) => setPowderCoatingColor(e.target.value)}
+                                className="w-full appearance-none bg-white border border-zinc-200 text-zinc-700 py-2 pl-10 pr-8 rounded-md text-sm focus:outline-none focus:border-zinc-400 cursor-pointer"
+                              >
+                                {ralColors.map(c => (
+                                  <option key={c.hex} value={c.hex}>{c.name}</option>
+                                ))}
+                              </select>
+                              <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: powderCoatingColor }} />
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="item-2" className="border-b-0 bg-zinc-50/50 rounded-lg border border-zinc-200 px-4 data-[state=open]:bg-white transition-colors">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <span className="text-sm font-semibold tracking-wider text-zinc-800 uppercase">2. Geavanceerde Instellingen</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-6 pb-4">
+                      <div className="space-y-4">
+                        <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Lagen & Bewerkingen</label>
                 {dxfLayers.length === 0 ? (
                   <div className="bg-zinc-50 border border-zinc-200 p-4 rounded-md">
                     <p className="text-sm text-zinc-800 font-medium mb-1">Tip: Hoe maak je een goed DXF bestand?</p>
@@ -784,41 +905,12 @@ export default function EigenOntwerpConfigurator() {
                 </div>
               )}
 
-              <div className="space-y-4">
-                <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">Materiaal</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setMaterialType('inox')}
-                    className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
-                      materialType === 'inox' 
-                        ? 'bg-black text-white border-black' 
-                        : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                    }`}
-                  >
-                    Geborsteld INOX
-                  </button>
-                  <button
-                    onClick={() => setMaterialType('chroom')}
-                    className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
-                      materialType === 'chroom' 
-                        ? 'bg-black text-white border-black' 
-                        : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                    }`}
-                  >
-                    Polijst Chroom
-                  </button>
-                  <button
-                    onClick={() => setMaterialType('messing')}
-                    className={`py-2 px-3 rounded-md border text-sm font-medium transition-colors ${
-                      materialType === 'messing' 
-                        ? 'bg-black text-white border-black' 
-                        : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-                    }`}
-                  >
-                    Goud / Messing
-                  </button>
-                </div>
-              </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              )}
+
             </div>
           </div>
 
@@ -902,6 +994,8 @@ export default function EigenOntwerpConfigurator() {
                   dxfLayers={dxfLayers}
                   layerSettings={layerSettings}
                   invertCut={invertCut}
+                  wantsPowderCoating={wantsPowderCoating}
+                  powderCoatingColor={powderCoatingColor}
                 />
               )}
             </Center>

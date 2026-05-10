@@ -13,16 +13,21 @@ function generateShippingEmailHTML(
 ): string {
   const fromEmail = "info@formd.be"
 
-  const logoUrl = "/images/formed-primary-20logo.png"
+  const logoUrl = "https://txseeeyngm0nlung.public.blob.vercel-storage.com/products/1767593598250-logo%27s_primary%20logo.png"
 
   const itemsHTML = order.items
     .map(
       (item: any, index: number) => `
-    <tr style="${index % 2 === 0 ? "background-color: #f8f9fa;" : ""}">
-      <td style="padding: 15px 12px; color: #2c3e50; font-size: 14px; border-bottom: 1px solid #ecf0f1;">
-        <strong>${item.name}</strong><br>
-        <span style="color: #7f8c8d; font-size: 13px;">Aantal: ${item.quantity}</span>
+    <tr style="border-bottom: 1px solid #f7e8e8; ${index % 2 === 0 ? "background-color: #fef9f9;" : ""}">
+      <td style="padding: 15px 12px; color: #1a1a1a; font-size: 14px; font-weight: 500;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+          ${item.image && !item.image.startsWith('data:') ? `<img src="${item.image}" alt="${item.name}" style="width: 80px; height: auto; border-radius: 4px; border: 1px solid #eaeaea; display: block;" />` : ''}
+          <div>
+            ${item.name}${item.variant_name ? " - " + item.variant_name : ""}${item.color ? " (" + item.color + ")" : ""}
+          </div>
+        </div>
       </td>
+      <td style="padding: 15px 12px; color: #333333; font-size: 14px; text-align: center;">${item.quantity}</td>
     </tr>
   `,
     )
@@ -31,14 +36,15 @@ function generateShippingEmailHTML(
   const trackingHTML =
     trackingNumber || trackingUrl
       ? `
-    <div style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 24px; margin: 24px 0; border-radius: 8px;">
-      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #ffffff;">📦 Track & Trace</h3>
+    <!-- Track & Trace Box with blush pink theme -->
+    <div style="background-color: #fef7f7; border: 2px solid #1a1a1a; padding: 24px; margin: 24px 0; border-radius: 6px; text-align: center;">
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">📦 Track & Trace</h3>
       ${
         trackingNumber
           ? `
-        <p style="margin: 0 0 12px 0; color: #ecf0f1; font-size: 15px;">
-          <strong style="color: #ffffff;">Trackingnummer:</strong><br />
-          <span style="font-family: 'Courier New', monospace; font-size: 16px; color: #2c3e50; background: #ffffff; padding: 10px 15px; border-radius: 4px; display: inline-block; margin-top: 8px; font-weight: 600;">${trackingNumber}</span>
+        <p style="margin: 0 0 12px 0; color: #666666; font-size: 15px;">
+          <strong style="color: #1a1a1a;">Trackingnummer:</strong><br />
+          <span style="font-family: 'Courier New', monospace; font-size: 16px; color: #1a1a1a; background: #ffffff; padding: 10px 15px; border-radius: 4px; border: 1px solid #f7e8e8; display: inline-block; margin-top: 8px; font-weight: 600;">${trackingNumber}</span>
         </p>
       `
           : ""
@@ -47,14 +53,14 @@ function generateShippingEmailHTML(
         trackingUrl
           ? `
         <p style="margin: 16px 0 12px 0;">
-          <a href="${trackingUrl}" style="display: inline-block; background-color: #ffffff; color: #27ae60; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
+          <a href="${trackingUrl}" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
             🔍 Volg je pakket
           </a>
         </p>
       `
           : ""
       }
-      <p style="margin: 8px 0 0 0; color: #ecf0f1; font-size: 14px; line-height: 1.6;">
+      <p style="margin: 8px 0 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
         ${trackingUrl ? "Klik op de knop hierboven om de actuele status van je pakket te bekijken." : "Je kunt dit nummer gebruiken bij je vervoerder om je pakket te volgen."}
       </p>
     </div>
@@ -67,46 +73,39 @@ function generateShippingEmailHTML(
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Je pakket is onderweg!</title>
       </head>
-      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+      <body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; padding: 40px 20px;">
           <tr>
             <td align="center">
-              <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
                 
                 <!-- Header with Logo -->
                 <tr>
-                  <td style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); padding: 40px 40px 30px; text-align: center;">
-                    <img src="${logoUrl}" alt="FORMD" style="max-width: 200px; height: auto; margin-bottom: 15px;">
-                    <p style="color: #ecf0f1; font-size: 13px; margin: 0; font-style: italic;">formd in steel</p>
-                  </td>
-                </tr>
-
-                <!-- Success Banner -->
-                <tr>
-                  <td style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 30px; text-align: center;">
-                    <h1 style="margin: 0 0 8px 0; color: #ffffff; font-size: 28px; font-weight: 700;">✓ Je pakket is onderweg!</h1>
-                    <p style="margin: 0; color: #ecf0f1; font-size: 16px;">Bestelling #${orderNumber}</p>
+                  <td style="background: linear-gradient(135deg, #fef7f7 0%, #fef5f6 100%); padding: 40px 40px 30px; text-align: center; border-bottom: 3px solid #1a1a1a;">
+                    <img src="${logoUrl}" alt="FORMD" style="max-width: 220px; height: auto; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">
+                    <p style="color: #666666; font-size: 13px; margin: 0; font-style: italic; letter-spacing: 1px;">formd in steel</p>
                   </td>
                 </tr>
 
                 <!-- Content -->
                 <tr>
                   <td style="padding: 40px;">
-                    <p style="margin: 0 0 20px 0; color: #7f8c8d; font-size: 16px; line-height: 1.7;">
-                      Beste ${customerName},
-                    </p>
+                    <h1 style="color: #1a1a1a; font-size: 28px; margin: 0 0 10px; font-weight: 600;">Je pakket is onderweg!</h1>
+                    <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">Beste ${customerName},</p>
                     
-                    <p style="margin: 0 0 30px 0; color: #34495e; font-size: 15px; line-height: 1.7;">
-                      Goed nieuws! Je bestelling is zojuist verzonden en is nu onderweg naar jou. Je kunt je pakket binnen enkele werkdagen verwachten.
+                    <p style="color: #333333; font-size: 15px; line-height: 1.7; margin: 0 0 30px;">
+                      Goed nieuws! Je bestelling <strong>#${orderNumber}</strong> is zojuist verzonden en is nu onderweg naar jou. Je kunt je pakket binnen enkele werkdagen verwachten.
                     </p>
 
                     ${trackingHTML}
 
                     <!-- Shipping Address -->
-                    <div style="background-color: #f8f9fa; border-left: 4px solid #34495e; padding: 20px; margin-bottom: 30px;">
-                      <h3 style="color: #2c3e50; font-size: 16px; margin: 0 0 15px; font-weight: 600;">Verzendadres</h3>
-                      <p style="margin: 0; color: #34495e; font-size: 14px; line-height: 1.6;">
+                    <div style="background-color: #fef7f7; border-left: 4px solid #1a1a1a; padding: 20px; margin-bottom: 30px; border-radius: 4px;">
+                      <h3 style="color: #1a1a1a; font-size: 16px; margin: 0 0 15px; font-weight: 600;">Verzendadres</h3>
+                      <p style="margin: 0; color: #333333; font-size: 14px; line-height: 1.6;">
+                        ${customerName}<br>
                         ${order.address_line1}${order.address_line2 ? "<br>" + order.address_line2 : ""}<br>
                         ${order.postal_code} ${order.city}<br>
                         ${order.country}
@@ -114,16 +113,24 @@ function generateShippingEmailHTML(
                     </div>
 
                     <!-- Products -->
-                    <h3 style="color: #2c3e50; font-size: 16px; margin: 0 0 15px; font-weight: 600;">Producten in dit pakket</h3>
-                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px; border: 1px solid #ecf0f1; border-radius: 6px; overflow: hidden;">
-                      ${itemsHTML}
+                    <h2 style="color: #1a1a1a; font-size: 18px; margin: 0 0 20px; font-weight: 600; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px;">Producten in dit pakket</h2>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+                      <thead>
+                        <tr style="background-color: #1a1a1a;">
+                          <th style="padding: 12px; text-align: left; color: #ffffff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Product</th>
+                          <th style="padding: 12px; text-align: center; color: #ffffff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Aantal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${itemsHTML}
+                      </tbody>
                     </table>
 
-                    <p style="margin: 0 0 12px 0; color: #34495e; font-size: 15px; line-height: 1.7;">
-                      Heb je vragen over je verzending? Neem gerust contact met ons op via <a href="mailto:${fromEmail}" style="color: #34495e; text-decoration: underline;">${fromEmail}</a>
+                    <p style="color: #333333; font-size: 15px; line-height: 1.7; margin: 0 0 12px 0;">
+                      Heb je vragen over je verzending? Neem gerust contact met ons op via <a href="mailto:${fromEmail}" style="color: #1a1a1a; text-decoration: underline; font-weight: 500;">${fromEmail}</a>
                     </p>
                     
-                    <p style="margin: 0; color: #34495e; font-size: 15px; line-height: 1.7;">
+                    <p style="color: #333333; font-size: 15px; line-height: 1.7; margin: 0;">
                       Bedankt voor je aankoop bij FORMD!
                     </p>
                   </td>
@@ -131,12 +138,13 @@ function generateShippingEmailHTML(
                 
                 <!-- Footer -->
                 <tr>
-                  <td style="background-color: #2c3e50; padding: 30px 40px; text-align: center;">
-                    <p style="color: #ecf0f1; font-size: 16px; font-weight: 600; margin: 0 0 10px;">FORMD</p>
-                    <p style="color: #95a5a6; font-size: 13px; line-height: 1.6; margin: 0;">
+                  <td style="background-color: #fef7f7; padding: 30px 40px; text-align: center; border-top: 1px solid #f7e8e8;">
+                    <p style="color: #1a1a1a; font-size: 16px; font-weight: 600; margin: 0 0 15px;">FORMD</p>
+                    <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0;">
                       België<br>
-                      <a href="mailto:${fromEmail}" style="color: #95a5a6; text-decoration: none;">${fromEmail}</a>
+                      <a href="mailto:${fromEmail}" style="color: #666666; text-decoration: none;">${fromEmail}</a>
                     </p>
+                    <p style="color: #999999; font-size: 12px; margin: 15px 0 0; font-style: italic;">formd in steel</p>
                   </td>
                 </tr>
 

@@ -124,7 +124,8 @@ function extractAllPaths(dxfData: any, rawText?: string) {
               if (!ccw && startAngle < endAngle) startAngle += 2 * Math.PI;
               
               const curve = new THREE.EllipseCurve(cx, cy, r, r, startAngle, endAngle, !ccw, 0);
-              const divisions = Math.max(4, Math.min(16, Math.floor(theta * r / 5)));
+              const arcLen = Math.abs(theta * r);
+              const divisions = Math.max(8, Math.min(128, Math.floor(arcLen / 0.2)));
               const arcPts = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
               arcPts.shift(); // Verwijder startpunt (al toegevoegd)
               arcPts.pop();   // Verwijder eindpunt (wordt in volgende iteratie of close toegevoegd)
@@ -135,7 +136,7 @@ function extractAllPaths(dxfData: any, rawText?: string) {
             points.push(new THREE.Vector3(vertices[0].x, vertices[0].y, 0));
           }
         } else if (ent.type === 'CIRCLE') {
-          const divisions = Math.max(32, Math.min(128, Math.floor(ent.radius * 2)));
+          const divisions = Math.max(64, Math.min(512, Math.floor(ent.radius * 10)));
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, ent.radius, ent.radius, 0, 2 * Math.PI, false, 0);
           points = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
           
@@ -145,14 +146,15 @@ function extractAllPaths(dxfData: any, rawText?: string) {
           }
         } else if (ent.type === 'ARC') {
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, ent.radius, ent.radius, ent.startAngle, ent.endAngle, false, 0);
-          const divisions = Math.max(16, Math.min(64, Math.floor(Math.abs(ent.endAngle - ent.startAngle) * ent.radius)));
+          const arcLen = Math.abs(ent.endAngle - ent.startAngle) * ent.radius;
+          const divisions = Math.max(32, Math.min(256, Math.floor(arcLen / 0.2)));
           points = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
         } else if (ent.type === 'ELLIPSE') {
           const angle = Math.atan2(ent.majorAxisEndPoint.y, ent.majorAxisEndPoint.x);
           const rx = Math.sqrt(ent.majorAxisEndPoint.x*ent.majorAxisEndPoint.x + ent.majorAxisEndPoint.y*ent.majorAxisEndPoint.y);
           const ry = rx * ent.axisRatio;
           const curve = new THREE.EllipseCurve(ent.center.x, ent.center.y, rx, ry, ent.startAngle, ent.endAngle, false, angle);
-          const divisions = Math.max(32, Math.min(128, Math.floor(rx * 2)));
+          const divisions = Math.max(64, Math.min(256, Math.floor(rx * 10)));
           points = curve.getPoints(divisions).map(p => new THREE.Vector3(p.x, p.y, 0));
         } else if (ent.type === 'SPLINE') {
           if (ent.knotValues && ent.controlPoints) {
@@ -444,6 +446,7 @@ function CustomDesignModel({ width, length, thickness, materialType, dxfLayers, 
     return new THREE.ExtrudeGeometry(shapes, {
       depth: thickness,
       bevelEnabled: false,
+      curveSegments: 32,
     });
   }, [width, length, thickness, dxfLayers, layerSettings, invertCut]);
 

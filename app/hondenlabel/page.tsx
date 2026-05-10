@@ -156,6 +156,17 @@ export default function HondenlabelPage() {
     return base;
   };
 
+  const getSizeDescription = (sz: string, currentShape: string) => {
+    let baseW = 30;
+    let baseH = 30;
+    if (currentShape === 'botje') { baseW = 38; baseH = 18; }
+    else if (currentShape === 'rondje') { baseW = 30; baseH = 30; }
+    else if (currentShape === 'schild') { baseW = 30; baseH = 33; }
+
+    const multiplier = sz === 'klein' ? 0.75 : sz === 'groot' ? 1.25 : 1.0;
+    return `${Math.round(baseW * multiplier)} x ${Math.round(baseH * multiplier)} mm`;
+  };
+
   const handleAddToCart = () => {
     const unitPrice = calculatePrice();
     const materialName = materialType === 'inox' ? 'RVS' : 'Messing';
@@ -249,11 +260,14 @@ export default function HondenlabelPage() {
                       <button
                         key={sz}
                         onClick={() => setSize(sz)}
-                        className={`py-2 px-1 rounded-md border text-sm font-medium transition-colors uppercase ${
+                        className={`py-2 px-1 rounded-md border text-sm font-medium transition-colors flex flex-col items-center justify-center gap-1 ${
                           size === sz ? 'bg-black text-white border-black' : 'bg-transparent border-zinc-200 text-zinc-600 hover:bg-zinc-50'
                         }`}
                       >
-                        {sz}
+                        <span className="uppercase">{sz}</span>
+                        <span className={`text-[10px] font-normal tracking-wide ${size === sz ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                          {getSizeDescription(sz, shape)}
+                        </span>
                       </button>
                     ))}
                   </div>

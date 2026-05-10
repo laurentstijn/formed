@@ -14,11 +14,12 @@ interface DogTagProps {
   shape: string;
   materialType: string;
   frontText: string;
+  line2?: string;
   thickness: number;
   size: string;
 }
 
-function DogTagModel({ shape, materialType, frontText, thickness, size }: DogTagProps) {
+function DogTagModel({ shape, materialType, frontText, line2, thickness, size }: DogTagProps) {
   const materials = React.useMemo(() => ({
     inox: new THREE.MeshStandardMaterial({
       color: "#a8adb0",
@@ -97,25 +98,33 @@ function DogTagModel({ shape, materialType, frontText, thickness, size }: DogTag
   }, [shape, thickness]);
 
   const scaleMultiplier = size === 'klein' ? 0.75 : size === 'groot' ? 1.25 : 1.0;
+  
+  // Shift text to the right for botje to visually center it between hole and right edge
+  const textOffsetX = shape === 'botje' ? 2.5 : 0;
+  const hasTwoLines = !!line2;
+  const displayText = hasTwoLines ? `${frontText}\n${line2}` : frontText;
+  const fontSize = hasTwoLines ? 2.8 : 4;
 
   return (
     <group scale={[scaleMultiplier, scaleMultiplier, scaleMultiplier]}>
       <mesh geometry={geometry} material={activeMaterial} castShadow receiveShadow />
       
       {/* Front Text */}
-      {frontText && (
-        <group position={[0, 0, thickness + 0.35]}>
+      {(frontText || line2) && (
+        <group position={[textOffsetX, 0, thickness + 0.35]}>
           <Center>
             <Text
               font="/AllertaStencil-Regular.ttf"
-              fontSize={4}
+              fontSize={fontSize}
+              lineHeight={1.2}
+              textAlign="center"
               color="#111"
               anchorX="center"
               anchorY="middle"
               depthOffset={2}
             >
               <meshStandardMaterial color="#111" roughness={0.9} metalness={0.1} />
-              {frontText}
+              {displayText}
             </Text>
           </Center>
         </group>
@@ -132,6 +141,7 @@ export default function HondenlabelPage() {
   const [materialType, setMaterialType] = useState('inox');
   const [size, setSize] = useState('standaard');
   const [frontText, setFrontText] = useState('MAX');
+  const [line2, setLine2] = useState('');
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const quantities = [1, 2, 5, 10];
 
@@ -157,7 +167,7 @@ export default function HondenlabelPage() {
       quantity: selectedQuantity,
       image: '/placeholder.svg', // In a real app, generate snapshot
       color: materialName,
-      layer_settings: JSON.stringify({ frontText })
+      layer_settings: JSON.stringify({ frontText, line2 })
     });
     
     router.push('/cart');
@@ -257,12 +267,23 @@ export default function HondenlabelPage() {
                 </AccordionTrigger>
                 <AccordionContent className="pb-4 space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-zinc-500 uppercase">Naam / Tekst (Max 12 karakters)</label>
+                    <label className="text-xs font-semibold text-zinc-500 uppercase">Lijn 1 (Max 12 karakters)</label>
                     <input 
                       type="text" 
                       value={frontText} 
                       onChange={(e) => setFrontText(e.target.value.toUpperCase())}
                       maxLength={12}
+                      className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-500 uppercase">Lijn 2 (Optioneel, Max 12)</label>
+                    <input 
+                      type="text" 
+                      value={line2} 
+                      onChange={(e) => setLine2(e.target.value.toUpperCase())}
+                      maxLength={12}
+                      placeholder="Bijv. 0470 12 34 56"
                       className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-black"
                     />
                   </div>
@@ -319,6 +340,7 @@ export default function HondenlabelPage() {
                   shape={shape} 
                   materialType={materialType} 
                   frontText={frontText} 
+                  line2={line2}
                   thickness={1.5}
                   size={size}
                 />

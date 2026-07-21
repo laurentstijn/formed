@@ -4,8 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Achtergrond aangepast naar zeer zachte, subtiele blush roze tint */
-  --background: oklch(0.98 0.015 15);
+  /* Achtergrond aangepast naar zeer zachte, subtiele lichtblauwe tint */
+  --background: oklch(0.97 0.018 240);
   --foreground: oklch(0.205 0 0);
   /* Cards in bijna wit met een hint van roze */
   --card: oklch(0.99 0.01 15);

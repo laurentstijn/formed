@@ -1,5 +1,12 @@
+import type { Metadata } from "next"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+
+export const metadata: Metadata = {
+  title: "Over FORMD | Belgisch Metaalwerk Uit Antwerpen",
+  description:
+    "FORMD is een Antwerps merk voor laserbewerking en metalen woonaccessoires. Wij snijden, graveren en poedercoaten staal, RVS, aluminium en messing op maat.",
+}
 
 export default function AboutPage() {
   return (

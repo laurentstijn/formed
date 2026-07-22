@@ -19,8 +19,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "FORMD | Staal & RVS Op Maat Gesneden & Gegraveerd",
-  description: "Upload je DXF en bestel direct online. Wij snijden, graveren en poedercoaten plaatwerk in staal, RVS, aluminium, chroom en messing. Snel geleverd door FORMD.",
+  title: "FORMD | Metalen Accessoires & Laser Op Maat — Antwerpen",
+  description: "Koop strakke metalen woonaccessoires of upload je eigen DXF voor lasersnijden op maat. Staal, RVS, messing en aluminium. Snel geleverd vanuit Antwerpen.",
   keywords: ["DXF laseren", "staal op maat", "RVS snijden", "metaalbewerking", "poedercoaten", "aluminium laseren", "metaal graveren", "FORMD"],
   authors: [{ name: "FORMD" }],
   creator: "FORMD",

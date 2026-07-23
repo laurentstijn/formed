@@ -65,7 +65,7 @@ export function ProductGallery({ images, productName, isOutOfStock = false }: Pr
         <img
           src={images[selectedImage] || "/placeholder.svg"}
           alt={`${productName} - afbeelding ${selectedImage + 1}`}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
         />
 
         {isOutOfStock && (
@@ -112,7 +112,7 @@ export function ProductGallery({ images, productName, isOutOfStock = false }: Pr
               <img
                 src={image || "/placeholder.svg"}
                 alt={`${productName} thumbnail ${index + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </button>
           ))}

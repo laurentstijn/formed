@@ -83,7 +83,7 @@ export default function HomePage() {
       router.push("/douchegoot")
     } else if (nameLower.includes("naambordje")) {
       router.push("/naambordje")
-    } else if (nameLower.includes("hondenlabel") || nameLower.includes("dog tag")) {
+    } else if (nameLower.includes("hondenlabel") || nameLower.includes("dog tag") || nameLower.includes("label op maat")) {
       router.push("/hondenlabel")
     } else {
       router.push(`/product/${productId}`)
@@ -143,7 +143,7 @@ export default function HomePage() {
                             target.src = "/placeholder.svg"
                           }
                         }}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                       />
                       {isProductOutOfStock(product) && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">

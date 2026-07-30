@@ -57,7 +57,7 @@ export function ProductGallery({ images, productName, isOutOfStock = false }: Pr
     <div className="space-y-4">
       {/* Main Image with navigation */}
       <div
-        className="relative aspect-square bg-muted rounded-lg overflow-hidden group"
+        className="relative aspect-square bg-card rounded-lg overflow-hidden group"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}

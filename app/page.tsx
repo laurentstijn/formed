@@ -132,7 +132,7 @@ export default function HomePage() {
                   className="group cursor-pointer"
                 >
                   <div className="bg-card rounded-lg overflow-hidden border border-border transition-all hover:shadow-lg hover:border-foreground/20">
-                    <div className="aspect-square overflow-hidden bg-muted relative">
+                    <div className="aspect-square overflow-hidden bg-card relative">
                       <img
                         src={getDisplayImage(product) || "/placeholder.svg"}
                         alt={product.name}

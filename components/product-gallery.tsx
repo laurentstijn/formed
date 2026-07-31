@@ -8,10 +8,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 interface ProductGalleryProps {
   images: string[]
   productName: string
-  isOutOfStock?: boolean
 }
 
-export function ProductGallery({ images, productName, isOutOfStock = false }: ProductGalleryProps) {
+export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
@@ -67,12 +66,6 @@ export function ProductGallery({ images, productName, isOutOfStock = false }: Pr
           alt={`${productName} - afbeelding ${selectedImage + 1}`}
           className="w-full h-full object-contain"
         />
-
-        {isOutOfStock && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="text-white font-semibold text-lg">Uitverkocht</span>
-          </div>
-        )}
 
         {images.length > 1 && (
           <>

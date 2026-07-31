@@ -24,6 +24,7 @@ const VariantManagementPanel = dynamic(
   },
 )
 import { STANDARD_COLORS } from "@/lib/constants/colors"
+import { ImageCropDialog } from "@/components/image-crop-dialog"
 
 export default function ProductsManagement() {
   const [products, setProducts] = useState<Product[]>([])
@@ -31,6 +32,7 @@ export default function ProductsManagement() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [cropSource, setCropSource] = useState<{ file: File; url: string } | null>(null)
   const [draggedItem, setDraggedItem] = useState<number | null>(null)
   const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({})
   const [categories, setCategories] = useState<string[]>([])
@@ -150,16 +152,7 @@ export default function ProductsManagement() {
     }
   }
 
-  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const maxSize = 10 * 1024 * 1024 // 10MB
-    if (file.size > maxSize) {
-      toast.error("Afbeelding is te groot (max 10MB)")
-      return
-    }
-
+  const uploadGalleryFile = async (file: File) => {
     setUploading(true)
     try {
       const uploadFormData = new FormData()
@@ -184,6 +177,31 @@ export default function ProductsManagement() {
     } finally {
       setUploading(false)
     }
+  }
+
+  const handleGalleryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    if (file.size > maxSize) {
+      toast.error("Afbeelding is te groot (max 10MB)")
+      return
+    }
+
+    setCropSource({ file, url: URL.createObjectURL(file) })
+  }
+
+  const handleCropCancel = () => {
+    if (cropSource) URL.revokeObjectURL(cropSource.url)
+    setCropSource(null)
+  }
+
+  const handleCropConfirm = (croppedFile: File) => {
+    if (cropSource) URL.revokeObjectURL(cropSource.url)
+    setCropSource(null)
+    uploadGalleryFile(croppedFile)
   }
 
   const removeGalleryImage = (index: number) => {
@@ -420,8 +438,23 @@ export default function ProductsManagement() {
 
     try {
       if (editingProduct) {
+        const stockOf = (p: { stock?: number; colors?: { stock?: number }[] }) =>
+          p.colors && p.colors.length > 0
+            ? p.colors.reduce((sum, c) => sum + (c.stock || 0), 0)
+            : p.stock || 0
+        const wasOutOfStock = stockOf(editingProduct) <= 0
+        const isBackInStock = stockOf(productData) > 0
+
         await updateProduct(editingProduct.id, productData)
         toast.success("Product bijgewerkt!")
+
+        if (wasOutOfStock && isBackInStock) {
+          fetch("/api/notify-back-in-stock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productId: editingProduct.id }),
+          }).catch((err) => console.error("Error notifying subscribers:", err))
+        }
       } else {
         await createProduct(productData)
         toast.success("Product aangemaakt!")
@@ -1652,6 +1685,15 @@ export default function ProductsManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImageCropDialog
+        open={!!cropSource}
+        imageSrc={cropSource?.url ?? null}
+        fileName={cropSource?.file.name ?? "afbeelding.jpg"}
+        fileType={cropSource?.file.type ?? "image/jpeg"}
+        onCancel={handleCropCancel}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   )
 }

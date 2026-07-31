@@ -145,11 +145,6 @@ export default function HomePage() {
                         }}
                         className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                       />
-                      {isProductOutOfStock(product) && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                          <span className="text-white font-semibold text-lg">Uitverkocht</span>
-                        </div>
-                      )}
                       {product.is_new && !isProductOutOfStock(product) && (
                         <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
                           Nieuw

@@ -1,10 +1,12 @@
 "use client"
 
+import type React from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useCart } from "@/components/cart-provider"
 import type { Product } from "@/lib/products"
 import type { ProductVariant } from "@/lib/supabase/variants"
-import { ShoppingCart, Check, AlertCircle, ArrowRight, Package } from "lucide-react"
+import { ShoppingCart, Check, ArrowRight, Package, Bell } from "lucide-react"
 import { useState } from "react"
 import {
   Dialog,
@@ -30,6 +32,8 @@ export function AddToCartButton({
   const { addItem } = useCart()
   const [added, setAdded] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
+  const [notifyEmail, setNotifyEmail] = useState("")
+  const [notifyStatus, setNotifyStatus] = useState<"idle" | "submitting" | "success" | "error">("idle")
   const router = useRouter()
 
   const stock = availableStock !== undefined ? availableStock : product.stock
@@ -61,12 +65,51 @@ export function AddToCartButton({
     router.push("/checkout")
   }
 
+  const handleNotifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (notifyStatus === "submitting") return
+    setNotifyStatus("submitting")
+    try {
+      const response = await fetch("/api/stock-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id, email: notifyEmail }),
+      })
+      if (!response.ok) throw new Error("Inschrijven mislukt")
+      setNotifyStatus("success")
+    } catch {
+      setNotifyStatus("error")
+    }
+  }
+
   if (isOutOfStock) {
+    if (notifyStatus === "success") {
+      return (
+        <p className="w-full md:w-auto text-sm text-muted-foreground flex items-center gap-2">
+          <Check className="h-4 w-4" />
+          Bedankt! We laten je weten zodra dit product terug beschikbaar is.
+        </p>
+      )
+    }
+
     return (
-      <Button size="lg" className="w-full md:w-auto px-8" disabled>
-        <AlertCircle className="mr-2 h-5 w-5" />
-        Niet op voorraad
-      </Button>
+      <form onSubmit={handleNotifySubmit} className="w-full md:w-auto flex flex-col sm:flex-row gap-2">
+        <Input
+          type="email"
+          required
+          placeholder="jouw@email.be"
+          value={notifyEmail}
+          onChange={(e) => setNotifyEmail(e.target.value)}
+          className="sm:w-64"
+        />
+        <Button type="submit" size="lg" className="px-8 shrink-0" disabled={notifyStatus === "submitting"}>
+          <Bell className="mr-2 h-5 w-5" />
+          {notifyStatus === "submitting" ? "Bezig..." : "Verwittig mij"}
+        </Button>
+        {notifyStatus === "error" && (
+          <p className="text-sm text-destructive sm:self-center">Er ging iets mis, probeer opnieuw.</p>
+        )}
+      </form>
     )
   }
 

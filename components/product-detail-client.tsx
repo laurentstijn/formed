@@ -137,12 +137,7 @@ export function ProductDetailClient({ product, productUrl, variants }: ProductDe
         <p className="text-muted-foreground leading-relaxed mb-8">{product.description}</p>
 
         <div className="mb-6">
-          {availableStock === 0 ? (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              <p className="font-semibold">Uitverkocht</p>
-              <p className="text-sm">Dit product is momenteel niet op voorraad.</p>
-            </div>
-          ) : availableStock !== undefined && availableStock <= 5 ? (
+          {availableStock === 0 ? null : availableStock !== undefined && availableStock <= 5 ? (
             <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded-lg">
               <p className="text-sm">Nog maar {availableStock} stuks op voorraad</p>
             </div>
@@ -197,7 +192,7 @@ export function ProductDetailClient({ product, productUrl, variants }: ProductDe
         )}
 
         <div className="md:hidden mb-8">
-          <ProductGallery images={displayImages} productName={product.name} isOutOfStock={availableStock === 0} />
+          <ProductGallery images={displayImages} productName={product.name} />
         </div>
 
         {product.name === "Gepersonaliseerde Douchegoot" ? (
@@ -258,7 +253,7 @@ export function ProductDetailClient({ product, productUrl, variants }: ProductDe
       </div>
 
       <div className="hidden md:block md:order-1">
-        <ProductGallery images={displayImages} productName={product.name} isOutOfStock={availableStock === 0} />
+        <ProductGallery images={displayImages} productName={product.name} />
       </div>
     </div>
   )

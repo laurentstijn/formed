@@ -50,7 +50,7 @@ export function ProfessionalOrderEmail({ order, customer, companyInfo }: Profess
                 <tr>
                   <td style="background: linear-gradient(135deg, #fef7f7 0%, #fef5f6 100%); padding: 40px 40px 30px; text-align: center; border-bottom: 3px solid #1a1a1a;">
                     <img src="${logoUrl}" alt="FORMD" style="max-width: 220px; height: auto; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">
-                    <p style="color: #666666; font-size: 13px; margin: 0; font-style: italic; letter-spacing: 1px;">formd in steel</p>
+                    <p style="color: #666666; font-size: 13px; margin: 0; font-style: italic; letter-spacing: 1px;">steel formd in antwerp</p>
                   </td>
                 </tr>
 
@@ -165,7 +165,7 @@ export function ProfessionalOrderEmail({ order, customer, companyInfo }: Profess
                       <a href="mailto:${companyInfo.email}" style="color: #666666; text-decoration: none;">${companyInfo.email}</a> | 
                       <a href="tel:${companyInfo.phone}" style="color: #666666; text-decoration: none;">${companyInfo.phone}</a>
                     </p>
-                    <p style="color: #999999; font-size: 12px; margin: 15px 0 0; font-style: italic;">formd in steel</p>
+                    <p style="color: #999999; font-size: 12px; margin: 15px 0 0; font-style: italic;">steel formd in antwerp</p>
                   </td>
                 </tr>
 

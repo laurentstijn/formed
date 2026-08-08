@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
                   <p style="margin-top: 30px;">Met vriendelijke groet,<br><strong>Team FORMD</strong></p>
                 </div>
                 <div class="footer">
-                  <p>FORMD - formd in steel</p>
+                  <p>FORMD - steel formd in antwerp</p>
                   <p>E-mail: info@formd.be</p>
                 </div>
               </div>

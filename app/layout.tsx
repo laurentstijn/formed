@@ -47,7 +47,7 @@ export const metadata: Metadata = {
         url: "/og-image.png?v=3",
         width: 1200,
         height: 630,
-        alt: "FORMD - formd in steel",
+        alt: "FORMD - steel formd in antwerp",
       },
     ],
   },

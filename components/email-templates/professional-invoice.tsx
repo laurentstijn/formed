@@ -54,7 +54,7 @@ export function ProfessionalInvoice({ order, invoiceNumber, customer, companyInf
           <tr>
             <td width="50%" style="vertical-align: top;">
               <img src="${logoUrl}" alt="FORMD" style="max-width: 200px; height: auto; margin-bottom: 10px; display: block;">
-              <p style="margin: 0; color: #888888; font-size: 12px; font-style: italic; letter-spacing: 1px;">formd in steel</p>
+              <p style="margin: 0; color: #888888; font-size: 12px; font-style: italic; letter-spacing: 1px;">steel formd in antwerp</p>
             </td>
             <td width="50%" style="vertical-align: top; text-align: right;">
               <h1 style="margin: 0 0 10px; color: #1a1a1a; font-size: 36px; font-weight: 700;">FACTUUR</h1>
@@ -180,7 +180,7 @@ export function ProfessionalInvoice({ order, invoiceNumber, customer, companyInf
             <a href="tel:${companyInfo.phone}" style="color: #666666; text-decoration: none;">${companyInfo.phone}</a>
           </p>
           <p style="margin: 15px 0 0; color: #999999; font-size: 11px; font-style: italic;">
-            formd in steel
+            steel formd in antwerp
           </p>
         </div>
 

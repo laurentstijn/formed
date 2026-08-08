@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
     <div class="header">
       <div class="logo-section">
         <h1>FORMD</h1>
-        <p class="tagline">formd in steel</p>
+        <p class="tagline">steel formd in antwerp</p>
       </div>
       <div class="invoice-meta">
         <div class="invoice-title">FACTUUR</div>
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
       <p><strong>FORMD</strong></p>
       <p>${settings?.company_address || "Bedrijfsstraat 123"} | BTW: ${settings?.vat_number || "BE0123456789"}</p>
       <p>${settings?.email || "info@formd.be"} | ${settings?.phone || "+32 123 45 67 89"}</p>
-      <p style="margin-top: 10px;"><em>formd in steel</em></p>
+      <p style="margin-top: 10px;"><em>steel formd in antwerp</em></p>
     </div>
   </div>
 </body>

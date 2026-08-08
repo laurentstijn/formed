@@ -192,7 +192,6 @@ export async function createProduct(product: Omit<Product, "id" | "created_at" |
       colors: product.colors || [],
       gallery_images: product.gallery_images || [],
       technical_drawing_url: product.technical_drawing || null,
-      main_image_source: product.main_image_source || null,
       // Note: variants excluded due to schema cache issues
     })
     .select()

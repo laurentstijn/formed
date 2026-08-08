@@ -170,6 +170,7 @@ export default function ProductsManagement() {
       setFormData((prev) => ({
         ...prev,
         gallery_images: [...prev.gallery_images, url],
+        image: prev.image || url,
       }))
       toast.success("Afbeelding toegevoegd aan gallery")
     } catch (error) {

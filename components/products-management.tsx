@@ -344,8 +344,10 @@ export default function ProductsManagement() {
   }
 
   const getTotalStock = (product: Product) => {
-    if (!product.colors || !Array.isArray(product.colors)) return 0
-    return product.colors.filter((color) => color != null).reduce((sum, color) => sum + (color?.stock || 0), 0)
+    if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
+      return product.colors.filter((color) => color != null).reduce((sum, color) => sum + (color?.stock || 0), 0)
+    }
+    return product.stock || 0
   }
 
   const handleColorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, colorIndex: number) => {

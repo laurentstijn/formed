@@ -19,6 +19,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.formd.be"),
   title: "FORMD | Metalen Accessoires & Laser Op Maat — Antwerpen",
   description: "Koop strakke metalen woonaccessoires of upload je eigen DXF voor lasersnijden op maat. Staal, RVS, messing en aluminium. Snel geleverd vanuit Antwerpen.",
   keywords: ["DXF laseren", "staal op maat", "RVS snijden", "metaalbewerking", "poedercoaten", "aluminium laseren", "metaal graveren", "FORMD"],
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "nl_BE",
-    url: "https://formd.be",
+    url: "https://www.formd.be",
     title: "FORMD | Metalen Accessoires & Laser Op Maat — Antwerpen",
     description: "Koop strakke metalen woonaccessoires of upload je eigen DXF voor lasersnijden op maat. Staal, RVS, messing en aluminium. Snel geleverd vanuit Antwerpen.",
     siteName: "FORMD",

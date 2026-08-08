@@ -66,7 +66,6 @@ export default function ProductsManagement() {
     materials: "",
     dimensions: "",
     main_image_source: "" as string,
-    isNew: false,
   })
 
   const addCategory = () => {
@@ -391,8 +390,8 @@ export default function ProductsManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.name || !formData.price) {
-      toast.error("Naam en prijs zijn verplicht!")
+    if (!formData.name) {
+      toast.error("Naam is verplicht!")
       return
     }
 
@@ -422,7 +421,7 @@ export default function ProductsManagement() {
 
     const productData = {
       name: formData.name,
-      price: Number.parseFloat(formData.price),
+      price: Number.parseFloat(formData.price) || 0,
       image: formData.image || "",
       gallery_images: formData.gallery_images,
       technical_drawing: formData.technical_drawing,
@@ -1161,7 +1160,7 @@ export default function ProductsManagement() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="price">Prijs (€) *</Label>
+                      <Label htmlFor="price">Prijs (€)</Label>
                       <Input
                         id="price"
                         type="number"

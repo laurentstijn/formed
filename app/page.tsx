@@ -58,13 +58,6 @@ export default function HomePage() {
     return product.image
   }
 
-  const isProductOutOfStock = (product: any) => {
-    if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
-      return product.colors.every((color: any) => !color?.stock || color.stock === 0)
-    }
-    return product.stock === 0
-  }
-
   const getProductStock = (product: any) => {
     if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
       return product.colors.reduce((total: number, color: any) => {
@@ -145,7 +138,7 @@ export default function HomePage() {
                         }}
                         className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                       />
-                      {product.is_new && !isProductOutOfStock(product) && (
+                      {product.is_new && (
                         <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
                           Nieuw
                         </div>

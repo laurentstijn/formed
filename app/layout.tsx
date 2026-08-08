@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     siteName: "FORMD",
     images: [
       {
-        url: "/og-image.png?v=3",
+        url: "/og-image.png?v=4",
         width: 1200,
         height: 630,
         alt: "FORMD - steel formd in antwerp",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "FORMD | Metalen Accessoires & Laser Op Maat — Antwerpen",
     description: "Koop strakke metalen woonaccessoires of upload je eigen DXF voor lasersnijden op maat. Staal, RVS, messing en aluminium.",
-    images: ["/og-image.png?v=3"],
+    images: ["/og-image.png?v=4"],
   },
   robots: {
     index: true,
